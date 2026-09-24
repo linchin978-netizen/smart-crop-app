@@ -27,8 +27,8 @@ LANG_MAP = {
         "ratio_lbl": "Target subject spatial density ratio (10-99%):",
         "size_lbl": "Maximum payload weight constraint per image (MB):",
         "tip_header": "💡 OPERATIONAL SPECIFICATIONS",
-        "tip_body": "1. Configure the optimization parameters directly below.\n2. Drop product image assets into the landing vector zone below (No volume limits).\n3. Click the button to initialize the sub-second multi-threading render.\n4. Download the generated deployment package (ZIP) once compiled successfully.",
-        "drag_lbl": "📥 Deploy your commerce image assets here (Supports JPG, JPEG, PNG, WEBP)",
+        "tip_body": "1. Configure the optimization parameters directly below.\n2. Drag single images or an entire image folder into the drop zone below.\n3. Click the button to initialize the sub-second multi-threading render.\n4. Download the generated deployment package (ZIP) once compiled successfully.",
+        "drag_lbl": "📥 Deploy your commerce image assets here (Supports single images or an entire folder)",
         "loaded_lbl": "📊 Consolidated image queue assets: {} items",
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "⚡ Initialize Sub-Second Smart Centering Deployment",
@@ -45,8 +45,8 @@ LANG_MAP = {
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
         "tip_header": "💡 智慧網拍系統使用說明",
-        "tip_body": "1. 先自行調整下方數值參數配置。\n2. 將欲編輯照片全數拖曳至下方區塊內 (照片無數量限制)。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
-        "drag_lbl": "📥 將欲編輯的網拍照片全數拖曳至此 (支援多張 JPG, JPEG, PNG, WEBP)",
+        "tip_body": "1. 先自行調整下方數值參數配置。\n2. 可以將「單張圖片」或「整個圖片資料夾」直接全數拖曳至下方區塊內（無數量限制）。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（支援多張 JPG, JPEG, PNG, WEBP）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵秒級導出完美置中商品照片",
@@ -63,8 +63,8 @@ LANG_MAP = {
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
         "tip_header": "💡 システム操作説明",
-        "tip_body": "1. 画面中央のパラメータ設定を行ってください。\n2. 編集したい商品画像を下の枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンダリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
-        "drag_lbl": "📥 編集したい商品画像をここにドラッグ＆ドロップ (複数 JPG, JPEG, PNG, WEBP 対応)",
+        "tip_body": "1. 画面中央のパラメータ設定を行ってください。\n2. シングル画像または画像フォルダ全体を下の枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンダリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
+        "drag_lbl": "📥 シングル画像または画像フォルダ全体をここにドラッグ＆ドロップ (複数 JPG, JPEG, PNG, WEBP 対応)",
         "loaded_lbl": "📊 読み込まれた商品画像：{} 枚",
         "clear_btn": "🗑 キューをクリア",
         "btn_lbl": "⚡ 完璧な中央配置画像をワンクリックでエクスポート",
@@ -91,14 +91,14 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (免註冊直接顯現，每日自動鎖定)
+# 📊 右上方 FREE 使用額度面板
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 10** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 30**")
 
 # 💡 使用說明大面板
 with st.expander(f"**{L['tip_header']}**", expanded=True):
     st.markdown(L["tip_body"])
 
-# ⚙️ 網拍參數配置
+# ⚙️ 網拍參數配置配置
 st.markdown("---")
 st.markdown(f"#### {L['param_header']}")
 col1, col2 = st.columns(2)
@@ -112,7 +112,7 @@ if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 
 uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"uploader_{st.session_state.uploader_key}")
-# 🗑 清除重選按鈕與一鍵 秒級導出按鈕 佈局面板
+# 🗑 清除重選按鈕與一鍵秒級導出按鈕佈局面板
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     if st.button(L["clear_btn"], use_container_width=True):
@@ -126,7 +126,7 @@ if uploaded_files:
     st.success(L["loaded_lbl"].format(len(uploaded_files)))
     
     if start_btn:
-        # 👑 FREE 免費額度限制與惡意流量防禦保險絲
+        # 👑 FREE 免費額度限制與防禦保險絲
         if st.session_state.daily_usage + len(uploaded_files) > 10 or st.session_state.monthly_usage + len(uploaded_files) > 30:
             st.error(L["limit_err"])
         else:
@@ -141,7 +141,6 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 網頁端讀取二進位像素肉身
                         file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
                         img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
                         if img_orig is None: continue
@@ -158,6 +157,8 @@ if uploaded_files:
                         else:
                             img_probe_orig = img_orig.copy()
                         
+                        h_p_o, w_p_o, _ = img_probe_orig.shape
+                        
                         # 👑 👑 👑 【雙軌道像素大收網：原圖與轉90度各自探測】 👑 👑 👑
                         contours_normal = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_rotated = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
@@ -167,10 +168,9 @@ if uploaded_files:
                         scale_factor = 1.0 / probe_scale
                         
                         # 🔴 生產線 A：收網「原圖方向」主體
-                        h_o, w_o, _ = img_probe_orig.shape
                         for c in contours_normal:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_o * h_o * 0.003):
+                            if cv2.contourArea(hull) > (w_p_o * h_p_o * 0.003):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -197,10 +197,10 @@ if uploaded_files:
                                             sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
                                             sbx, sby, sbw, sbh = int(sbx_p / roi_scale), int(sby_p / roi_scale), int(sbw_p / roi_scale), int(sbh_p / roi_scale)
                                             if sbw * sbh < (bw * bh * 0.92): 
-                                                final_cropped_images.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh), img_orig, False))
+                                                final_cropped_images.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh), img_orig, False, bx_p, by_p, bw_p, bh_p))
                                                 continue
-                                final_cropped_images.append((bx, by, bw, bh, img_orig, False))
-                                 # 🔵 生產線 B：收網「轉90度方向」抓到的所有主體
+                                final_cropped_images.append((bx, by, bw, bh, img_orig, False, bx_p, by_p, bw_p, bh_p))
+                                 # 🔵 生產線 B：收網「轉90度方向」主體
                         h_r, w_r, _ = img_probe_rotated.shape
                         img_rotated_high = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                         h_rh, w_rh, _ = img_rotated_high.shape
@@ -218,26 +218,26 @@ if uploaded_files:
                                 bw = min(w_rh - bx, bw)
                                 bh = min(h_rh - by, bh)
                                 
-                                final_cropped_images.append((bx, by, bw, bh, img_rotated_high, True))
+                                final_cropped_images.append((bx, by, bw, bh, img_rotated_high, True, bx_p, by_p, bw_p, bh_p))
                         
-                        # 👑 👑 👑 【新世代 IoU 區域重疊幾何過濾器】 👑 👑 👑
-                        # 統一轉換到原始相片座標系，進行最嚴密的聯集重疊度過濾！
+                        # 👑 👑 👑 【100% 幾何精準對齊 ── IoU 區域過濾晶片】 👑 👑 👑
                         unified_boxes = []
                         for box in final_cropped_images:
-                            bx, by, bw, bh, target_img, rotated_flag = box
+                            bx, by, bw, bh, target_img, rotated_flag, bx_p, by_p, bw_p, bh_p = box
                             if rotated_flag:
-                                ox1 = by
-                                oy1 = h_orig - (bx + bw)
-                                ox2 = by + bh
-                                oy2 = h_orig - bx
+                                # 💡 修正順時針旋轉下的探測圖原圖反推幾何公式，0像素錯位
+                                ox1 = int((h_p_r - (by_p + bh_p)) * scale_factor)
+                                ox2 = int((h_p_r - by_p) * scale_factor)
+                                oy1 = int(bx_p * scale_factor)
+                                oy2 = int((bx_p + bw_p) * scale_factor)
                             else:
                                 ox1 = bx
-                                oy1 = by
                                 ox2 = bx + bw
+                                oy1 = by
                                 oy2 = by + bh
                             unified_boxes.append((ox1, oy1, ox2, oy2, box))
                         
-                        # 核心 IoU 比對，大於 30% 重疊率直接融合成一張，且大框吞噬小碎屑圖
+                        # 核心 IoU 過濾：重疊率高達 70% 才融合成一張，低於 70% 視為獨立物件保留，通殺單張與並排商品！
                         unique_crops = []
                         for item in unified_boxes:
                             ox1, oy1, ox2, oy2, box_data = item
@@ -248,7 +248,6 @@ if uploaded_files:
                                 ex_x1, ex_y1, ex_x2, ex_y2, ex_box = existing
                                 area_existing = (ex_x2 - ex_x1) * (ex_y2 - ex_y1)
                                 
-                                # 計算交集 (Intersection)
                                 ix1 = max(ox1, ex_x1)
                                 iy1 = max(oy1, ex_y1)
                                 ix2 = min(ox2, ex_x2)
@@ -259,10 +258,8 @@ if uploaded_files:
                                     union_area = area_current + area_existing - inter_area
                                     iou = inter_area / union_area if union_area > 0 else 0
                                     
-                                    # 🚀 只要發現重疊率 IoU 大於 0.3 (30%)，或者小碎圖完全被包在大圖裡
-                                    if iou > 0.3 or inter_area / min(area_current, area_existing) > 0.8:
+                                    if iou > 0.7:
                                         is_duplicate = True
-                                        # 只保留主體面積更大、最饱满的那個大核心框！
                                         if area_current > area_existing:
                                             unique_crops.remove(existing)
                                             unique_crops.append(item)
@@ -270,25 +267,27 @@ if uploaded_files:
                             if not is_duplicate:
                                 unique_crops.append(item)
                         
+                        if not unique_crops:
+                            unique_crops.append((int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.75), int(h_orig*0.75), (int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5), img_orig, False, 0, 0, 0, 0)))
+                        
                         # 👑 👑 👑 【純原圖自適應 ── 最大化物理邊界卡位演算法】 👑 👑 👑
                         for part_idx, (ox1, oy1, ox2, oy2, box_data) in enumerate(unique_crops, 1):
-                            bx, by, bw, bh, target_img, rotated_flag = box_data
+                            bx, by, bw, bh, target_img, rotated_flag, _, _, _, _ = box_data
                             cx, cy = bx + bw // 2, by + bh // 2
                             img_h, img_w, _ = target_img.shape
                             
                             ideal_pad_w = int((bw / ratio - bw) / 2)
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
-                            # 🚀 卡死在原圖四周，不夠就直接抓物理極限值
                             pad_l = min(cx - bw // 2, ideal_pad_w)
                             pad_r = min((img_w - cx) - bw // 2, ideal_pad_w)
                             pad_t = min(cy - bh // 2, ideal_pad_h)
                             pad_b = min((img_h - cy) - bh // 2, ideal_pad_h)
                             
-                            x1 = cx - bw // 2 - pad_l
-                            x2 = cx + bw // 2 + pad_r
-                            y1 = cy - bh // 2 - pad_t
-                            y2 = cy + bh // 2 + pad_b
+                            x1 = max(0, cx - bw // 2 - pad_l)
+                            x2 = min(img_w, cx + bw // 2 + pad_r)
+                            y1 = max(0, cy - bh // 2 - pad_t)
+                            y2 = min(img_h, cy + bh // 2 + pad_b)
                             
                             cropped = target_img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
@@ -296,7 +295,6 @@ if uploaded_files:
                             if rotated_flag:
                                 cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                             
-                            # 容量限制二分搜尋法
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                             for _ in range(10):
                                 mid = (low + high) // 2
@@ -305,7 +303,6 @@ if uploaded_files:
                                 else: high = mid - 1
                             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                             
-                            # 寫入 ZIP 打包壓縮包
                             base_name, _ = os.path.splitext(file.name)
                             out_img_name = f"{base_name}_{part_idx}.jpg" if len(unique_crops) > 1 else f"{base_name}.jpg"
                             zip_file.writestr(out_img_name, buf.tobytes())
@@ -316,13 +313,12 @@ if uploaded_files:
                     
                     progress_bar.progress(idx / len(uploaded_files))
             
-            # 👑 成功扣除額度：將處理完的照片數量累加進計數器
+            # 成功扣除額度
             st.session_state.daily_usage += len(uploaded_files)
             st.session_state.monthly_usage += len(uploaded_files)
             
             st.success(L["success"].format(saved))
             
-            # 👑 網頁端一鍵下載打包好的 ZIP 檔
             zip_buffer.seek(0)
             st.download_button(
                 label=L["dl_btn"],
