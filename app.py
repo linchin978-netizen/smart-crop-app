@@ -59,7 +59,7 @@ LANG_MAP = {
     "日本語": {
         "title": "⚡ NEXUS CROP — AI 高速EC商品画像自動中央配置システム",
         "subtitle": "次世代オブジェクト認識テクノロジー ── 純粋画素境界クラウドエンジン",
-        "param_header": "⚙️ 最適化パラメータ設定",
+        "param_header": "⚙️ パラメータ最適化設定",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
         "tip_header": "💡 システム操作説明",
@@ -78,7 +78,7 @@ LANG_MAP = {
 
 st.set_page_config(page_title="NEXUS CROP — AI Edition", page_icon="⚡", layout="centered")
 
-# 👑 額度計數晶片：初始化 Session State 狀態機
+# 👑 額度狀態機計數晶片
 if "daily_usage" not in st.session_state:
     st.session_state.daily_usage = 0
 if "monthly_usage" not in st.session_state:
@@ -91,14 +91,14 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板
+# 📊 右上方 FREE 使用額度面板 (免註冊直接顯現，每日自動鎖定)
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 10** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 30**")
 
-# 💡 使用說明移回正中央大面板
+# 💡 使用說明大面板
 with st.expander(f"**{L['tip_header']}**", expanded=True):
     st.markdown(L["tip_body"])
 
-# ⚙️ 網拍參數配置移回中央面板
+# ⚙️ 網拍參數配置
 st.markdown("---")
 st.markdown(f"#### {L['param_header']}")
 col1, col2 = st.columns(2)
@@ -108,7 +108,6 @@ with col1:
 with col2:
     t_mb = st.number_input(L["size_lbl"], min_value=0.1, max_value=10.0, value=2.0, step=0.5)
 
-# 📥 網頁拖曳上傳方框 (加入清除重選鍵連動)
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 
@@ -116,7 +115,6 @@ uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "we
 # 🗑 清除重選按鈕與一鍵 秒級導出按鈕 佈局面板
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
-    # 👑 加回中央【清除重選按鈕】：一鍵觸發 Key 值重新加載，乾淨清空網頁拖曳框！
     if st.button(L["clear_btn"], use_container_width=True):
         st.session_state.uploader_key += 1
         st.rerun()
@@ -128,7 +126,7 @@ if uploaded_files:
     st.success(L["loaded_lbl"].format(len(uploaded_files)))
     
     if start_btn:
-        # 👑 FREE 額度檢查保險絲
+        # 👑 FREE 免費額度限制與惡意流量防禦保險絲
         if st.session_state.daily_usage + len(uploaded_files) > 10 or st.session_state.monthly_usage + len(uploaded_files) > 30:
             st.error(L["limit_err"])
         else:
@@ -172,7 +170,7 @@ if uploaded_files:
                         h_o, w_o, _ = img_probe_orig.shape
                         for c in contours_normal:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_o * h_o * 0.0003):
+                            if cv2.contourArea(hull) > (w_o * h_o * 0.003):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -202,14 +200,14 @@ if uploaded_files:
                                                 final_cropped_images.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh), img_orig, False))
                                                 continue
                                 final_cropped_images.append((bx, by, bw, bh, img_orig, False))
-                                                        # 🔵 生產線 B：收網「轉90度方向」主體
+                                 # 🔵 生產線 B：收網「轉90度方向」抓到的所有主體
                         h_r, w_r, _ = img_probe_rotated.shape
                         img_rotated_high = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                         h_rh, w_rh, _ = img_rotated_high.shape
                         
                         for c in contours_rotated:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_r * h_r * 0.0003):
+                            if cv2.contourArea(hull) > (w_r * h_r * 0.003):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -222,35 +220,59 @@ if uploaded_files:
                                 
                                 final_cropped_images.append((bx, by, bw, bh, img_rotated_high, True))
                         
-                        # 🧠 智慧去重複過濾器：比對中心點坐標，如果是同個物件，只留面積最完整的！
-                        unique_crops = []
+                        # 👑 👑 👑 【新世代 IoU 區域重疊幾何過濾器】 👑 👑 👑
+                        # 統一轉換到原始相片座標系，進行最嚴密的聯集重疊度過濾！
+                        unified_boxes = []
                         for box in final_cropped_images:
                             bx, by, bw, bh, target_img, rotated_flag = box
                             if rotated_flag:
-                                cx_orig = by + bh // 2
-                                cy_orig = h_orig - (bx + bw // 2)
+                                ox1 = by
+                                oy1 = h_orig - (bx + bw)
+                                ox2 = by + bh
+                                oy2 = h_orig - bx
                             else:
-                                cx_orig = bx + bw // 2
-                                cy_orig = by + bh // 2
+                                ox1 = bx
+                                oy1 = by
+                                ox2 = bx + bw
+                                oy2 = by + bh
+                            unified_boxes.append((ox1, oy1, ox2, oy2, box))
+                        
+                        # 核心 IoU 比對，大於 30% 重疊率直接融合成一張，且大框吞噬小碎屑圖
+                        unique_crops = []
+                        for item in unified_boxes:
+                            ox1, oy1, ox2, oy2, box_data = item
+                            area_current = (ox2 - ox1) * (oy2 - oy1)
                             
                             is_duplicate = False
                             for existing in unique_crops:
-                                ex_cx, ex_cy, ex_w, ex_h, _, _ = existing
-                                if abs(cx_orig - ex_cx) < (w_orig * 0.05) and abs(cy_orig - ex_cy) < (h_orig * 0.05):
-                                    is_duplicate = True
-                                    if (bw * bh) > (ex_w * ex_h):
-                                        unique_crops.remove(existing)
-                                        unique_crops.append((cx_orig, cy_orig, bw, bh, box, rotated_flag))
-                                    break
+                                ex_x1, ex_y1, ex_x2, ex_y2, ex_box = existing
+                                area_existing = (ex_x2 - ex_x1) * (ex_y2 - ex_y1)
+                                
+                                # 計算交集 (Intersection)
+                                ix1 = max(ox1, ex_x1)
+                                iy1 = max(oy1, ex_y1)
+                                ix2 = min(ox2, ex_x2)
+                                iy2 = min(oy2, ex_y2)
+                                
+                                if ix2 > ix1 and iy2 > iy1:
+                                    inter_area = (ix2 - ix1) * (iy2 - iy1)
+                                    union_area = area_current + area_existing - inter_area
+                                    iou = inter_area / union_area if union_area > 0 else 0
+                                    
+                                    # 🚀 只要發現重疊率 IoU 大於 0.3 (30%)，或者小碎圖完全被包在大圖裡
+                                    if iou > 0.3 or inter_area / min(area_current, area_existing) > 0.8:
+                                        is_duplicate = True
+                                        # 只保留主體面積更大、最饱满的那個大核心框！
+                                        if area_current > area_existing:
+                                            unique_crops.remove(existing)
+                                            unique_crops.append(item)
+                                        break
                             if not is_duplicate:
-                                unique_crops.append((cx_orig, cy_orig, bw, bh, box, rotated_flag))
-                        
-                        if not unique_crops:
-                            unique_crops.append((int(w_orig/2), int(h_orig/2), int(w_orig*0.5), int(w_orig*0.5), (int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5), img_orig, False), False))
+                                unique_crops.append(item)
                         
                         # 👑 👑 👑 【純原圖自適應 ── 最大化物理邊界卡位演算法】 👑 👑 👑
-                        for part_idx, (cx_o, cy_o, _, _, box_data, rotated_flag) in enumerate(unique_crops, 1):
-                            bx, by, bw, bh, target_img, _ = box_data
+                        for part_idx, (ox1, oy1, ox2, oy2, box_data) in enumerate(unique_crops, 1):
+                            bx, by, bw, bh, target_img, rotated_flag = box_data
                             cx, cy = bx + bw // 2, by + bh // 2
                             img_h, img_w, _ = target_img.shape
                             
