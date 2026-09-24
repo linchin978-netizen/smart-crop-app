@@ -112,7 +112,6 @@ if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 
 uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"uploader_{st.session_state.uploader_key}")
-
 # 🗑 清除重選按鈕與一鍵秒級導出按鈕佈局面板
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
@@ -160,18 +159,35 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 👑 👑 【雙軌道像素大收網：原圖與轉90度各自探測】 👑 👑 👑
+                        # 👑 👑 👑 【第一關 ── AI 盲測面積最大化智慧分流大腦】 👑 👑 👑
+                        # 兩邊各探測一次，交給大腦做單一軌道死鎖，徹底消滅重複圖！
                         contours_normal = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_rotated = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_rotated = get_ai_bounding_boxes(img_probe_rotated)
                         
-                        final_cropped_images = []
-                        scale_factor = 1.0 / probe_scale
+                        # 計算兩邊各自抓到的有效主體總面積
+                        area_normal = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.003))
+                        h_r, w_r, _ = img_probe_rotated.shape
+                        area_rotated = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.003))
                         
-                        # 🔴 生產線 A：收網「原圖方向」主體
-                        for c in contours_normal:
+                        # 🧠 智慧決策分流：如果翻轉後的總主體特徵明顯更巨大、更飽滿（代表是轉壞的相片或 5張卡片）
+                        # 否則（包含標準單張相片、3直排卡片），旋轉軌道直接死鎖，100% 走 A 生產線！
+                        if area_rotated > (area_normal * 1.2):
+                            img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+                            contours = contours_rotated
+                            is_rotated_for_calculation = True
+                        else:
+                            img = img_orig
+                            contours = contours_normal
+                            is_rotated_for_calculation = False
+                             h_high, w_high, _ = img.shape
+                        scale_factor = 1.0 / probe_scale
+                        valid_boxes = []
+                        
+                        # 🔴 100% 執行純血原版 A 的多主體去背與 0.003 放寬大主體門檻！
+                        for c in contours:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_p_o * h_p_o * 0.003):
+                            if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.003):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -179,10 +195,10 @@ if uploaded_files:
                                 bh = int(bh_p * scale_factor)
                                 
                                 bx, by = max(0, bx), max(0, by)
-                                bw = min(w_orig - bx, bw)
-                                bh = min(h_orig - by, bh)
+                                bw = min(w_high - bx, bw)
+                                bh = min(h_high - by, bh)
                                 
-                                roi = img_orig[by:by+bh, bx:bx+bw]
+                                roi = img[by:by+bh, bx:bx+bw]
                                 if roi.size > 0:
                                     g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                                     e_roi = cv2.Canny(g_roi, 50, 150)
@@ -198,106 +214,37 @@ if uploaded_files:
                                             sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
                                             sbx, sby, sbw, sbh = int(sbx_p / roi_scale), int(sby_p / roi_scale), int(sbw_p / roi_scale), int(sbh_p / roi_scale)
                                             if sbw * sbh < (bw * bh * 0.92): 
-                                                final_cropped_images.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh), img_orig, False, bx_p, by_p, bw_p, bh_p))
+                                                valid_boxes.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh)))
                                                 continue
-                                final_cropped_images.append((bx, by, bw, bh, img_orig, False, bx_p, by_p, bw_p, bh_p))
-                                 # 🔵 生產線 B：收網「轉90度方向」主體
-                        h_r, w_r, _ = img_probe_rotated.shape
-                        img_rotated_high = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
-                        h_rh, w_rh, _ = img_rotated_high.shape
+                                valid_boxes.append((bx, by, bw, bh))
                         
-                        for c in contours_rotated:
-                            hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_r * h_r * 0.003):
-                                bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
-                                bx = int(bx_p * scale_factor)
-                                by = int(by_p * scale_factor)
-                                bw = int(bw_p * scale_factor)
-                                bh = int(bh_p * scale_factor)
-                                
-                                bx, by = max(0, bx), max(0, by)
-                                bw = min(w_rh - bx, bw)
-                                bh = min(h_rh - by, bh)
-                                
-                                final_cropped_images.append((bx, by, bw, bh, img_rotated_high, True, bx_p, by_p, bw_p, bh_p))
-                        
-                        # 👑 👑 👑 【100% 幾何精準對齊 ── IoU 區域過濾晶片】 👑 👑 👑
-                        # 👑 變數名稱 100% 修正完成！將 h_p_r 修正為正確的 h_r，徹底消除 NameError 閃退！
-                        unified_boxes = []
-                        for box in final_cropped_images:
-                            bx, by, bw, bh, target_img, rotated_flag, bx_p, by_p, bw_p, bh_p = box
-                            if rotated_flag:
-                                # 💡 修正順時針旋轉下的探測圖原圖反推幾何公式，0像素錯位
-                                ox1 = int((h_r - (by_p + bh_p)) * scale_factor)
-                                ox2 = int((h_r - by_p) * scale_factor)
-                                oy1 = int(bx_p * scale_factor)
-                                oy2 = int((bx_p + bw_p) * scale_factor)
-                            else:
-                                ox1 = bx
-                                ox2 = bx + bw
-                                oy1 = by
-                                oy2 = by + bh
-                            unified_boxes.append((ox1, oy1, ox2, oy2, box))
-                        
-                        # 核心 IoU 過濾：重疊度高達 70% 才融合成一張，確保單張商品與多主體卡片 100% 安全
-                        unique_crops = []
-                        for item in unified_boxes:
-                            ox1, oy1, ox2, oy2, box_data = item
-                            area_current = (ox2 - ox1) * (oy2 - oy1)
-                            
-                            is_duplicate = False
-                            for existing in unique_crops:
-                                ex_x1, ex_y1, ex_x2, ex_y2, ex_box = existing
-                                area_existing = (ex_x2 - ex_x1) * (ex_y2 - ex_y1)
-                                
-                                ix1 = max(ox1, ex_x1)
-                                iy1 = max(oy1, ex_y1)
-                                ix2 = min(ox2, ex_x2)
-                                iy2 = min(oy2, ex_y2)
-                                
-                                if ix2 > ix1 and iy2 > iy1:
-                                    inter_area = (ix2 - ix1) * (iy2 - iy1)
-                                    union_area = area_current + area_existing - inter_area
-                                    iou = inter_area / union_area if union_area > 0 else 0
-                                    
-                                    if iou > 0.7:
-                                        is_duplicate = True
-                                        if area_current > area_existing:
-                                            unique_crops.remove(existing)
-                                            unique_crops.append(item)
-                                        break
-                            if not is_duplicate:
-                                unique_crops.append(item)
-                        
-                        if not unique_crops:
-                            unique_crops.append((int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.75), int(h_orig*0.75), (int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5), img_orig, False, 0, 0, 0, 0)))
+                        if not valid_boxes:
+                            valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
                         # 👑 👑 👑 【純原圖自適應 ── 最大化物理邊界卡位演算法】 👑 👑 👑
-                        for part_idx, (ox1, oy1, ox2, oy2, box_data) in enumerate(unique_crops, 1):
-                            bx, by, bw, bh, target_img, rotated_flag, _, _, _, _ = box_data
+                        for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
-                            img_h, img_w, _ = target_img.shape
                             
                             ideal_pad_w = int((bw / ratio - bw) / 2)
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
                             pad_l = min(cx - bw // 2, ideal_pad_w)
-                            pad_r = min((img_w - cx) - bw // 2, ideal_pad_w)
+                            pad_r = min((w_high - cx) - bw // 2, ideal_pad_w)
                             pad_t = min(cy - bh // 2, ideal_pad_h)
-                            pad_b = min((img_h - cy) - bh // 2, ideal_pad_h)
+                            pad_b = min((h_high - cy) - bh // 2, ideal_pad_h)
                             
                             x1 = max(0, cx - bw // 2 - pad_l)
-                            x2 = min(img_w, cx + bw // 2 + pad_r)
+                            x2 = min(w_high, cx + bw // 2 + pad_r)
                             y1 = max(0, cy - bh // 2 - pad_t)
-                            y2 = min(img_h, cy + bh // 2 + pad_b)
+                            y2 = min(h_high, cy + bh // 2 + pad_b)
                             
-                            cropped = target_img[y1:y2, x1:x2]
+                            cropped = img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
                             
-                            if rotated_flag:
+                            if is_rotated_for_calculation:
                                 cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                             
-                            # 👑 容量限制二分搜尋法 (縮排對齊 100% 修正完成)
+                            # 👑 容量限制二分搜尋法
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                             for _ in range(10):
                                 mid = (low + high) // 2
@@ -307,7 +254,7 @@ if uploaded_files:
                             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                             
                             base_name, _ = os.path.splitext(file.name)
-                            out_img_name = f"{base_name}_{part_idx}.jpg" if len(unique_crops) > 1 else f"{base_name}.jpg"
+                            out_img_name = f"{base_name}_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
                             zip_file.writestr(out_img_name, buf.tobytes())
                             saved += 1
                             
