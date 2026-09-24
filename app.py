@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import os, zipfile, io, time
 
-# 👑 【自適應幾何完全體】：0套件衝突、速度快10倍，動態對比增強，100%根絕全白閃退！
+# 👑 4層定價漏斗網頁完全體，代碼不落地、0套件衝突，100% 根絕死白閃退！
 st.set_page_config(page_title="Smart Crop Master", layout="centered")
 st.title("🌐 Smart Subject Recognition & Auto-Center Crop")
 st.subheader("Enterprise E-commerce Photo Pipeline (SaaS Core)")
@@ -63,6 +63,7 @@ if uploaded_files:
             
     with btn_col2:
         if st.button("🚀 One-Click Batch Export Centered Photos", type="primary", use_container_width=True):
+            # 🟢 【天網雙軌限額攔截】
             if st.session_state.daily_processed >= 10 or (st.session_state.daily_processed + len(uploaded_files)) > 10:
                 st.error("❌ Daily Quota Exceeded! Your limit is 10 photos per 24H. Come back tomorrow or upgrade to unlock full production power!")
             elif st.session_state.monthly_processed >= 30 or (st.session_state.monthly_processed + len(uploaded_files)) > 30:
@@ -76,7 +77,7 @@ if uploaded_files:
                     saved = 0
                     for idx, file_item in enumerate(uploaded_files, 1):
                         pct = (idx / len(uploaded_files)) * 100
-                        status_text.text(f"⏳ Cloud Processing: {idx} / {len(uploaded_files)} Photos ({pct:.1f}%)")
+                        status_text.text(f"⏳ Processing Photo: {idx} / {len(uploaded_files)} ({pct:.1f}%)")
                         progress_bar.progress(idx / len(uploaded_files))
                         
                         try:
@@ -85,49 +86,20 @@ if uploaded_files:
                             if img is None: continue
                             h, w, _ = img.shape
                             
-                            # 🟢 【頂級卡牌特化 ── 自適應灰階拉伸算法】：完美吃掉反光，精準識別卡牌切線
+                            # 👑 大亨特化自適應影像幾何對齊（安全防線兜底）
                             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                            
-                            # 核心動態增強：把卡牌和雜亂背景的對比度強行拉開 5 倍！
-                            xp = [0, 64, 192, 255]
-                            fp = [0, 16, 239, 255]
-                            x = np.arange(256)
-                            table = np.interp(x, xp, fp).astype('uint8')
-                            enhanced_gray = cv2.LUT(gray, table)
-                            
-                            blurred = cv2.GaussianBlur(enhanced_gray, (5, 5), 0)
-                            
-                            # 雙軌並行像素雷達檢測
+                            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
                             _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-                            edges = cv2.Canny(blurred, 30, 120)
-                            merged = cv2.bitwise_or(thresh, edges)
-                            
-                            # 形態學高強度膨脹閉合，把斷掉的卡牌切線強行黏合織網
-                            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
-                            closed = cv2.morphologyEx(merged, cv2.MORPH_CLOSE, kernel)
-                            
-                            contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                             
                             valid_boxes = []
                             for c in contours:
-                                hull = cv2.convexHull(c) # 鋼鐵幾何凸包數學模型，100% 死守卡牌完美圓角！
+                                hull = cv2.convexHull(c)
                                 if cv2.contourArea(hull) > (w * h * 0.015):
-                                    bx, by, bw, bh = cv2.boundingRect(hull)
-                                    valid_boxes.append((bx, by, bw, bh))
-                                    
-                            if not valid_boxes:
-                                # 兜底自適應雷達
-                                _, adaptive_thresh = cv2.threshold(blurred, 220, 255, cv2.THRESH_BINARY_INV)
-                                contours, _ = cv2.findContours(adaptive_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                                for c in contours:
-                                    hull = cv2.convexHull(c)
-                                    if cv2.contourArea(hull) > (w * h * 0.015):
-                                        valid_boxes.append(cv2.boundingRect(hull))
-                                        
+                                    valid_boxes.append(cv2.boundingRect(hull))
                             if not valid_boxes: valid_boxes.append((int(w*0.05), int(h*0.05), int(w*0.9), int(h*0.9)))
                             
-                            # 👑 取面積最大之主體，確保精準卡牌置中
-                            bx, by, bw, bh = max(valid_boxes, key=lambda b: b[2] * b[3])
+                            bx, by, bw, bh = max(valid_boxes, key=lambda b: b * b)
                             cx, cy = bx + bw // 2, by + bh // 2
                             max_pad_w = min(cx, w - cx)
                             max_pad_h = min(cy, h - cy)
@@ -139,9 +111,7 @@ if uploaded_files:
                             cropped = img[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
                             pil_img = Image.fromarray(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
                             
-                            base_name = os.path.splitext(file_item.name)[0]
-                            
-                            # 二分搜尋強控MB容量防線
+                            base_name = os.path.splitext(file_item.name)
                             img_io = io.BytesIO()
                             t_bytes = t_mb * 1024 * 1024
                             low, high, best_q = 1, 100, 85
@@ -161,7 +131,7 @@ if uploaded_files:
                 st.session_state.daily_processed += len(uploaded_files)
                 st.session_state.monthly_processed += len(uploaded_files)
                 
-                status_text.text(f"✨ Done! Successfully processed {saved} perfect photos!")
+                status_text.text(f"✨ Done! Successfully processed {saved} product photos!")
                 st.success("🎉 Your production batch is ready! Click the button below to download.")
                 st.download_button(
                     label="📥 Download Perfect_Centered_Images.zip",
