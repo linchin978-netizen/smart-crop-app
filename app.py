@@ -160,7 +160,6 @@ if uploaded_files:
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
                         # 👑 👑 👑 【第一關 ── AI 盲測面積最大化智慧分流大腦】 👑 👑 👑
-                        # 兩邊各探測一次，交給大腦做單一軌道死鎖，徹底消滅重複圖！
                         contours_normal = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_rotated = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_rotated = get_ai_bounding_boxes(img_probe_rotated)
@@ -180,7 +179,7 @@ if uploaded_files:
                             img = img_orig
                             contours = contours_normal
                             is_rotated_for_calculation = False
-                             h_high, w_high, _ = img.shape
+                            h_high, w_high, _ = img.shape
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
                         
