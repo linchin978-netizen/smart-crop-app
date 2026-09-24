@@ -18,56 +18,65 @@ def get_ai_bounding_boxes(cv_img):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
-# 🌍 國際化三國語言字典字典
+# 🌍 頂級高科技多國語言字典 (以西洋高階 SaaS 軟體為核心風格)
 LANG_MAP = {
     "English": {
-        "title": "🚀 Smart Product Auto-Centering System",
-        "subtitle": "(Tai Chi Blind Test ── Pure Original Image Limits Cloud Edition)",
-        "param_header": "⚙️ Parameter Settings",
-        "ratio_lbl": "Subject ratio in exported image (10-99%):",
-        "size_lbl": "Max file size limit per image (MB):",
-        "drag_lbl": "Drag and drop your product images here (Support multiple JPG, JPEG, PNG, WEBP)",
-        "loaded_lbl": "📊 Loaded product images: {} images",
-        "btn_lbl": "🚀 One-Click Export Perfect Centered Images",
-        "processing": "⏳ Processing image {} / {}...",
-        "success": "### ✅ Export Successfully! Total generated {} images!",
-        "dl_btn": "🎁 Download Processed Zip Package (ZIP)",
-        "limit_err": "❌ Monthly limit or daily limit exceeded! 30 days limit is 30 images.",
-        "usage_title": "📊 FREE Usage Status"
+        "title": "⚡ NEXUS CROP — AI Ultra-Fast Commerce Centering System",
+        "subtitle": "Next-Gen Object Recognition & Pure Original Pixel Boundaries Cloud Engine",
+        "param_header": "⚙️ AI Optimization & Parameter Infrastructure",
+        "ratio_lbl": "Target subject spatial density ratio (10-99%):",
+        "size_lbl": "Maximum payload weight constraint per image (MB):",
+        "tip_header": "💡 OPERATIONAL SPECIFICATIONS",
+        "tip_body": "1. Configure the optimization parameters directly below.\n2. Drop product image assets into the landing vector zone below (No volume limits).\n3. Click the button to initialize the sub-second multi-threading render.\n4. Download the generated deployment package (ZIP) once compiled successfully.",
+        "drag_lbl": "📥 Deploy your commerce image assets here (Supports JPG, JPEG, PNG, WEBP)",
+        "loaded_lbl": "📊 Consolidated image queue assets: {} items",
+        "clear_btn": "🗑 Clear & Reset Queue",
+        "btn_lbl": "⚡ Initialize Sub-Second Smart Centering Deployment",
+        "processing": "⏳ Neural pipeline processing asset {} / {}...",
+        "success": "### ✅ Pipeline Render Completed! Total {} assets deployed!",
+        "dl_btn": "🎁 Download Compiled Centering Assets Package (ZIP)",
+        "limit_err": "❌ Operational threshold exceeded! FREE quota tier is capped at 10 assets/daily and 30 assets/monthly.",
+        "usage_title": "📊 FREE SYSTEM QUOTA STATUS"
     },
     "繁體中文": {
-        "title": "🚀 網拍商品照 ── 智慧識別自動置中裁切系統",
-        "subtitle": "(張三丰太極盲測 ── 純原圖極限邊界雲端版)",
-        "param_header": "⚙️ 網拍上架參數優化設定",
+        "title": "⚡ NEXUS CROP — 頂級電商商品照智慧置中裁切系統",
+        "subtitle": "新世代高精主體光學識別 ── 最速電商純原圖極限邊界雲端引擎",
+        "param_header": "⚙️ 最速電商智慧識別參數設定",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
-        "drag_lbl": "將欲編輯的網拍照片全數拖曳至此 (支援多張 JPG, JPEG, PNG, WEBP)",
+        "tip_header": "💡 智慧網拍系統使用說明",
+        "tip_body": "1. 先自行調整下方數值參數配置。\n2. 將欲編輯照片全數拖曳至下方區塊內 (照片無數量限制)。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
+        "drag_lbl": "📥 將欲編輯的網拍照片全數拖曳至此 (支援多張 JPG, JPEG, PNG, WEBP)",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
-        "btn_lbl": "🚀 開始秒級一鍵導出完美置中商品照",
-        "processing": "⏳ 雲端解算中：第 {} 張 / 共 {} 張...",
-        "success": "### ✅ 雲端完美解算成功！共生成 {} 張置中照片！",
+        "clear_btn": "🗑 清除重選",
+        "btn_lbl": "🚀 一鍵秒級導出完美置中商品照片",
+        "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
+        "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！",
         "dl_btn": "🎁 點擊一鍵下載完美置中相片壓縮包 (ZIP)",
-        "limit_err": "❌ 已超過每日或每月免費額度！30天上限為 30 張。",
-        "usage_title": "📊 FREE 免費額度使用狀態"
+        "limit_err": "❌ 已超過每日或每月免費額度！FREE用戶30天累計上限為 30 張。",
+        "usage_title": "📊 FREE 免費額度智慧計數看板"
     },
     "日本語": {
-        "title": "🚀 EC商品画像 ── 自動中央配置切り抜きシステム",
-        "subtitle": "(太極ブラインドテスト ── 純粋な原寸画像境界クラウド版)",
-        "param_header": "⚙️ パラメータ最適化設定",
+        "title": "⚡ NEXUS CROP — AI 高速EC商品画像自動中央配置システム",
+        "subtitle": "次世代オブジェクト認識テクノロジー ── 純粋画素境界クラウドエンジン",
+        "param_header": "⚙️ 最適化パラメータ設定",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
-        "drag_lbl": "編集したい商品画像をここにドラッグ＆ドロップ (複数 JPG, JPEG, PNG, WEBP 対応)",
+        "tip_header": "💡 システム操作説明",
+        "tip_body": "1. 画面中央のパラメータ設定を行ってください。\n2. 編集したい商品画像を下の枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンダリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
+        "drag_lbl": "📥 編集したい商品画像をここにドラッグ＆ドロップ (複数 JPG, JPEG, PNG, WEBP 対応)",
         "loaded_lbl": "📊 読み込まれた商品画像：{} 枚",
-        "btn_lbl": "🚀 ワンクリックで完璧な中央配置画像をエクスポート",
+        "clear_btn": "🗑 キューをクリア",
+        "btn_lbl": "⚡ 完璧な中央配置画像をワンクリックでエクスポート",
         "processing": "⏳ クラウド解析中：第 {} 枚 / 全 {} 枚...",
-        "success": "### ✅ クラウド解析成功！合計 {} 枚の画像が生成されました！",
-        "dl_btn": "🎁 ワンクリックで中央配置画像ZIPをダウンロード",
-        "limit_err": "❌ 1日または30日間の無料制限を超えました！30日間の上限は30枚です。",
-        "usage_title": "📊 FREE 無料枠の使用状況"
+        "success": "### ✅ クラウド解析完了！合計 {} 枚の画像が生成されました！",
+        "dl_btn": "🎁 中央配置画像ZIPパッケージをダウンロード",
+        "limit_err": "❌ 無料利用枠の制限を超えました！30日間の上限は30枚です。",
+        "usage_title": "📊 FREE 無料制限枠の使用状況"
     }
 }
 
-st.set_page_config(page_title="Smart Crop ── Cloud Edition", page_icon="🚀", layout="centered")
+st.set_page_config(page_title="NEXUS CROP — AI Edition", page_icon="⚡", layout="centered")
 
 # 👑 額度計數晶片：初始化 Session State 狀態機
 if "daily_usage" not in st.session_state:
@@ -75,17 +84,22 @@ if "daily_usage" not in st.session_state:
 if "monthly_usage" not in st.session_state:
     st.session_state.monthly_usage = 0
 
-# 右上方切換語言 (預設英文為主語言)
-lang = st.selectbox("🌐 Language / 語言", ("English", "繁體中文", "日本語"), index=0)
+# 右上方切換語言 (預設以西洋頂級風格 English 為首選主語言)
+lang = st.selectbox("🌐 Language Interface", ("English", "繁體中文", "日本語"), index=0)
 L = LANG_MAP[lang]
 
 st.title(L["title"])
-st.markdown(f"### {L['subtitle']}")
+st.markdown(f"*{L['subtitle']}*")
 
 # 📊 右上方 FREE 使用額度面板
-st.info(f"**{L['usage_title']}** ｜ 🕒 Daily: **{st.session_state.daily_usage} / 10** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 30**")
+st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 10** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 30**")
+
+# 💡 使用說明移回正中央大面板
+with st.expander(f"**{L['tip_header']}**", expanded=True):
+    st.markdown(L["tip_body"])
 
 # ⚙️ 網拍參數配置移回中央面板
+st.markdown("---")
 st.markdown(f"#### {L['param_header']}")
 col1, col2 = st.columns(2)
 with col1:
@@ -94,17 +108,30 @@ with col1:
 with col2:
     t_mb = st.number_input(L["size_lbl"], min_value=0.1, max_value=10.0, value=2.0, step=0.5)
 
-# 📥 網頁拖曳上傳方框
-uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True)
+# 📥 網頁拖曳上傳方框 (加入清除重選鍵連動)
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
+
+uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"uploader_{st.session_state.uploader_key}")
+# 🗑 清除重選按鈕與一鍵 秒級導出按鈕 佈局面板
+col_btn1, col_btn2 = st.columns(2)
+with col_btn1:
+    # 👑 加回中央【清除重選按鈕】：一鍵觸發 Key 值重新加載，乾淨清空網頁拖曳框！
+    if st.button(L["clear_btn"], use_container_width=True):
+        st.session_state.uploader_key += 1
+        st.rerun()
+
+with col_btn2:
+    start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True)
+
 if uploaded_files:
     st.success(L["loaded_lbl"].format(len(uploaded_files)))
     
-    if st.button(L["btn_lbl"]):
-        # 👑 FREE 額度檢查保險絲：如果丟進去的照片數量加上已用額度會爆表，直接攔截不准執行！
+    if start_btn:
+        # 👑 FREE 額度檢查保險絲
         if st.session_state.daily_usage + len(uploaded_files) > 10 or st.session_state.monthly_usage + len(uploaded_files) > 30:
             st.error(L["limit_err"])
         else:
-            # 建立記憶體內的 ZIP 打包工廠
             zip_buffer = io.BytesIO()
             saved = 0
             
@@ -123,7 +150,7 @@ if uploaded_files:
                         
                         h_orig, w_orig, _ = img_orig.shape
                         
-                        # 👑 【雲端防爆降維盾】：限制探測圖最大寬度為 1000，防止雲端記憶體被撐爆！
+                        # 👑 【雲端防爆降維盾】：限制探測圖最大寬度為 1000
                         probe_scale = 1.0
                         if w_orig > 1000:
                             probe_scale = 1000.0 / w_orig
@@ -134,22 +161,18 @@ if uploaded_files:
                             img_probe_orig = img_orig.copy()
                         
                         # 👑 👑 👑 【雙軌道像素大收網：原圖與轉90度各自探測】 👑 👑 👑
-                        # 為了防止 5 張漏 2 張，兩邊都各自跑一次 AI，等一下一起大收網！
                         contours_normal = get_ai_bounding_boxes(img_probe_orig)
-                        
                         img_probe_rotated = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_rotated = get_ai_bounding_boxes(img_probe_rotated)
                         
-                        # 用來存放這張照片所有被偵測到、且不重複的最終高畫質裁切圖
                         final_cropped_images = []
                         scale_factor = 1.0 / probe_scale
                         
-                        # 🔴 生產線 A：收網「原圖方向」抓到的所有主體
+                        # 🔴 生產線 A：收網「原圖方向」主體
                         h_o, w_o, _ = img_probe_orig.shape
                         for c in contours_normal:
                             hull = cv2.convexHull(c)
-                            # 👑 網頁版放寬過濾大門到 0.003，把被稀釋的 2 張卡片強行撈回來！
-                            if cv2.contourArea(hull) > (w_o * h_o * 0.003):
+                            if cv2.contourArea(hull) > (w_o * h_o * 0.0003):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -179,14 +202,14 @@ if uploaded_files:
                                                 final_cropped_images.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh), img_orig, False))
                                                 continue
                                 final_cropped_images.append((bx, by, bw, bh, img_orig, False))
-                                # 🔵 生產線 B：收網「轉90度方向」抓到的所有主體
+                                                        # 🔵 生產線 B：收網「轉90度方向」主體
                         h_r, w_r, _ = img_probe_rotated.shape
                         img_rotated_high = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                         h_rh, w_rh, _ = img_rotated_high.shape
                         
                         for c in contours_rotated:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_r * h_r * 0.003):
+                            if cv2.contourArea(hull) > (w_r * h_r * 0.0003):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -223,7 +246,7 @@ if uploaded_files:
                                 unique_crops.append((cx_orig, cy_orig, bw, bh, box, rotated_flag))
                         
                         if not unique_crops:
-                            unique_crops.append((int(w_orig/2), int(h_orig/2), int(w_orig*0.5), int(h_orig*0.5), (int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5), img_orig, False), False))
+                            unique_crops.append((int(w_orig/2), int(h_orig/2), int(w_orig*0.5), int(w_orig*0.5), (int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5), img_orig, False), False))
                         
                         # 👑 👑 👑 【純原圖自適應 ── 最大化物理邊界卡位演算法】 👑 👑 👑
                         for part_idx, (cx_o, cy_o, _, _, box_data, rotated_flag) in enumerate(unique_crops, 1):
@@ -234,7 +257,7 @@ if uploaded_files:
                             ideal_pad_w = int((bw / ratio - bw) / 2)
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
-                            # 🚀 卡死在原圖四周，絕不超出去！
+                            # 🚀 卡死在原圖四周，不夠就直接抓物理極限值
                             pad_l = min(cx - bw // 2, ideal_pad_w)
                             pad_r = min((img_w - cx) - bw // 2, ideal_pad_w)
                             pad_t = min(cy - bh // 2, ideal_pad_h)
@@ -283,5 +306,6 @@ if uploaded_files:
                 label=L["dl_btn"],
                 data=zip_buffer,
                 file_name="processed_centered_images.zip",
-                mime="application/zip"
+                mime="application/zip",
+                use_container_width=True
             )
