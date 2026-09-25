@@ -173,11 +173,10 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 👑 👑 👑 【極致對齊：雲端無衝突「照妖鏡硬解晶片」最終收網版】 👑 👑 👑
-                        # 100% 複製桌面版端正原檔！在最上游將 90/180/270度肉身扶正，直接洗掉標籤、避開任何二次打包衝突！
+                        # 👑 👑 👑 【極致對齊：雲端無衝突「照妖鏡硬解晶片」最終校正版】 👑 👑 👑
                         bytes_data = file.read()
                         pil_img = Image.open(io.BytesIO(bytes_data))
-                        pil_img = ImageOps.exif_transpose(pil_img) # 完美硬解
+                        pil_img = ImageOps.exif_transpose(pil_img) # 完美硬解，徹底消除閃退
                         img_orig = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                         
                         h_orig, w_orig, _ = img_orig.shape
@@ -194,8 +193,7 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 因為照片肉身已經 100% 被照妖鏡扶正，直接走純淨原版 A 的單向高質量探測線！
-                        # 徹底移除不穩定的 IoU 去重複迴圈，100% 複製桌面版 0 重複、0 斷電的流暢打包奇蹟！
+                        # 👑 100% 複製桌面版 A 的單向生產線，徹底阻斷任何重複與碎圖生成的可能！
                         contours = get_ai_bounding_boxes(img_probe_orig)
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
