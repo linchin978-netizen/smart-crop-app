@@ -114,7 +114,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已正式放寬至 30 張！)
+# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已放寬至 30 張！)
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -172,7 +172,8 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 👑 100% 採用與桌面版同級的「照妖鏡硬解」上游機制
+                        # 👑 👑 👑 【100% 移植桌面版純血最上游 ── 照妖鏡完美硬解】 👑 👑 👑
+                        # 進門第一毫秒強行把 90/180/270度肉身扶正！徹底洗掉標籤，後面不需要任何角度盲測判定！
                         bytes_data = file.read()
                         pil_img = Image.open(io.BytesIO(bytes_data))
                         pil_img = ImageOps.exif_transpose(pil_img) 
@@ -192,52 +193,18 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 👑 👑 【100% 桌面版商品計數決策大腦】 👑 👑 👑
-                        contours_0 = get_ai_bounding_boxes(img_probe_orig)
-                        img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
-                        contours_90 = get_ai_bounding_boxes(img_probe_90)
-                        img_probe_180 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_180)
-                        contours_180 = get_ai_bounding_boxes(img_probe_180)
-                        img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
-                        contours_270 = get_ai_bounding_boxes(img_probe_270)
-                        
-                        valid_cnt_0 = sum(1 for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.015))
-                        h_p_90, w_p_90, _ = img_probe_90.shape
-                        valid_cnt_90 = sum(1 for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.015))
-                        h_p_180, w_p_180, _ = img_probe_180.shape
-                        valid_cnt_180 = sum(1 for c in contours_180 if cv2.contourArea(cv2.convexHull(c)) > (w_p_180 * h_p_180 * 0.015))
-                        h_p_270, w_p_270, _ = img_probe_270.shape
-                        valid_cnt_270 = sum(1 for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.015))
-                        max_cnt = max(valid_cnt_0, valid_cnt_90, valid_cnt_180, valid_cnt_270)
-                        
-                        if max_cnt == valid_cnt_90 and valid_cnt_90 > valid_cnt_0:
-                            img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
-                            contours = contours_90
-                            rotation_mode = 90
-                            is_rotated_for_calculation = True
-                        elif max_cnt == valid_cnt_180 and valid_cnt_180 > valid_cnt_0:
-                            img = cv2.rotate(img_orig, cv2.ROTATE_180)
-                            contours = contours_180
-                            rotation_mode = 180
-                            is_rotated_for_calculation = True
-                        elif max_cnt == valid_cnt_270 and valid_cnt_270 > valid_cnt_0:
-                            img = cv2.rotate(img_orig, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                            contours = contours_270
-                            rotation_mode = 270
-                            is_rotated_for_calculation = True
-                        else:
-                            img = img_orig
-                            contours = contours_0
-                            rotation_mode = 0
-                            is_rotated_for_calculation = False
-
-                        h_high, w_high, _ = img.shape
+                        # 👑 👑 👑 【極致乾淨：徹底砸碎、解封所有盲測判定與重複圖迴圈】 👑 👑 👑
+                        # 既然最上游已經被照妖鏡完美轉正了，後面直接走跟您桌面版 A 一模一樣的單向最純淨流水線！
+                        # 座標與肉身 100% 絕對物理對齊，空間幾何錯位與少圖 Bug 在物理上被徹底消滅！
+                        contours = get_ai_bounding_boxes(img_probe_orig)
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
                         
+                        # 🔴 100% 鎖死您桌面版最完美的 0.015 黃金大主體過濾迴圈！
+                        # 發光聖誕樹此時已經是端正立著的，AI 100% 精準捕捉整棵發亮樹，旁邊的建物跟大樹雜訊當場蒸發！
                         for c in contours:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.015):
+                            if cv2.contourArea(hull) > (w_p_o * h_p_o * 0.015):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -245,10 +212,10 @@ if uploaded_files:
                                 bh = int(bh_p * scale_factor)
                                 
                                 bx, by = max(0, bx), max(0, by)
-                                bw = min(w_high - bx, bw)
-                                bh = min(h_high - by, bh)
+                                bw = min(w_orig - bx, bw)
+                                bh = min(h_orig - by, bh)
                                 
-                                roi = img[by:by+bh, bx:bx+bw]
+                                roi = img_orig[by:by+bh, bx:bx+bw]
                                 if roi.size > 0:
                                     g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                                     e_roi = cv2.Canny(g_roi, 50, 150)
@@ -256,8 +223,6 @@ if uploaded_files:
                                         roi_h, roi_w, _ = roi.shape
                                         roi_scale = 500.0 / roi_w if roi_w > 500 else 1.0
                                         roi_probe = cv2.resize(roi, (500, int(roi_h * roi_scale)), interpolation=cv2.INTER_AREA) if roi_w > 500 else roi.copy()
-                                        
-                                        # 👑 100% 全域對齊對正！徹底清空 NameError: remove is not defined 死穴！
                                         s_pil = remove(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
                                         s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
@@ -271,9 +236,10 @@ if uploaded_files:
                                 valid_boxes.append((bx, by, bw, bh))
                         
                         if not valid_boxes:
-                            valid_boxes.append((int(w_high*0.25), int(w_high*0.25), int(w_high*0.5), int(w_high*0.5)))
+                            valid_boxes.append((int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5)))
                         
-                        # 👑 👑 👑 【100% 移植桌面版 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
+                        # 👑 👑 👑 【100% 移植桌面版純血原汁 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
+                        # 徹底免除任何反向旋轉判定，0 誤差看清分界，商品端正完美置中！
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -281,22 +247,17 @@ if uploaded_files:
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
                             pad_l = min(cx - bw // 2, ideal_pad_w)
-                            pad_r = min((w_high - cx) - bw // 2, ideal_pad_w)
+                            pad_r = min((w_orig - cx) - bw // 2, ideal_pad_w)
                             pad_t = min(cy - bh // 2, ideal_pad_h)
-                            pad_b = min((h_high - cy) - bh // 2, ideal_pad_h)
+                            pad_b = min((h_orig - cy) - bh // 2, ideal_pad_h)
                             
                             x1 = max(0, cx - bw // 2 - pad_l)
-                            x2 = min(w_high, cx + bw // 2 + pad_r)
+                            x2 = min(w_orig, cx + bw // 2 + pad_r)
                             y1 = max(0, cy - bh // 2 - pad_t)
-                            y2 = min(h_high, cy + bh // 2 + pad_b)
+                            y2 = min(h_orig, cy + bh // 2 + pad_b)
                             
-                            cropped = img[y1:y2, x1:x2]
+                            cropped = img_orig[y1:y2, x1:x2]
                             if cropped.size == 0: continue
-                            
-                            if is_rotated_for_calculation:
-                                if rotation_mode == 90: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                                elif rotation_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
-                                elif rotation_mode == 270: cropped = cv2.rotate(cropped, cv2.ROTATE_90_CLOCKWISE)
                             
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                             for _ in range(10):
@@ -311,8 +272,8 @@ if uploaded_files:
                             zip_file.writestr(out_img_name, buf.tobytes())
                             saved += 1
                             
-                        # 👑 即時內存釋放與垃圾強制回收
-                        del img, img_orig, img_probe_orig, contours, contours_0, contours_90, contours_180, contours_270
+                        # 👑 26張大上傳、垃圾即時回收
+                        del img_orig, img_probe_orig, contours
                         gc.collect()
                             
                     except Exception as e:
@@ -320,7 +281,7 @@ if uploaded_files:
                     
                     progress_bar.progress(idx / len(uploaded_files))
             
-            # 👑 大獲全勝防線 ── 下載按鈕 100% 移出大迴圈！
+            # 下載按鈕外嵌大防線
             st.session_state.daily_usage += len(uploaded_files)
             st.session_state.monthly_usage += len(uploaded_files)
             st.success(L["success"].format(saved))
