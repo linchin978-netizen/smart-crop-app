@@ -1,7 +1,6 @@
-import os, io, zipfile, cv2, gc, shutil, hashlib, json, numpy as np
+import os, io, zipfile, cv2, gc, shutil, hashlib, numpy as np
 from PIL import Image
 import streamlit as st
-from streamlit.components.v1 import html
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
@@ -31,6 +30,7 @@ def get_ai_bounding_boxes(cv_img, session):
     return contours
 
 # 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁體中文、简体中文)
+# 👑 遵照創辦人最高指示：全面剔除 F5、鎖死等敵意字眼，換上最高雅溫柔的電商文案！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
@@ -40,7 +40,7 @@ LANG_MAP = {
         * **🌟 免費體驗**: **$0** (註冊即送 **20 免費點數**！) ── *體驗強大原圖裁切防線。*
         * **🪙 賣家入門包**: **$4.99** (內含 **150 點數** ── *每張完美照片不用 1.1 元台幣！*)
         * **⚡ 大賣家衝刺包**: **$19.99** (內含 **700 點數** ── *每張完美照片不到 0.9 元台幣！*)
-        * **👑 跨境卡牌大亨包**: **$4.99** (內含 **2,000 點數** ── **極致極限：每張照片不到 0.8 元台幣！**)
+        * **👑 跨境卡牌大亨包**: **$49.99** (內含 **2,000 點數** ── **極致極限：每張照片不到 0.8 元台幣！**)
         """,
         "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
@@ -50,12 +50,12 @@ LANG_MAP = {
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
-        "success": "### ✅ 核心解算成功！點數已安全扣除，共生成 {} 張智慧置中照片！",
+        "success": "### ✅ 核心解算成功！點數已安全扣除，共生成 {} 張智慧命名置中照片！",
         "dl_btn": "🎁 點擊下載完美置中相片壓縮包 (ZIP)",
-        "limit_err": "🔒 額度攔截熔斷！您的免註冊試用額度（24H限10點/30日限30點）已全數耗盡！(實體硬碟鎖死，F5刷新亦無法重置)。請在右側註冊登入領取會員免費 20 點，或立即充值點數套餐包！",
+        "limit_err": "🔒 抱歉，您的免註冊試用額度已用完。歡迎在右側註冊登入領取會員免費 20 點，或立即充值點數套餐包解鎖更高生產力！",
         "dup_err": "⚠️ 偵測到重複上傳相同照片！框框內不可重複置入相同圖檔（即使更換檔名亦會被安全攔截），請使用清除重選並重新拉入純淨不重複的照片，以防止點數重複扣除爭議！",
         "usage_title": "📊 NEXUS CROP 會員錢包看板",
-        "guest_info": "🕒 瀏覽器指紋鎖試用錢包：\n* 當日已用點數：**{} / 10** Credits (F5刷新不重置)\n* 30日累計使用：**{} / 30** Credits (硬碟實體雙鎖)\n* 💡 剩餘可用總張數：**{} 張**",
+        "guest_info": "🕒 免註冊試用錢包：\n* 當日已用點數：**{} / 10** Credits\n* 💡 剩餘可用總張數：**{} 張**",
         "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** \n* 🪙 免費錢包餘額：**{} Credits** (優先扣除)\n* 🪙 付費錢包餘額：**{} Credits**\n* 💡 剩餘可導出總張數：**{} 張**"
     },
     "简体中文": {
@@ -78,10 +78,10 @@ LANG_MAP = {
         "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
         "success": "### ✅ 核心解算成功！点数已安全扣除，共生成 {} 张智慧置中照片！",
         "dl_btn": "🎁 点击下载完美置中相片压缩包 (ZIP)",
-        "limit_err": "🔒 额度拦截熔断！您的免注册试用额度（24H限10点/30日限30点）已全数耗尽！(实体硬盘锁死，F5刷新亦无法重置)。请在右側注册登录领取免费 20 点，or 立即充值点数套餐包！",
+        "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录领取会员免费 20 点，or 立即充值点数套餐包解锁更高生产力！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
-        "guest_info": "🕒 浏览器指纹锁试用钱包：\n* 当日已用点数：**{} / 10** Credits (F5刷新不重置)\n* 30日累计使用：**{} / 30** Credits (硬盘实体双锁)\n* 💡 剩余可用总张数：**{} 张**",
+        "guest_info": "🕒 免注册试用钱包：\n* 当日已用点数：**{} / 10** Credits\n* 💡 剩余可用总张数：**{} 张**",
         "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 免费钱包余额：**{} Credits** (优先扣除)\n* 🪙 付费钱包余额：**{} Credits**\n* 💡 剩余可导出总张数：**{} 张**"
     },
     "English": {
@@ -104,10 +104,10 @@ LANG_MAP = {
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
         "success": "### ✅ Pipeline Render Completed! Credits burned successfully. Total {} assets compiled!",
         "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
-        "limit_err": "❌ Quota Intercepted! Your anonymous trial quota (10 Credits/24H or 30 Credits/30 Days) is exhausted. F5 refresh won't restore it. Please sign up to get 20 credits or purchase a package below.",
+        "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to claim 20 free credits or purchase a token package on the right to unlock more production power!",
         "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
         "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-        "guest_info": "🕒 Browser-Locked Trial Wallet:\n* Daily Used: **{} / 10** Credits (F5 immune)\n* 30-Day Used: **{} / 30** Credits (Dual Lock)\n* 💡 Available Balance: **{} items**",
+        "guest_info": "🕒 Free Trial Wallet:\n* Daily Used: **{} / 10** Credits\n* 💡 Available Balance: **{} items**",
         "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Free Credits: **{} Credits** (Prioritized)\n* 🪙 Paid Credits: **{} Credits**\n* 💡 Available Balance: **{} items**"
     },
     "日本語": {
@@ -130,182 +130,22 @@ LANG_MAP = {
         "processing": "⏳ 解析中：第 {} 枚 / 全 {} 枚...",
         "success": "### ✅ 解析完了！トークンは正常に消費されました。合計 {} 枚の画像が生成されました！",
         "dl_btn": "🎁 クロップ画像をダウンロード (ZIP)",
-        "limit_err": "❌ 利用制限インターセプト！無料お試し枠（1日10点/30日30点）を超えました。F5リセットは無効です。右側で無料登録して20点を受け取るか、パッケージを購入してください。",
+        "limit_err": "🔒 申し訳ありませんが、無料お試し枠は終了しました。右側で無料登録して20点を受け取るか、パッケージを購入して生産力を向上させてください！",
         "dup_err": "⚠️ 重複画像が検出されました！同じ写真を複数アップロードすることはできません（ファイル名が異なってもブロックされます）。重複請求を防ぐため、ファイルを整理して再試行してください。",
         "usage_title": "📊 プレミアム会員ウォレット状況",
-        "guest_info": "🕒 ハードウェアロック財布:\n* 本日の使用量: **{} / 10** Credits\n* 30日間の使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
+        "guest_info": "🕒 無料お試し財布:\n* 本日の使用量: **{} / 10** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
         "welcome": "👋 お帰りなさい: **{}** \n* 🪙 無料トークン残量: **{} Credits** (優先消費)\n* 🪙 付費トークン残量: **{} Credits**\n* 💡 残り利用可能枚数: **{} 枚**"
-    },
-    "한국어": {
-        "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
-        "subtitle": "트레이딩 카드 및 쇼핑몰 상품 이미지 크롭, 다중 분할 및 비율 용량 자유 설정",
-        "pricing_html": """
-        ### 💰 요금제 선택 (충전식 Credits 토큰 팩)
-        * **🌟 무료 체험**: **$0** (가입 시 **20 무료 토큰** 즉시 지급!) ── *강력한 중앙 정렬 시스템을 테스트해 보세요.*
-        * **🪙 스타터 팩**: **$4.99** ( **150 토큰** 포함 ── *이미지 장당 단돈 약 45원!*)
-        * **⚡ 파워 셀러 팩**: **$19.99** ( **700 토큰** 포함 ── *이미지 장당 단돈 약 38원!*)
-        * **👑 메가 볼트 팩**: **$49.99** ( **2,000 토큰** 포함 ── **최고의 가성비: 이미지 장당 34원 이하!**)
-        """,
-        "param_header": "⚙️ 배치 비율 및 파일 용량 매개변수 (값 자율 지정 가능)",
-        "ratio_lbl": "출력 후 객체 화면 비율 (10-99%):",
-        "size_lbl": "출력 이미지 최대 용량 제한 (MB):",
-        "drag_lbl": "📥 이미지 폴더를 여기에 드래그 앤 드롭 (원본 폴더 이름을 자동으로 상속받아 명명)",
-        "loaded_lbl": "📊 로드된 상품 이미지: {} 장",
-        "clear_btn": "🗑 대기열 비우기",
-        "btn_lbl": "🚀 원클릭 일괄 중앙 배치 이미지 신속 내보내기",
-        "processing": "⏳ 분석 중: {} / {} 번째 이미지 처리 중...",
-        "success": "### ✅ 분석 완료! 토큰이 성공적으로 차감되었습니다. 총 {} 장의 이미지가 생성되었습니다!",
-        "dl_btn": "🎁 압축 패키지 다운로드 (ZIP)",
-        "limit_err": "❌ 한도 사전 차단! 무료 체험 한도(일 10점/30일 30점)를 초과했습니다. F5 새로고침으로 초기화할 수 없습니다. 오른쪽에서 토큰을 충전하세요.",
-        "dup_err": "⚠️ 중복 파일이 감지되었습니다! 동일한 사진을 중복으로 올릴 수 없습니다. 중복 과금을 방지하기 위해 정리 후 다시 시도해주세요.",
-        "usage_title": "📊 프리미엄 회원 지갑 상태",
-        "guest_info": "🕒 하드웨어 잠금 지갑:\n* 금일 사용량: **{} / 10** Credits (F5 무효)\n* 30일 사용량: **{} / 30** Credits (복합 잠금)\n* 💡 남은 이용 가능 장수: **{} 장**",
-        "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** \n* 🪙 무료 토큰 잔액: **{} Credits** (우선 차감)\n* 🪙 유료 토큰 잔액: **{} Credits**\n* 💡 남은 이용 가능 장수: **{} 장**"
-    },
-    "ภาษาไทย": {
-        "title": "🌐 AI ระบบจัดจุดกึ่งกลางภาพสินค้าอีคอมเมิร์ซอัตโนมัติ",
-        "subtitle": "ระบบครอปภาพสินค้า แยกหลายภาพ จัดกึ่งกลาง และตั้งค่าขนาดไฟล์ตามใจชอบ (พร้อมใช้งาน)",
-        "pricing_html": """
-        ### 💰 เลือกแพ็กเกจการผลิตของคุณ (แพ็กเกจเติมโทเค็น Credits)
-        * **🌟 ทดลองใช้ฟรี**: **$0** (สมัครสมาชิกรับฟรี **20 โทเค็น**!) ── *ทดสอบระบบจัดจุดกึ่งกลางภาพอัจฉริยะของเรา*
-        * **🪙 แพ็กเกจเริ่มต้น**: **$4.99** (รับ **150 โทเค็น** ── *เฉลี่ยเพียงภาพละ 1.1 บาทเท่านั้น!*)
-        * **⚡ แพ็กเกจแม่ค้ามือโปร**: **$19.99** (รับ **700 โทเค็น** ── *เฉลี่ยเพียงภาพละ 0.9 บาทเท่านั้น!*)
-        * **👑 แพ็กเกจมหาเศรษฐีข้ามพรมแดน**: **$49.99** (รับ **2,000 โทเค็น** ── **คุ้มค่าที่สุด: เฉลี่ยภาพละไม่ถึง 0.8 บาท!**)
-        """,
-        "param_header": "⚙️ พารามิเตอร์สัดส่วนและขนาดไฟล์ภาพ (ระบุค่าได้เอง)",
-        "ratio_lbl": "สัดส่วนของสินค้าสินค้าในภาพ (10-99%):",
-        "size_lbl": "จำกัดขนาดไฟล์สูงสุด (MB):",
-        "drag_lbl": "📥 ลากโฟลเดอร์รูปภาพมาวางที่นี่ (ตั้งชื่อไฟล์ตามชื่อโฟลเดอร์เดิมโดยอัตโนมัติ)",
-        "loaded_lbl": "📊 รูปภาพที่โหลดสำเร็จ: {} ภาพ",
-        "clear_btn": "🗑 ล้างคิวรูปภาพ",
-        "btn_lbl": "🚀 ส่งออกรูปภาพจัดกึ่งกลางอัตโนมัติอย่างรวดเร็วในคลิกเดียว",
-        "processing": "⏳ กำลังประมวลผลภาพที่ {} / {}...",
-        "success": "### ✅ ประมวลผลเสร็จสิ้น! เครดิตถูกหักแล้ว สร้างรูปภาพทั้งหมด {} ภาพเรียบร้อย!",
-        "dl_btn": "🎁 ดาวน์โหลดไฟล์ ZIP รูปภาพจัดกึ่งกลาง",
-        "limit_err": "🔒 ระบบระงับโควต้าล่วงหน้า! โควต้าทดลองฟรีหมดแล้ว (10 เครดิต/24 ชม. หรือ 30 เครดิต/30 วัน) การกด F5 ไม่มีผล กรุณาซื้อโทเค็นเพิ่มด้านขวา",
-        "dup_err": "⚠️ ตรวจพบรูปภาพซ้ำกัน! ไม่สามารถอัปโหลดไฟล์เดิมซ้ำกันในคิวได้ กรุณาเคลียร์คิวแล้วอัปโหลดภาพที่ไม่ซ้ำกัน เพื่อป้องกันการหักเครดิตซ้ำซ้อน",
-        "usage_title": "📊 สถานะกระเป๋าเงินสมาชิกพรีเมียม",
-        "guest_info": "🕒 กระเป๋าเงินล็อคฮาร์ดแวร์:\n* ใช้งานวันนี้แล้ว: **{} / 10** Credits (F5 ไม่มีผล)\n* สะสม 30 วัน: **{} / 30** Credits\n* 💡 จำนวนภาพที่ประมวลผลได้เหลือ: **{} ภาพ**",
-        "welcome": "👋 ยินดีต้อนรับสมาชิกพรีเมียม: **{}** \n* 🪙 โทเค็นฟรีคงเหลือ: **{} Credits** (หักก่อน)\n* 🪙 โทเค็นเติมเงินคงเหลือ: **{} Credits**\n* 💡 จำนวนภาพที่ประมวลผลได้เหลือ: **{} ภาพ**"
-    },
-    "Bahasa Melayu": {
-        "title": "🌐 AI Sistem Centering & Pemotongan Gambar E-dagang",
-        "subtitle": "Pemotongan Automatik, Pengasingan Gambar Pukal, dan Tetapan Bebas Saiz Fail (Sedia)",
-        "pricing_html": """
-        ### 💰 Pilih Pakej Kuasa Pengeluaran Anda (Pakej Kredit Token)
-        * **🌟 PERCUBAAN PERCUMA**: **$0** (Daftar dapat **20 Kredit Percuma**!) ── *Uji sistem smart centering kami.*
-        * **🪙 PAKEJ PERMULAAN**: **$4.99** (Dapat **150 Kredit** ── *Hanya sekitar RM0.15 bagi setiap gambar yang sempurna!*)
-        * **⚡ PAKEJ PENJUAL AKTIF**: **$19.99** (Dapat **700 Kredit** ── *Hanya sekitar RM0.13 bagi setiap gambar yang sempurna!*)
-        * **👑 PAKEJ GERGASI E-DAGANG**: **$49.99** (Dapat **2,000 Kredit** ── **Nilai Hebat: Di bawah RM0.11 bagi setiap gambar!**)
-        """,
-        "param_header": "⚙️ Parameter Nisbah & Kapasiti Fail (Nilai Boleh Diubahsuai)",
-        "ratio_lbl": "Nisbah kepadatan subjek sasaran (10-99%):",
-        "size_lbl": "Had saiz fail maksimum per imej (MB):",
-        "drag_lbl": "📥 Seret folder gambar ke sini (Mewarisi nama folder asal secara automatik)",
-        "loaded_lbl": "📊 Aset imej terkumpul: {} item",
-        "clear_btn": "🗑 Padam & Set Semula",
-        "btn_lbl": "🚀 Utama-Klik Untuk Eksport Gambar Centered Secara Pukal",
-        "processing": "⏳ Saluran paip neural memproses aset {} / {}...",
-        "success": "### ✅ Proses Selesai! Kredit telah ditolak. Sebanyak {} aset telah dijana!",
-        "dl_btn": "🎁 Muat Turun Pakej ZIP Gambar",
-        "limit_err": "🔒 Sekatan Kuota Awal! Had trial 10 kredit/24H atau 30 kredit/30 Hari anda telah habis. Segarkan semula dengan F5 tidak akan menetapkan semula. Sila daftar atau tambah token.",
-        "dup_err": "⚠️ Gambar bertindih dikesan! Anda tidak boleh memuat naik imej yang sama. Sila kosongkan barisan untuk mengelakkan pemotongan kredit berganda.",
-        "usage_title": "📊 STATUS DOMPET PREMIUM SAAS",
-        "guest_info": "🕒 Dompet Kunci Perkakasan:\n* Had Harian Digunakan: **{} / 10** Credits (F5 kalis)\n* Had 30 Hari Digunakan: **{} / 30** Credits\n* 💡 Jumlah Baki Sedia Ada: **{} item**",
-        "welcome": "👋 Selamat kembali: **{}** \n* 🪙 Baki Kredit Freemium: **{} Credits** (Ditolak dahulu)\n* 🪙 Baki Kredit Premium: **{} Credits**\n* 💡 Jumlah Baki Sedia Ada: **{} item**"
-    },
-    "Bahasa Indonesia": {
-        "title": "🌐 AI Sistem Auto-Center Crop & Pengenal Subjek Gambar E-commerce",
-        "subtitle": "Pemotongan Otomatis, Pemisahan Objek Massal, dan Konfigurasi Bebas Rasio Ukuran File (Siap)",
-        "pricing_html": """
-        ### 💰 Pilih Paket Kuasa Produksi Anda (Paket Pengisian Token Credits)
-        * **🌟 UJI COBA GRATIS**: **$0** (Daftar langsung dapat **20 Kredit Gratis**!) ── *Uji kehebatan fitur smart centering kami.*
-        * **🪙 PAKET PEMULA**: **$4.99** (Dapat **150 Kredit** ── *Hanya sekitar Rp500 per gambar yang sempurna!*)
-        * **⚡ PAKET PENJUAL PRO**: **$19.99** (Dapat **700 Kredit** ── *Hanya sekitar Rp430 per gambar yang sempurna!*)
-        * **👑 Paket VAULT RETAIL**: **$49.99** (Dapat **2,000 Kredit** ── **Hemat Ekstrem: Di bawah Rp380 per gambar!**)
-        """,
-        "param_header": "⚙️ Parameter Rasio & Kapasitas File (Nilai Dapat Disesuaikan)",
-        "ratio_lbl": "Rasio kepadatan subjek target (10-99%):",
-        "size_lbl": "Batas kapasitas ukuran file maksimum per gambar (MB):",
-        "drag_lbl": "📥 Seret folder gambar ke sini (Otomatis mewarisi nama folder asli untuk penamaan)",
-        "loaded_lbl": "📊 Total aset gambar yang dimuat: {} item",
-        "clear_btn": "🗑 Bersihkan Antrean",
-        "btn_lbl": "🚀 Ekspor Cepat Foto Berpusat Secara Massal Satu-Klik",
-        "processing": "⏳ Sistem AI sedang memproses aset gambar {} / {}...",
-        "success": "### ✅ Proses AI Selesai! Kredit berhasil dipotong, sebanyak {} aset gambar dibuat!",
-        "dl_btn": "🎁 Unduh Paket ZIP Gambar Berpusat",
-        "limit_err": "🔒 Batas Uji Coba Terkunci! Batas gratis 10 kredit harian atau 30 kredit bulanan Anda sudah habis. Menekan F5 tidak akan memulihkan kuota.",
-        "dup_err": "⚠️ Duplikasi foto terdeteksi! Anda tidak dapat mengunggah gambar yang sama persis secara bersamaan. Silakan kosongkan antrean demi menghindari komplain potong kredit ganda.",
-        "usage_title": "📊 STATUS DOMPET PREMIUM ANGGOTA",
-        "guest_info": "🕒 Dompet Terkunci Perangkat:\n* Kuota Harian Terpakai: **{} / 10** Credits (F5 kebal)\n* Kuota 30 Hari Terpakai: **{} / 30** Credits\n* 💡 Sisa Lembar Yang Tersedia: **{} item**",
-        "welcome": "👋 Selamat datang kembali: **{}** \n* 🪙 Sisa Kredit Gratis: **{} Credits** (Potong pertama)\n* 🪙 Sisa Kredit Berbayar: **{} Credits**\n* 💡 Sisa Lembar Yang Tersedia: **{} item**"
     }
 }
 
 st.set_page_config(page_title="NEXUS CROP — AI SaaS", page_icon="🌐", layout="wide")
 
-# 👑 【核心變數初始化】
+# 👑 【核心 Python 記憶體指紋狀態機初始化】
+if "guest_used_counter" not in st.session_state: st.session_state.guest_used_counter = 0
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
-    # 👑 👑 👑 【24H限額 10 點 ＋ 30日限額 30 點 實體指紋鎖橋接晶片】 👑 👑 👑
-if "local_storage_used_day" not in st.session_state: st.session_state.local_storage_used_day = 0
-if "local_storage_used_month" not in st.session_state: st.session_state.local_storage_used_month = 0
-# 👑 引入全自動「防白嫖硬碟扣點緩衝訊號發射器」
-if "burn_signal_trigger" not in st.session_state: st.session_state.burn_signal_trigger = 0
-
-# 🚀 注入全功能雙防線 JS 探針，在開機 0.1 毫秒內提取並同步實體硬碟數據
-js_bridge_code = f"""
-<script>
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const monthStr = now.toISOString().slice(0, 7);
-    
-    let store = JSON.parse(localStorage.getItem('nexus_crop_vault_v3') || '{{}}');
-    if (store.date !== todayStr) {{
-        store.date = todayStr;
-        store.day_used = 0;
-    }}
-    if (store.month !== monthStr) {{
-        store.month = monthStr;
-        store.month_used = 0;
-    }}
-    localStorage.setItem('nexus_crop_vault_v3', JSON.stringify(store));
-    
-    function syncToPython() {{
-        const currentStore = JSON.parse(localStorage.getItem('nexus_crop_vault_v3') || '{{}}');
-        const msg = {{
-            type: 'NEXUS_SYNC_V3',
-            day_used: currentStore.day_used || 0,
-            month_used: currentStore.month_used || 0
-        }};
-        window.parent.postMessage({{
-            isStreamlitMessage: true,
-            type: "streamlit:setComponentValue",
-            value: msg
-        }}, "*");
-    }}
-    
-    // 👑 鋼鐵熔斷監聽：一旦 Python 拋出開刀成功訊號，立刻在 F5 刷新前，把額度死死烙印在硬碟中！
-    if ({st.session_state.burn_signal_trigger} > 0) {{
-        let s = JSON.parse(localStorage.getItem('nexus_crop_vault_v3') || '{{}}');
-        s.day_used = (s.day_used || 0) + {st.session_state.burn_signal_trigger};
-        s.month_used = (s.month_used || 0) + {st.session_state.burn_signal_trigger};
-        localStorage.setItem('nexus_crop_vault_v3', JSON.stringify(s));
-    }}
-    
-    setTimeout(syncToPython, 200);
-</script>
-"""
-# 點亮隱形網卡雙軌橋接晶片
-response_box = html(js_bridge_code, height=0, width=0)
-
-# 🚀 監聽並將前端指紋鎖數據精準綁定到 Python 狀態機中
-if response_box and isinstance(response_box, dict) and response_box.get("type") == "NEXUS_SYNC_V3":
-    st.session_state.local_storage_used_day = response_box.get("day_used", 0)
-    st.session_state.local_storage_used_month = response_box.get("month_used", 0)
-
-# CSS 航太級 3 倍大面積拉圖停機坪注入
+    # CSS 航太級 3 倍大面積拉圖停機坪注入
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 35px 0px; }
@@ -329,24 +169,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文", "English", "日本語", "한국어", "ภาษาไทย", "Bahasa Melayu", "Bahasa Indonesia"), index=0)
+lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文", "English", "日本語"), index=0)
 L = LANG_MAP[lang]
-# 👑 👑 👑 【全域安全變數最高防線】 👑 👑 👑
-# 將 user_authed 強行鎖死在第五部分最第一行，確保不論如何 Rerun 全局 100% 通暢！
+
+# 👑 👑 👑 【核心 Python 動態餘額實時同步解算大腦】 👑 👑 👑
 user_authed = st.session_state.user_authenticated
 credits_free = 0
 credits_paid = 0
 user_uid = ""
 
-# 👑 👑 👑 【核心雙軌餘額實時動態同步解算大腦】 👑 👑 👑
-guest_day = st.session_state.local_storage_used_day
-guest_month = st.session_state.local_storage_used_month
-
 if not user_authed:
-    # 遊客：雙向比對日剩餘 (10-已用) 與月剩餘 (30-已用) 的絕對最小值，F5刷新絕不重置！
-    rem_d = max(0, 10 - guest_day)
-    rem_m = max(0, 30 - guest_month)
-    current_remaining_quota = min(rem_d, rem_m)
+    # 遊客：直接調用 Python 後台記憶體，計算精準餘額
+    current_remaining_quota = max(0, 10 - st.session_state.guest_used_counter)
 else:
     if db:
         try:
@@ -367,8 +201,7 @@ main_col, side_col = st.columns([0.72, 0.28], gap="large")
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not user_authed:
-        # 📊 右側遊客看板，實時秀出實體硬碟指紋鎖抓出來的日使用與月累計！
-        st.info(L["guest_info"].format(guest_day, guest_month, current_remaining_quota))
+        st.info(L["guest_info"].format(st.session_state.guest_used_counter, current_remaining_quota))
         st.markdown("---")
         auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
         email_in = st.text_input("📧 Email", key="auth_email")
@@ -409,8 +242,7 @@ with side_col:
             st.session_state.user_authenticated = False
             st.session_state.user_email = ""
             st.rerun()
-
-with main_col:
+            with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
     st.markdown(L["pricing_html"], unsafe_allow_html=True)
@@ -428,187 +260,182 @@ with main_col:
         except: t_mb = 2.0
 
     uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"file_uploader_core_{st.session_state.uploader_key_token}")
+
     # 最前端物理熔斷與 MD5 去重預檢
-num_uploaded = len(uploaded_files) if uploaded_files else 0
-quota_violation = False
-duplicate_violation = False
+    num_uploaded = len(uploaded_files) if uploaded_files else 0
+    quota_violation = False
+    duplicate_violation = False
 
-if num_uploaded > 0:
-    if num_uploaded > current_remaining_quota:
-        quota_violation = True
-        st.error(L["limit_err"].format(num_uploaded, current_remaining_quota))
-    
-    seen_hashes = set()
-    for f_check in uploaded_files:
-        try:
-            f_check.seek(0)
-            file_hash = hashlib.md5(f_check.read()).hexdigest()
-            f_check.seek(0)
-            if file_hash in seen_hashes:
-                duplicate_violation = True
-                break
-            seen_hashes.add(file_hash)
-        except: pass
-            
-    if duplicate_violation:
-        st.error(L["dup_err"])
-
-col_btn1, col_btn2 = st.columns(2)
-with col_btn1:
-    if st.button(L["clear_btn"], use_container_width=True, key="clear_all_queue"):
-        st.session_state.uploader_key_token += 1
-        st.session_state.temp_ready = False
-        st.session_state.burn_signal_trigger = 0 # 歸零訊號
-        st.rerun()
-with col_btn2:
-    any_violation = quota_violation or duplicate_violation
-    start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
-
-zip_path = "/tmp/processed_centered_images.zip"
-
-if uploaded_files and not any_violation:
-    st.success(L["loaded_lbl"].format(num_uploaded))
-    
-    if start_btn:
-        saved = 0
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        session = load_rembg_session()
+    if num_uploaded > 0:
+        if num_uploaded > current_remaining_quota:
+            quota_violation = True
+            st.error(L["limit_err"].format(num_uploaded, current_remaining_quota))
         
-        temp_out_dir = "/tmp/processed_centered_images"
-        if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
-        if os.path.exists(zip_path): os.remove(zip_path)
-        os.makedirs(temp_out_dir, exist_ok=True)
-        
-        for idx, file in enumerate(uploaded_files, 1):
-            status_text.markdown(L["processing"].format(idx, num_uploaded))
+        seen_hashes = set()
+        for f_check in uploaded_files:
             try:
-                folder_prefix = ""
-                file_raw_name = getattr(file, "name", "photo.jpg")
+                f_check.seek(0)
+                file_hash = hashlib.md5(f_check.read()).hexdigest()
+                f_check.seek(0)
+                if file_hash in seen_hashes:
+                    duplicate_violation = True
+                    break
+                seen_hashes.add(file_hash)
+            except: pass
                 
-                if hasattr(file, "path"):
-                    raw_path_str = file.path
-                    path_parts = raw_path_str.replace("\\", "/").split("/")
-                    if len(path_parts) > 1:
-                        folder_prefix = f"[{path_parts[-2]}]_"
-                elif hasattr(file, "webkitRelativePath") and file.webkitRelativePath:
-                    raw_path_str = file.webkitRelativePath
-                    path_parts = raw_path_str.replace("\\", "/").split("/")
-                    if len(path_parts) > 1:
-                        folder_prefix = f"[{path_parts[-2]}]_"
-                
-                file.seek(0)
-                file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
-                img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-                if img_orig is None: continue
-                
-                contours_normal = get_ai_bounding_boxes(img_orig, session)
-                img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
-                contours_rotated = get_ai_bounding_boxes(img_rotated, session)
-                
-                h_o, w_o, _ = img_orig.shape
-                valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
-                h_r, w_r, _ = img_rotated.shape
-                valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
-                
-                if valid_cnt_rotated > valid_cnt_normal:
-                    img = img_rotated; contours = contours_rotated; is_rotated_for_calculation = True; h, w = h_r, w_r
-                else:
-                    img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
-                
-                valid_boxes = []
-                for c in contours:
-                    hull = cv2.convexHull(c)
-                    if cv2.contourArea(hull) > (w * h * 0.015):
-                        bx, by, bw, bh = cv2.boundingRect(hull)
-                        roi = img[by:by+bh, bx:bx+bw]
-                        if roi.size > 0:
-                            g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                            e_roi = cv2.Canny(g_roi, 50, 150)
-                            if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
-                                s_pil = remove(Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)), session=session)
-                                s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-                                _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
-                                s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                                if s_cnt:
-                                        sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
-                                        if sbw_p * sbh_p < (bw * bh * 0.92):
-                                            valid_boxes.append((bx + sbx_p, by + sby_p, min(bw, sbw_p), min(bh, sbh_p)))
-                                            continue
-                        valid_boxes.append((bx, by, bw, bh))
-                
-                if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
-                
-                for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
-                    cx, cy = bx + bw // 2, by + bh // 2
-                    ideal_pad_w = int((bw / ratio - bw) / 2); ideal_pad_h = int((bh / ratio - bh) / 2)
-                    pad_l = min(cx - bw // 2, ideal_pad_w); pad_r = min((w - cx) - bw // 2, ideal_pad_w)
-                    pad_t = min(cy - bh // 2, ideal_pad_h); pad_b = min((h - cy) - bh // 2, ideal_pad_h)
-                    x1 = max(0, cx - bw // 2 - pad_l); x2 = min(w, cx + bw // 2 + pad_r)
-                    y1 = max(0, cy - bh // 2 - pad_t); y2 = min(h, cy + bh // 2 + pad_b)
-                    cropped = img[y1:y2, x1:x2]
-                    if cropped.size == 0: continue
-                    if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                    
-                    t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
-                    for _ in range(10):
-                        mid = (low + high) // 2
-                        _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, mid])
-                        if len(buf) <= t_bytes: best_q = mid; low = mid + 1
-                        else: high = mid - 1
-                    _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
-                    
-                    base_name, _ = os.path.splitext(file_raw_name)
-                    if len(valid_boxes) > 1:
-                        out_img_name = f"{folder_prefix}{base_name}_置中裁剪_{part_idx}.jpg"
-                    else:
-                        out_img_name = f"{folder_prefix}{base_name}_置中裁剪.jpg"
-                        
-                    with open(os.path.join(temp_out_dir, out_img_name), "wb") as f_out: f_out.write(buf.tobytes())
-                    saved += 1
-                    
-                del img, img_orig, img_rotated, contours_normal, contours_rotated; gc.collect()
-            except Exception as e: st.error(f"Error {file_raw_name}: {str(e)}")
-            progress_bar.progress(idx / num_uploaded)
+        if duplicate_violation:
+            st.error(L["dup_err"])
+
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button(L["clear_btn"], use_container_width=True, key="clear_all_queue"):
+            st.session_state.uploader_key_token += 1
+            st.session_state.temp_ready = False
+            st.rerun()
+    with col_btn2:
+        # 🔒 雙重安全死鎖：當剩餘可用總張數 <= 0 時，按鈕直接灰色死鎖、完全不給按，高雅提示！
+        any_violation = quota_violation or duplicate_violation or (current_remaining_quota <= 0 and num_uploaded == 0)
+        start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
+
+    zip_path = "/tmp/processed_centered_images.zip"
+    if uploaded_files and not any_violation:
+        st.success(L["loaded_lbl"].format(num_uploaded))
         
-        if saved > 0:
-            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for root, _, files in os.walk(temp_out_dir):
-                    for f in files: zip_file.write(os.path.join(root, f), f)
+        if start_btn:
+            saved = 0
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            session = load_rembg_session()
             
-            # 👑 👑 👑 【防白嫖核心：只要開刀完畢、立刻執行扣點程序！】 👑 👑 👑
-            if not user_authed:
-                # 遊客：立刻拉高 Python 觸發鑰匙，強行逼迫前端 JavaScript 把額度灌進實體硬碟！
-                st.session_state.burn_signal_trigger = num_uploaded
-            else:
-                # 會員：一秒都不等，直接連線 Firebase 把點數扣掉！
-                if credits_free >= num_uploaded:
-                    new_free = credits_free - num_uploaded
-                    new_paid = credits_paid
+            temp_out_dir = "/tmp/processed_centered_images"
+            if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
+            if os.path.exists(zip_path): os.remove(zip_path)
+            os.makedirs(temp_out_dir, exist_ok=True)
+            
+            for idx, file in enumerate(uploaded_files, 1):
+                status_text.markdown(L["processing"].format(idx, num_uploaded))
+                try:
+                    folder_prefix = ""
+                    file_raw_name = getattr(file, "name", "photo.jpg")
+                    
+                    if hasattr(file, "path"):
+                        raw_path_str = file.path
+                        path_parts = raw_path_str.replace("\\", "/").split("/")
+                        if len(path_parts) > 1:
+                            folder_prefix = f"[{path_parts[-2]}]_"
+                    elif hasattr(file, "webkitRelativePath") and file.webkitRelativePath:
+                        raw_path_str = file.webkitRelativePath
+                        path_parts = raw_path_str.replace("\\", "/").split("/")
+                        if len(path_parts) > 1:
+                            folder_prefix = f"[{path_parts[-2]}]_"
+                    
+                    file.seek(0)
+                    file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
+                    img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+                    if img_orig is None: continue
+                    
+                    contours_normal = get_ai_bounding_boxes(img_orig, session)
+                    img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+                    contours_rotated = get_ai_bounding_boxes(img_rotated, session)
+                    
+                    h_o, w_o, _ = img_orig.shape
+                    valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
+                    h_r, w_r, _ = img_rotated.shape
+                    valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
+                    
+                    if valid_cnt_rotated > valid_cnt_normal:
+                        img = img_rotated; contours = contours_rotated; is_rotated_for_calculation = True; h, w = h_r, w_r
+                    else:
+                        img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
+                    
+                    valid_boxes = []
+                    for c in contours:
+                        hull = cv2.convexHull(c)
+                        if cv2.contourArea(hull) > (w * h * 0.015):
+                            bx, by, bw, bh = cv2.boundingRect(hull)
+                            roi = img[by:by+bh, bx:bx+bw]
+                            if roi.size > 0:
+                                g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                                e_roi = cv2.Canny(g_roi, 50, 150)
+                                if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
+                                    s_pil = remove(Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)), session=session)
+                                    s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+                                    _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
+                                    s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                                    if s_cnt:
+                                            sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
+                                            if sbw_p * sbh_p < (bw * bh * 0.92):
+                                                valid_boxes.append((bx + sbx_p, by + sby_p, min(bw, sbw_p), min(bh, sbh_p)))
+                                                continue
+                        valid_boxes.append((bx, by, bw, bh))
+                    
+                    if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
+                    
+                    for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
+                        cx, cy = bx + bw // 2, by + bh // 2
+                        ideal_pad_w = int((bw / ratio - bw) / 2); ideal_pad_h = int((bh / ratio - bh) / 2)
+                        pad_l = min(cx - bw // 2, ideal_pad_w); pad_r = min((w - cx) - bw // 2, ideal_pad_w)
+                        pad_t = min(cy - bh // 2, ideal_pad_h); pad_b = min((h - cy) - bh // 2, ideal_pad_h)
+                        x1 = max(0, cx - bw // 2 - pad_l); x2 = min(w, cx + bw // 2 + pad_r)
+                        y1 = max(0, cy - bh // 2 - pad_t); y2 = min(h, cy + bh // 2 + pad_b)
+                        cropped = img[y1:y2, x1:x2]
+                        if cropped.size == 0: continue
+                        if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                        
+                        t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
+                        for _ in range(10):
+                            mid = (low + high) // 2
+                            _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, mid])
+                            if len(buf) <= t_bytes: best_q = mid; low = mid + 1
+                            else: high = mid - 1
+                        _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
+                        
+                        base_name, _ = os.path.splitext(file_raw_name)
+                        if len(valid_boxes) > 1:
+                            out_img_name = f"{folder_prefix}{base_name}_置中裁剪_{part_idx}.jpg"
+                        else:
+                            out_img_name = f"{folder_prefix}{base_name}_置中裁剪.jpg"
+                            
+                        with open(os.path.join(temp_out_dir, out_img_name), "wb") as f_out: f_out.write(buf.tobytes())
+                        saved += 1
+                        
+                    del img, img_orig, img_rotated, contours_normal, contours_rotated; gc.collect()
+                except Exception as e: st.error(f"Error {file_raw_name}: {str(e)}")
+                progress_bar.progress(idx / num_uploaded)
+            
+            if saved > 0:
+                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for root, _, files in os.walk(temp_out_dir):
+                        for f in files: zip_file.write(os.path.join(root, f), f)
+                
+                # 👑 👑 👑 【純 Python 記憶體超速死鎖：開刀完畢、100% 現場立刻扣點！】 👑 👑 👑
+                if not user_authed:
+                    st.session_state.guest_used_counter += num_uploaded
                 else:
-                    remainder = num_uploaded - credits_free
-                    new_free = 0
-                    new_paid = max(0, credits_paid - remainder)
-                if db and user_uid:
-                    db.collection("users").document(user_uid).update({
-                        "credits_free": new_free, "credits_paid": new_paid
-                    })
-            
-            st.session_state.compiled_saved = saved
-            st.session_state.temp_ready = True
-            st.success(L["success"].format(saved))
-            st.rerun() # 強制網頁刷新一微秒，將扣點餘額鐵證如山地畫在右側看板上！
-            
-    # 🔓 扣點大功告成！此時才安全地放出單向下載按鈕，這時他按 F5 刷新，點數早就被扣死，大按鈕當場變灰！
-    if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
-        zip_file_size = os.path.getsize(zip_path)
-        if zip_file_size > 0:
-            with open(zip_path, "rb") as f_zip:
-                zip_data = f_zip.read()
-            
-            # 放行純淨下載鈕
-            if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_final_gate"):
-                st.session_state.uploader_key_token += 1
-                st.session_state.temp_ready = False
-                st.session_state.burn_signal_trigger = 0 # 歸零
+                    if credits_free >= num_uploaded:
+                        new_free = credits_free - num_uploaded
+                        new_paid = credits_paid
+                    else:
+                        remainder = num_uploaded - credits_free
+                        new_free = 0
+                        new_paid = max(0, credits_paid - remainder)
+                    if db and user_uid:
+                        db.collection("users").document(user_uid).update({
+                            "credits_free": new_free, "credits_paid": new_paid
+                        })
+                
+                st.session_state.compiled_saved = saved
+                st.session_state.temp_ready = True
+                st.success(L["success"].format(saved))
                 st.rerun()
+                
+        if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
+            zip_file_size = os.path.getsize(zip_path)
+            if zip_file_size > 0:
+                with open(zip_path, "rb") as f_zip:
+                    zip_data = f_zip.read()
+                
+                if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_final_gate"):
+                    st.session_state.uploader_key_token += 1
+                    st.session_state.temp_ready = False
+                    st.rerun()
