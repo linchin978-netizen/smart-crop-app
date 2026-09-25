@@ -24,8 +24,7 @@ if not firebase_admin._apps:
 db = firestore.client() if firebase_admin._apps else None
 
 @st.cache_resource
-def load_rembg_session(): 
-    return new_session("silueta")
+def load_rembg_session(): return new_session("silueta")
 
 def get_remote_ip():
     try:
@@ -35,7 +34,8 @@ def get_remote_ip():
             elif "X-Real-IP" in ctx.headers: return ctx.headers["X-Real-IP"].strip()
     except: pass
     return "127.0.0.1"
-    # 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
+
+# 🌍 核心功能純英文大字典
 L = {
     "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
     "param_header": "⚙️ Layout Ratio & Capacity Parameters",
@@ -49,11 +49,10 @@ L = {
     "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits\n* 💡 Available Balance: **{} items**",
     "welcome": "👋 Welcome, Premium Partner:\n**{}**\n* 🪙 Active Wallet: **{} Credits**",
     "success": "### ✅ Render Completed!",
-    "preview_title": "🎨 AI Auto-Centering Real-time Matrix Grid (Reject Before Download)",
+    "preview_title": "🎨 AI Auto-Centering Matrix Grid (Reject Before Download)",
     "orig_lbl": "📥 Original Asset",
     "del_btn": "🗑 Reject & Remove"
 }
-
 st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
 
 visitor_ip = get_remote_ip()
@@ -74,6 +73,7 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
     except: pass
 
 current_remaining_quota = min(10 - guest_used_day, 30 - guest_used_month) if not user_authed else credits_total
+
 # 高級電商雙欄布局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
@@ -124,7 +124,8 @@ else:
         st.session_state.user_authenticated = False
         st.session_state.user_email = ""
         st.rerun()
-        main_col.title(L["title"])
+
+main_col.title(L["title"])
 main_col.write("---")
 main_col.markdown(f"#### {L['param_header']}")
 
@@ -153,7 +154,6 @@ start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="
 
 zip_path = "/tmp/processed_centered_images.zip"
 
-# 🛸 核心防護閘門：解鎖進度條死鎖，成果儲存好直接放行，未按按鈕則安全駐停
 if st.session_state.temp_ready:
     pass
 elif not start_btn:
@@ -231,7 +231,8 @@ for idx, file in enumerate(uploaded_files, 1):
                 valid_boxes.append((bx, by, bw, bh))
                 
         if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
-            for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
+        
+        for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
             cx, cy = bx + bw // 2, by + bh // 2
             ideal_pad_w = int((bw / ratio - bw) / 2)
             ideal_pad_h = int((bh / ratio - bh) / 2)
@@ -259,14 +260,12 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
-            # 🎯 👑 鋼鐵校正：小寫 part_idx，100% 杜絕 NameError 崩潰死鎖！
             out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > part_idx else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
                 "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
             })
             saved += 1
-        # 👑 🛸 航太級真空記憶體抽水：每跑完一張，立刻物理蒸發垃圾變數，100% 穩定！
         del img, img_orig, img_rotated, contours_normal, contours_rotated; gc.collect()
     except: pass
     progress_bar.progress(idx / num_uploaded)
@@ -315,10 +314,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         layout_cols = main_col.columns([0.25, 0.75])
         layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
         
-        # 👑 🎯 5 縱列微型矩陣：完美的 60% 迷你看板對照組呈現在此！
-        sub_grid_cols = layout_cols.columns(5)
+        # 👑 🎯 終極大釋放：直接爆改為 8 縱列微型網格矩陣！預覽圖物理寬度直接暴砍為極小、不佔空間的迷你看板，僅供判斷比例沒裁壞，絕不浪費大賣家的一絲螢幕空間！
+        sub_grid_cols = layout_cols.columns(8)
         for c_idx, crop_data in enumerate(contents["crops"]):
-            with sub_grid_cols[c_idx % 5]:
+            with sub_grid_cols[c_idx % 8]:
                 st.image(crop_data["thumb_bytes"], width="stretch")
                 st.caption(f"🎯 {crop_data['img_name']}")
                 btn_id = f"del_{orig_key}_{crop_data['img_name']}_{c_idx}"
@@ -326,3 +325,4 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     st.session_state.master_preview_dict[orig_key]["crops"].pop(c_idx)
                     if not st.session_state.master_preview_dict[orig_key]["crops"]: st.session_state.master_preview_dict.pop(orig_key)
                     st.rerun()
+                    
