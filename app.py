@@ -71,7 +71,7 @@ LANG_MAP = {
         "btn_lbl": "⚡ 完璧な中央配置画像をワンクリックでエクスポート",
         "processing": "⏳ クラウド解析中：第 {} 枚 / 全 {} 枚...",
         "success": "### ✅ クラウド解析完了！合計 {} 枚の画像が生成されました！",
-        "dl_btn": "🎁 中央配置画像ZIPパッケージをダウンロード",
+        "dl_btn": "🎁 画像ZIPパッケージをダウンロード",
         "limit_err": "❌ 無料利用枠の制限を超えました！1日の上限は30枚、30日間の上限は60枚です。",
         "usage_title": "📊 FREE 無料制限枠の使用状況"
     }
@@ -115,7 +115,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已正式放寬至 30 張！)
+# 📊 右上方 FREE 使用額度面板
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -272,7 +272,6 @@ if uploaded_files:
                         if not valid_boxes:
                             valid_boxes.append((int(w_high*0.25), int(w_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
-                        # 👑 👑 👑 【刀與肉身完璧歸趙 ── 置中裁切】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -310,15 +309,17 @@ if uploaded_files:
                             zip_file.writestr(out_img_name, buf.tobytes())
                             saved += 1
                             
-                        # 👑 【26張大上傳免斷電核心】：開刀存檔完畢，立刻將大影像從記憶體中強行抹除釋放！
+                        # 👑 即時內存釋放與回收
                         del img, img_orig, img_probe_orig, contours, contours_0, contours_90, contours_180, contours_270
-                        gc.collect() # 命令 Linux 核心強制回收垃圾，力保下載按鈕刷新不踩紅線！
+                        gc.collect()
                             
                     except Exception as e:
                         st.error(f"Error {file.name}: {str(e)}")
                     
                     progress_bar.progress(idx / len(uploaded_files))
             
+            # 👑 👑 👑 【大獲全勝防線 ── 下載按鈕強行移至 try 大迴圈最外層！】 👑 👑 👑
+            # 26張照片全部切完、垃圾全部倒乾淨後，網頁才大氣、乾淨地畫出唯一一顆下載按鈕！徹底消滅 ClientDisconnect！
             st.session_state.daily_usage += len(uploaded_files)
             st.session_state.monthly_usage += len(uploaded_files)
             st.success(L["success"].format(saved))
