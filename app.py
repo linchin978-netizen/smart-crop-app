@@ -35,7 +35,7 @@ LANG_MAP = {
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
         "success": "### ✅ Pipeline Render Completed! Total {} assets deployed!",
         "dl_btn": "🎁 Download Compiled Centering Assets Package (ZIP)",
-        "limit_err": "❌ Operational threshold exceeded! FREE quota tier is capped at 10 assets/daily and 30 assets/monthly.",
+        "limit_err": "❌ Operational threshold exceeded! FREE quota tier is capped at 30 assets/daily and 60 assets/monthly.",
         "usage_title": "📊 FREE SYSTEM QUOTA STATUS"
     },
     "繁體中文": {
@@ -53,7 +53,7 @@ LANG_MAP = {
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
         "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！",
         "dl_btn": "🎁 點擊一鍵下載完美置中相片壓縮包 (ZIP)",
-        "limit_err": "❌ 已超過每日或每月免費額度！FREE用戶30天累計上限為 30 張。",
+        "limit_err": "❌ 已超過每日或每月免費額度！FREE用戶每日上限為 30 張，30天累計上限為 60 張。",
         "usage_title": "📊 FREE 免費額度智慧計數看板"
     },
     "日本語": {
@@ -71,7 +71,7 @@ LANG_MAP = {
         "processing": "⏳ クラウド解析中：第 {} 枚 / 全 {} 枚...",
         "success": "### ✅ クラウド解析完了！合計 {} 枚の画像が生成されました！",
         "dl_btn": "🎁 中央配置画像ZIPパッケージをダウンロード",
-        "limit_err": "❌ 無料利用枠の制限を超えました！30日間の上限は30枚です。",
+        "limit_err": "❌ 無料利用枠の制限を超えました！1日の上限は30枚、30日間の上限は60枚です。",
         "usage_title": "📊 FREE 無料制限枠の使用状況"
     }
 }
@@ -114,8 +114,8 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板
-st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 10** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 30**")
+# 📊 右上方 FREE 使用額度面板 (👑 每日免費公測額度已正式放寬至 30 張！)
+st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
 with st.expander(f"**{L['tip_header']}**", expanded=True):
@@ -158,7 +158,8 @@ if uploaded_files:
     st.success(L["loaded_lbl"].format(len(uploaded_files)))
     
     if start_btn:
-        if st.session_state.daily_usage + len(uploaded_files) > 10 or st.session_state.monthly_usage + len(uploaded_files) > 30:
+        # 👑 熔斷機制保險絲：每日防爆限制已同步調升至 30 張！
+        if st.session_state.daily_usage + len(uploaded_files) > 30 or st.session_state.monthly_usage + len(uploaded_files) > 60:
             st.error(L["limit_err"])
         else:
             zip_buffer = io.BytesIO()
@@ -179,12 +180,11 @@ if uploaded_files:
                         
                         h_orig, w_orig, _ = img_orig.shape
                         
-                        # 👑 👑 👑 【4K 級無損探測盾 ── 提升限制至 2800 像素！】 👑 👑 👑
-                        # 徹底打碎記憶體稀釋毒瘤！保留 3直排七龍珠 與 90度風景照 密集卡片之間的所有微小背景縫隙，手指紋理 100% 精準擦除！
+                        # 👑 【雲端防爆降維盾】：限制探測圖最大寬度為 1000
                         probe_scale = 1.0
-                        if w_orig > 2800:
-                            probe_scale = 2800.0 / w_orig
-                            w_probe = 2800
+                        if w_orig > 1000:
+                            probe_scale = 1000.0 / w_orig
+                            w_probe = 1000
                             h_probe = int(h_orig * probe_scale)
                             img_probe_orig = cv2.resize(img_orig, (w_probe, h_probe), interpolation=cv2.INTER_AREA)
                         else:
@@ -242,31 +242,57 @@ if uploaded_files:
                             hull = cv2.convexHull(c)
                             if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.015):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
+                                
+                                # 👑 【微观像素分割：大框再拆開晶片】：將在縮圖下黏住的 3直排、90度風景照 硬生生斬斷、拆成獨立子方框！
+                                roi_probe = img_probe_orig[by_p:by_p+bh_p, bx_p:bx_p+bw_p] if not is_rotated_for_calculation else (
+                                    img_probe_90[by_p:by_p+bh_p, bx_p:bx_p+bw_p] if rotation_mode==90 else (
+                                        img_probe_180[by_p:by_p+bh_p, bx_p:bx_p+bw_p] if rotation_mode==180 else img_probe_270[by_p:by_p+bh_p, bx_p:bx_p+bw_p]
+                                    )
+                                )
+                                if roi_probe.size > 0:
+                                    g_roi = cv2.cvtColor(roi_probe, cv2.COLOR_BGR2GRAY)
+                                    _, sub_thresh = cv2.threshold(g_roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+                                    sub_cnt, _ = cv2.findContours(sub_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                                    
+                                    valid_sub_boxes = []
+                                    for sc in sub_cnt:
+                                        sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(sc)
+                                        if (sbw_p * sbh_p) > (bw_p * bh_p * 0.12) and sbw_p < (bw_p * 0.95):
+                                            valid_sub_boxes.append((bx_p + sbx_p, by_p + sby_p, sbw_p, sbh_p))
+                                    
+                                    if len(valid_sub_boxes) >= 2:
+                                        for (sbx, sby, sbw, sbh) in valid_sub_boxes:
+                                            if sbw / sbh > 2.5 or sbh / sbw > 2.5: continue
+                                            rbx, rby = int(sbx * scale_factor), int(sby * scale_factor)
+                                            rbw, rbh = int(sbw * scale_factor), int(sbh * scale_factor)
+                                            rbx, rby = max(0, rbx), max(0, rby)
+                                            valid_boxes.append((rbx, rby, min(w_high - rbx, rbw), min(h_high - rby, rbh)))
+                                        continue
+                                
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
                                 bw = int(bw_p * scale_factor)
                                 bh = int(bh_p * scale_factor)
-                                
                                 bx, by = max(0, bx), max(0, by)
                                 bw = min(w_high - bx, bw)
                                 bh = min(h_high - by, bh)
                                 
-                                roi = img[by:by+bh, bx:bx+bw]
-                                if roi.size > 0:
-                                    g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                                    e_roi = cv2.Canny(g_roi, 50, 150)
-                                    if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
-                                        roi_h, roi_w, _ = roi.shape
-                                        roi_scale = 500.0 / roi_w if roi_w > 500 else 1.0
-                                        roi_probe = cv2.resize(roi, (500, int(roi_h * roi_scale)), interpolation=cv2.INTER_AREA) if roi_w > 500 else roi.copy()
-                                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
+                                # 👑 【單一卡片手部擦除】：在進階內核下，過濾掉手拿卡的把手突出物
+                                sub_roi = img[by:by+bh, bx:bx+bw]
+                                if sub_roi.size > 0:
+                                    g_sub = cv2.cvtColor(sub_roi, cv2.COLOR_BGR2GRAY)
+                                    e_sub = cv2.Canny(g_sub, 50, 150)
+                                    if (np.sum(e_sub > 0) / e_sub.size) < 0.05:
+                                        roi_scale = 500.0 / bw if bw > 500 else 1.0
+                                        roi_p = cv2.resize(sub_roi, (500, int(bh * roi_scale)), interpolation=cv2.INTER_AREA) if bw > 500 else sub_roi.copy()
+                                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi_p, cv2.COLOR_BGR2RGB)), session=session)
                                         s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                                         s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                                         if s_cnt:
                                             sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
                                             sbx, sby, sbw, sbh = int(sbx_p / roi_scale), int(sby_p / roi_scale), int(sbw_p / roi_scale), int(sbh_p / roi_scale)
-                                            if sbw * sbh < (bw * bh * 0.92): 
+                                            if sbw * sbh < (bw * bh * 0.90) and sbw > (bw * 0.4): 
                                                 valid_boxes.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh)))
                                                 continue
                                 valid_boxes.append((bx, by, bw, bh))
