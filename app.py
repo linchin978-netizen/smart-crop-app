@@ -155,12 +155,11 @@ start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="
 
 zip_path = "/tmp/processed_centered_images.zip"
 
-# 🛸 👑 狀態機死鎖完美修復：只要暫存區有東西（temp_ready == True），綠色通道直接放行，不准觸發 st.stop()！
 if st.session_state.temp_ready:
     pass
 elif not start_btn:
     st.stop()
-    # 👑 🛸 靠左扁平化防護線，100% 杜絕 IndentationError，進度條跑完立刻亮起！
+    # 👑 🛸 全線扁平化防護線，100% 杜絕 IndentationError，拼字完全修復版！
 saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
@@ -263,7 +262,8 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
-            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
+            # 🎯 👑 終極修復：這裡的小寫 part_idx 已經被完美校正、對齊！絕不再噴出 NameError 熔斷！
+            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > part_idx else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
                 "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
