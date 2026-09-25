@@ -1,4 +1,4 @@
-mport os, io, zipfile, cv2, gc, numpy as np
+import os, io, zipfile, cv2, gc, numpy as np
 from PIL import Image, ImageOps
 from rembg import remove, new_session
 import streamlit as st
@@ -172,7 +172,7 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 👑 100% 採用與桌面版同級的「照妖鏡硬解」最上游機制
+                        # 👑 100% 採用與桌面版同級的「照妖鏡硬解」上游機制
                         bytes_data = file.read()
                         pil_img = Image.open(io.BytesIO(bytes_data))
                         pil_img = ImageOps.exif_transpose(pil_img) 
@@ -208,7 +208,6 @@ if uploaded_files:
                                 bh = int(bh_p * scale_factor)
                                 
                                 bx, by = max(0, bx), max(0, by)
-                                # 👑 【極限防護晶片校正對齊】：將變數精確導向 w_orig 與 h_orig！橫圖、90度聖誕樹全線滿血復活！
                                 bw = min(w_orig - bx, bw)
                                 bh = min(h_orig - by, bh)
                                 
