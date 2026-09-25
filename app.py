@@ -269,3 +269,54 @@ if uploaded_files and start_btn:
     if saved > 0:
         st.session_state.temp_ready = True
         st.rerun()
+        if st.session_state.temp_ready and st.session_state.master_preview_dict:
+    temp_out_dir = "/tmp/processed_centered_images"
+    if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
+    os.makedirs(temp_out_dir, exist_ok=True)
+    if os.path.exists(zip_path): os.remove(zip_path)
+    
+    total_live_count = 0
+    for orig_file, contents in list(st.session_state.master_preview_dict.items()):
+        for crop_item in contents["crops"]:
+            with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: f_out.write(crop_item["full_bytes"])
+            total_live_count += 1
+            
+    if total_live_count > 0:
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for root, _, files in os.walk(temp_out_dir):
+                for f in files: zip_file.write(os.path.join(root, f), f)
+                
+        with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
+        
+        dl_clicked = main_col.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", width="stretch", key="dl_zip_final_gate")
+        if dl_clicked:
+            if db and visitor_ip != "127.0.0.1" and not user_authed:
+                db.collection("guest_ips").document(visitor_ip).set({"day_used": guest_used_day + num_uploaded, "month_used": guest_used_month + num_uploaded, "last_date": current_date_str, "last_month": current_month_str})
+            elif db and user_uid and user_authed:
+                db.collection("users").document(user_uid).update({"credits_total": max(0, credits_total - num_uploaded)})
+            st.session_state.uploader_key_token += 1
+            st.session_state.temp_ready = False
+            st.session_state.master_preview_dict = {}
+            st.rerun()
+
+    main_col.write("---")
+    main_col.markdown(f"### {L['preview_title']}")
+    
+    for orig_key, contents in list(st.session_state.master_preview_dict.items()):
+        if not contents["crops"]: continue
+        
+        main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
+        layout_cols = main_col.columns([0.25, 0.75])
+        layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
+        
+        # 👑 🎯 5 縱列微型矩陣排列，將裁切預覽圖在螢幕上的物理呈現大小精準縮小至 60%，版面極致緊湊！
+        sub_grid_cols = layout_cols.columns(5)
+        for c_idx, crop_data in enumerate(contents["crops"]):
+            with sub_grid_cols[c_idx % 5]:
+                st.image(crop_data["thumb_bytes"], width="stretch")
+                st.caption(f"🎯 {crop_data['img_name']}")
+                btn_id = f"del_{orig_key}_{crop_data['img_name']}_{c_idx}"
+                if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
+                    st.session_state.master_preview_dict[orig_key]["crops"].pop(c_idx)
+                    if not st.session_state.master_preview_dict[orig_key]["crops"]: st.session_state.master_preview_dict.pop(orig_key)
+                    st.rerun()
