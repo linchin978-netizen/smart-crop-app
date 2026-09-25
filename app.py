@@ -22,15 +22,7 @@ db = firestore.client() if firebase_admin._apps else None
 def load_rembg_session():
     return new_session("silueta")
 
-def get_ai_bounding_boxes(cv_img, session):
-    img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-    output_pil = remove(Image.fromarray(img_rgb), session=session)
-    alpha = cv2.cvtColor(np.array(output_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-    _, thresh = cv2.threshold(alpha, 10, 255, cv2.THRESH_BINARY)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    return contours
-
-# 👑 實體 IP 雲端探針晶片：直接從 Streamlit 網絡請求標頭中提取訪客的實體上網 IP，徹底終結 F5 刷新漏洞
+# 👑 實體 IP 雲端探針晶片：直接從 Streamlit 網絡請求標頭中提取訪客的實體上網 IP，徹底封死 F5 漏洞
 def get_remote_ip():
     try:
         ctx = st.context if hasattr(st, "context") else None
@@ -43,8 +35,8 @@ def get_remote_ip():
     except:
         pass
     return "127.0.0.1"
-    # 🌍 跨國網拍 SaaS 4 國語言大字典 (A面：繁體中文、简体中文)
-# 👑 遵照創辦人最高戰術指示：高雅溫柔提示、註冊贈 50 點大禮包、付費與免費合併大錢包永久有效！
+    # 🌍 跨國網拍 SaaS 多國語言大字典 (A面：繁體中文、简体中文)
+# 👑 遵照創辦人最高戰術指示：高雅溫柔提示、註冊大送 50 免費點數、遊客午夜全自動清空歸零！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
@@ -59,12 +51,12 @@ LANG_MAP = {
         "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
-        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（原檔名導出流，免註冊免費體驗）",
+        "drag_lbl": "📥 將「單張相相」或「整個圖片資料夾」全數拖曳至此（原檔名導出流，免註冊免費體驗）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
-        "success": "### ✅ 核心解算成功！點數已安全扣除，共生成 {} 張智慧置中照片！",
+        "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！請點選下方按鈕下載打包！",
         "dl_btn": "🎁 點擊下載完美置中相片壓縮包 (ZIP)",
         "limit_err": "🔒 抱歉，您的免註冊試用額度已用完。歡迎在右側註冊登入直接領取免費 50 點大禮包，或立即充值點數套餐包解鎖更高生產力！",
         "dup_err": "⚠️ 偵測到重複上傳相同照片！框框內不可重複置入相同圖檔（即使更換檔名亦會被安全攔截），請使用清除重選並重新拉入純淨不重複的照片，以防止點數重複扣除爭議！",
@@ -90,7 +82,7 @@ LANG_MAP = {
         "clear_btn": "🗑 清除重选",
         "btn_lbl": "🚀 一键快速导出完美置中商品照片",
         "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
-        "success": "### ✅ 核心解算成功！点数已安全扣除，共生成 {} 张智慧置中照片！",
+        "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！请点击下方按钮下载打包！",
         "dl_btn": "🎁 点击下载完美置中相片压缩包 (ZIP)",
         "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录直接领取免费 50 点大礼包，or 立即充值点数套餐包解锁更高生产力！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
@@ -116,7 +108,7 @@ LANG_MAP = {
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
-        "success": "### ✅ Pipeline Render Completed! Credits burned successfully. Total {} assets compiled!",
+        "success": "### ✅ Pipeline Render Completed! Total {} assets compiled!",
         "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
         "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to get your 50 credits bonus instantly, or purchase a token package below.",
         "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
@@ -131,7 +123,7 @@ LANG_MAP = {
         ### 💰 プランを選択してください (随時利用可能な 合併大ウォレットパック)
         * **🌟 無料体験**: **$0** (新規登録・ログインで **50 無料トークン** プレゼント！)
         * **🪙 スターターパック**: **$4.99** ( **150 トークン** ── *トークンは永久に有効、時間や枚数の制限なし！*)
-        * **⚡ パワーセラーパック**: **$19.99** ( **700 トークン** 内蔵 ── *クロスボーダー大口セラー向けゴールデンセット！*)
+        * **⚡ パワーセラーパック**: **$19.99** ( **700 トークン** ── *クロスボーダー大口セラー向けゴールデンセット！*)
         * **👑 メガバルトパック**: **$49.99** ( **2,000 トークン** 内蔵 ── **圧倒的コスパ：画像1枚あたり4円以下！**)
         """,
         "param_header": "⚙️ 画像比率とファイル容量パラメータ (カスタム数値可能)",
@@ -159,6 +151,7 @@ if "user_authenticated" not in st.session_state: st.session_state.user_authentic
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
 
+# CSS 航太級 3 倍大面積拉圖停機坪注入
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 35px 0px; }
@@ -182,7 +175,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文", "English", "日本語"), index=0)
+lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文"), index=0)
 L = LANG_MAP[lang]
 # 👑 👑 👑 【實體 IP 雲端資料庫防白嫖解算核心】 👑 👑 👑
 visitor_ip = get_remote_ip()
@@ -247,9 +240,7 @@ with side_col:
                 try:
                     user = auth.create_user(email=email_in, password=pass_in)
                     if db: db.collection("users").document(user.uid).set({
-                        "email": email_in,
-                        "credits_total": 50,
-                        "tier": "PREMIUM_WORKSPACE"
+                        "email": email_in, "credits_total": 50, "tier": "PREMIUM_WORKSPACE"
                     })
                     st.success("✅ Account established! Switch to Sign In.")
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
@@ -272,7 +263,7 @@ with side_col:
         if st.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", use_container_width=True, key="side_pack_2"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
             st.rerun()
-        if st.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
+        if st.button(r"🇺🇸 Mega Vault ($4.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 2000})
             st.rerun()
             
@@ -281,7 +272,7 @@ with side_col:
             st.session_state.user_email = ""
             st.rerun()
 
-# 🪐 🪐 🪐 【100% 絕對扁平化、0縮排錯誤、無縫編譯主渲染大腦】 🪐 🪐 🪐
+# 👑 👑 👑 【100% 絕對扁平化、0縮排錯誤、無縫編譯主渲染大腦】 👑 👑 👑
 with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
@@ -361,9 +352,19 @@ with main_col:
                     img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
                     if img_orig is None: continue
                     
-                    contours_normal = get_ai_bounding_boxes(img_orig, session)
+                    # 👑 100% 同步 A 版純血翻轉雙向盲測邏輯
+                    img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
+                    output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
+                    alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+                    _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
+                    contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    
                     img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
-                    contours_rotated = get_ai_bounding_boxes(img_rotated, session)
+                    img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
+                    output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
+                    alpha_r = cv2.cvtColor(np.array(output_pil_r), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+                    _, thresh_r = cv2.threshold(alpha_r, 10, 255, cv2.THRESH_BINARY)
+                    contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                     
                     h_o, w_o, _ = img_orig.shape
                     valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
@@ -376,6 +377,7 @@ with main_col:
                         img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
                     
                     valid_boxes = []
+                    # 👑 👑 👑 【100% 完美回歸您補貼的後半段二次去背、大框替換子邊界過濾內核流！】 👑 👑 👑
                     for c in contours:
                         hull = cv2.convexHull(c)
                         if cv2.contourArea(hull) > (w * h * 0.015):
@@ -390,24 +392,38 @@ with main_col:
                                     _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                                     s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                                     if s_cnt:
-                                            sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
-                                            if sbw_p * sbh_p < (bw * bh * 0.92):
-                                                valid_boxes.append((bx + sbx_p, by + sby_p, min(bw, sbw_p), min(bh, sbh_p)))
-                                                continue
-                        valid_boxes.append((bx, by, bw, bh))
+                                        sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
+                                        # 🎯 完美對齊！如果子面積縮小，就地 append 子邊界並 continue 熔斷，100% 杜絕重複裁出！
+                                        if sbw * sbh < (bw * bh * 0.92):
+                                            valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
+                                            continue
+                            valid_boxes.append((bx, by, bw, bh))
                     
                     if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
                     
+                    # 👑 👑 👑 【100% 完美回歸純原圖最大化物理邊界卡位演算法】 👑 👑 👑
                     for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                         cx, cy = bx + bw // 2, by + bh // 2
-                        ideal_pad_w = int((bw / ratio - bw) / 2); ideal_pad_h = int((bh / ratio - bh) / 2)
-                        pad_l = min(cx - bw // 2, ideal_pad_w); pad_r = min((w - cx) - bw // 2, ideal_pad_w)
-                        pad_t = min(cy - bh // 2, ideal_pad_h); pad_b = min((h - cy) - bh // 2, ideal_pad_h)
-                        x1 = max(0, cx - bw // 2 - pad_l); x2 = min(w, cx + bw // 2 + pad_r)
-                        y1 = max(0, cy - bh // 2 - pad_t); y2 = min(h, cy + bh // 2 + pad_b)
+                        
+                        ideal_pad_w = int((bw / ratio - bw) / 2)
+                        ideal_pad_h = int((bh / ratio - bh) / 2)
+                        
+                        # 死死鎖死在原圖實體四周邊界極限值內！不夠就抓物理極限值，絕對不搞虛假複製背景
+                        pad_l = min(cx - bw // 2, ideal_pad_w)
+                        pad_r = min((w - cx) - bw // 2, ideal_pad_w)
+                        pad_t = min(cy - bh // 2, ideal_pad_h)
+                        pad_b = min((h - cy) - bh // 2, ideal_pad_h)
+                        
+                        x1 = cx - bw // 2 - pad_l
+                        x2 = cx + bw // 2 + pad_r
+                        y1 = cy - bh // 2 - pad_t
+                        y2 = cy + bh // 2 + pad_b
+                        
                         cropped = img[y1:y2, x1:x2]
                         if cropped.size == 0: continue
-                        if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                        
+                        if is_rotated_for_calculation:
+                            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                         
                         t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                         for _ in range(10):
@@ -418,12 +434,10 @@ with main_col:
                         _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                         
                         base_name, _ = os.path.splitext(file_raw_name)
-                        # 👑 純淨原名導出流：不多加任何前綴資料夾，維持使用者最原始的建檔命名習慣！
                         if len(valid_boxes) > 1:
                             out_img_name = f"{base_name}_裁切_{part_idx}.jpg"
                         else:
                             out_img_name = f"{base_name}.jpg"
-                            
                         with open(os.path.join(temp_out_dir, out_img_name), "wb") as f_out: f_out.write(buf.tobytes())
                         saved += 1
                         
@@ -435,33 +449,12 @@ with main_col:
                 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for root, _, files in os.walk(temp_out_dir):
                         for f in files: zip_file.write(os.path.join(root, f), f)
-                
-                # 👑 👑 👑 【純 Python 雲端 IP 實時死鎖扣點晶片 ── KALISS 刷新防白嫖】 👑 👑 👑
-                if not user_authed:
-                    # 遊客：直接上鎖雲端資料庫 guest_ips 帳本！不依賴沙盒 JS，按 F5 刷新依然被死死扣除！
-                    if db and visitor_ip != "127.0.0.1":
-                        new_day = guest_used_day + num_uploaded
-                        new_month = guest_used_month + num_uploaded
-                        db.collection("guest_ips").document(visitor_ip).set({
-                            "day_used": new_day,
-                            "month_used": new_month,
-                            "last_date": current_date_str,
-                            "last_month": current_month_str
-                        })
-                else:
-                    # 会員：大錢包直接扣點，永久有效
-                    new_total = max(0, credits_total - num_uploaded)
-                    if db and user_uid:
-                        db.collection("users").document(user_uid).update({
-                            "credits_total": new_total
-                        })
-                
                 st.session_state.compiled_saved = saved
                 st.session_state.temp_ready = True
-                st.success(L["success"].format(saved))
-                st.rerun() # 現場立刻大腦回充，刷新右側看板數據！
+                st.success(L["success"].format(num_uploaded))
+                st.rerun()
                 
-        # 🔓 扣點大功告成！放行純淨單向下載按鈕，100% 零崩潰
+        # 🔓 🔓 🔓 【終極時機：直到真正點擊下載按鈕，雲端才正式執行扣點！】 🔓 🔓 🔓
         if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
             zip_file_size = os.path.getsize(zip_path)
             if zip_file_size > 0:
@@ -469,6 +462,18 @@ with main_col:
                     zip_data = f_zip.read()
                 
                 if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_final_gate"):
+                    if not user_authed:
+                        if db and visitor_ip != "127.0.0.1":
+                            new_day = guest_used_day + num_uploaded
+                            new_month = guest_used_month + num_uploaded
+                            db.collection("guest_ips").document(visitor_ip).set({
+                                "day_used": new_day, "month_used": new_month,
+                                "last_date": current_date_str, "last_month": current_month_str
+                            })
+                    else:
+                        new_total = max(0, credits_total - num_uploaded)
+                        if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": new_total})
+                    
                     st.session_state.uploader_key_token += 1
                     st.session_state.temp_ready = False
                     st.rerun()
