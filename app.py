@@ -78,7 +78,7 @@ LANG_MAP = {
 
 st.set_page_config(page_title="NEXUS CROP — AI Edition", page_icon="⚡", layout="centered")
 
-# 👑 巨型拖曳方框 CSS 注入晶片 (面積強行放大 3 倍，支援資料夾盲拉)
+# 👑 巨型拖曳方框 CSS 注入晶片
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 25px 0px; }
@@ -121,7 +121,7 @@ st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily
 with st.expander(f"**{L['tip_header']}**", expanded=True):
     st.markdown(L["tip_body"])
 
-# ⚙️ 網拍參數配置面板 (支援鍵盤自由手動輸入)
+# ⚙️ 網拍參數配置面板
 st.markdown("---")
 st.markdown(f"#### {L['param_header']}")
 col1, col2 = st.columns(2)
@@ -199,14 +199,12 @@ if uploaded_files:
                         img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
                         contours_270 = get_ai_bounding_boxes(img_probe_270)
                         
-                        # 統合四個世界的探測成果，交給 IoU 幾何大腦過濾
                         all_discovered_boxes = []
                         scale_factor = 1.0 / probe_scale
                         
                         # 1️⃣ 軌道 0 度：收網原圖
                         for c in contours_0:
                             hull = cv2.convexHull(c)
-                            # 👑 重新鎖死 0.015 黃金門檻！在防爆降維盾下徹底抹除所有陰影雜訊，力保短可樂機不碎！
                             if cv2.contourArea(hull) > (w_p_o * h_p_0 * 0.015):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx, by = int(bx_p * scale_factor), int(by_p * scale_factor)
@@ -214,7 +212,7 @@ if uploaded_files:
                                 bx, by = max(0, bx), max(0, by)
                                 final_img = img_orig.copy()
                                 all_discovered_boxes.append((bx, by, bx+bw, by+bh, bx, by, bw, bh, final_img, 0))
-                                 # 2️⃣ 軌道 90 度順時針
+                                # 2️⃣ 軌道 90 度順時針
                         h_p_90, w_p_90, _ = img_probe_90.shape
                         img_high_90 = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                         for c in contours_90:
@@ -224,7 +222,6 @@ if uploaded_files:
                                 bx, by = int(bx_p * scale_factor), int(by_p * scale_factor)
                                 bw, bh = int(bw_p * scale_factor), int(bh_p * scale_factor)
                                 bx, by = max(0, bx), max(0, by)
-                                # 💡 100% 精準映射回原圖座標系
                                 ox1 = w_orig - (by + bh)
                                 oy1 = bx
                                 ox2 = w_orig - by
@@ -264,7 +261,7 @@ if uploaded_files:
                                 all_discovered_boxes.append((ox1, oy1, ox2, oy2, bx, by, bw, bh, img_high_270, 270))
 
                         # 👑 👑 👑 【四世界交集 IoU 區域過濾大腦】 👑 👑 👑
-                        # 只要發現有重疊率大於 40% 的物件，立刻融合成一個，保證直橫魔王照片全部不漏，且重複圖 0 出現！
+                        # 👑 100% 修正完成！ex_x1 到 r_mode 共 10 個變數完美對齊解包，徹底消滅 Unpack 車禍！
                         unique_crops = []
                         for item in all_discovered_boxes:
                             ox1, oy1, ox2, oy2, bx, by, bw, bh, target_img, r_mode = item
@@ -272,7 +269,7 @@ if uploaded_files:
                             
                             is_duplicate = False
                             for existing in unique_crops:
-                                ex_x1, ex_y1, ex_x2, ex_y2, ex_box = existing
+                                ex_x1, ex_y1, ex_x2, ex_y2, ex_bx, ex_by, ex_bw, ex_bh, ex_img, ex_rmode = existing
                                 area_existing = (ex_x2 - ex_x1) * (ex_y2 - ex_y1)
                                 
                                 ix1, iy1 = max(ox1, ex_x1), max(oy1, ex_y1)
@@ -285,10 +282,9 @@ if uploaded_files:
                                     
                                     if iou > 0.40:
                                         is_duplicate = True
-                                        # 誰的主體面積形狀更完整飽滿，就留下誰
                                         if area_current > area_existing:
                                             unique_crops.remove(existing)
-                                            unique_crops.append(existing_box_data := existing)
+                                            unique_crops.append(item)
                                         break
                             if not is_duplicate:
                                 unique_crops.append(item)
@@ -317,7 +313,6 @@ if uploaded_files:
                             cropped = target_img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
                             
-                            # 在最後一毫秒，各自反向轉正還原原始角度
                             if r_mode == 90: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                             elif r_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
                             elif r_mode == 270: cropped = cv2.rotate(cropped, cv2.ROTATE_90_CLOCKWISE)
