@@ -121,7 +121,7 @@ st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily
 with st.expander(f"**{L['tip_header']}**", expanded=True):
     st.markdown(L["tip_body"])
 
-# ⚙️ 網拍參數配置面板 (解鎖鍵盤自由手動輸入)
+# ⚙️ 網拍參數配置面板 (解鎖鍵盤自由手動輸入 + 智慧防呆系統)
 st.markdown("---")
 st.markdown(f"#### {L['param_header']}")
 col1, col2 = st.columns(2)
@@ -211,7 +211,6 @@ if uploaded_files:
                         h_p_270, w_p_270, _ = img_probe_270.shape
                         area_270 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.015))
                         
-                        # 🧠 智慧面積大決策：找出特徵最飽滿、看卡片最完整的獲勝角度開刀。一輛車只走一條線，重複圖徹底歸零！
                         max_area = max(area_0, area_90, area_180, area_270)
                         
                         if max_area == area_90 and area_90 > (area_0 * 1.15):
@@ -234,136 +233,101 @@ if uploaded_files:
                             contours = contours_0
                             rotation_mode = 0
                             is_rotated_for_calculation = False
-                            # 👑 額度狀態機計數晶片
-if "daily_usage" not in st.session_state:
-    st.session_state.daily_usage = 0
-if "monthly_usage" not in st.session_state:
-    st.session_state.monthly_usage = 0
-
-# 右上方切換語言
-lang = st.selectbox("🌐 Language Interface", ("English", "繁體中文", "日本語"), index=0)
-L = LANG_MAP[lang]
-
-st.title(L["title"])
-st.markdown(f"*{L['subtitle']}*")
-
-# 📊 右上方 FREE 使用額度面板
-st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 10** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 30**")
-
-# 💡 使用說明大面板
-with st.expander(f"**{L['tip_header']}**", expanded=True):
-    st.markdown(L["tip_body"])
-
-# ⚙️ 網拍參數配置面板 (解鎖鍵盤自由手動輸入)
-st.markdown("---")
-st.markdown(f"#### {L['param_header']}")
-col1, col2 = st.columns(2)
-with col1:
-    ratio_str = st.text_input(L["ratio_lbl"], value="90")
-    try:
-        ratio_val = float(ratio_str)
-        ratio = max(10.0, min(99.0, ratio_val)) / 100.0
-    except:
-        ratio = 0.90  # 防呆兜底
-with col2:
-    size_str = st.text_input(L["size_lbl"], value="2.0")
-    try:
-        t_mb = max(0.1, float(size_str))
-    except:
-        t_mb = 2.0  # 防呆兜底
-
-if "uploader_key" not in st.session_state:
-    st.session_state.uploader_key = 0
-
-uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"uploader_{st.session_state.uploader_key}")
-
-# 🗑 清除重選按鈕與一鍵秒級導出按鈕佈局面板
-col_btn1, col_btn2 = st.columns(2)
-with col_btn1:
-    if st.button(L["clear_btn"], use_container_width=True):
-        st.session_state.uploader_key += 1
-        st.rerun()
-
-with col_btn2:
-    start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True)
-
-if uploaded_files:
-    st.success(L["loaded_lbl"].format(len(uploaded_files)))
-    
-    if start_btn:
-        if st.session_state.daily_usage + len(uploaded_files) > 10 or st.session_state.monthly_usage + len(uploaded_files) > 30:
-            st.error(L["limit_err"])
-        else:
-            zip_buffer = io.BytesIO()
-            saved = 0
-            
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                for idx, file in enumerate(uploaded_files, 1):
-                    status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
+                            h_high, w_high, _ = img.shape
+                        scale_factor = 1.0 / probe_scale
+                        valid_boxes = []
+                        
+                        # 🔴 100% 鎖死純血原版 A 的多物件拆分內核與黃金 0.015 面積門檻！
+                        for c in contours:
+                            hull = cv2.convexHull(c)
+                            if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.015):
+                                bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
+                                bx = int(bx_p * scale_factor)
+                                by = int(by_p * scale_factor)
+                                bw = int(bw_p * scale_factor)
+                                bh = int(bh_p * scale_factor)
+                                
+                                bx, by = max(0, bx), max(0, by)
+                                bw = min(w_high - bx, bw)
+                                bh = min(h_high - by, bh)
+                                
+                                roi = img[by:by+bh, bx:bx+bw]
+                                if roi.size > 0:
+                                    g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                                    e_roi = cv2.Canny(g_roi, 50, 150)
+                                    if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
+                                        roi_h, roi_w, _ = roi.shape
+                                        roi_scale = 500.0 / roi_w if roi_w > 500 else 1.0
+                                        roi_probe = cv2.resize(roi, (500, int(roi_h * roi_scale)), interpolation=cv2.INTER_AREA) if roi_w > 500 else roi.copy()
+                                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
+                                        s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+                                        _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
+                                        s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                                        if s_cnt:
+                                            sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
+                                            sbx, sby, sbw, sbh = int(sbx_p / roi_scale), int(sby_p / roi_scale), int(sbw_p / roi_scale), int(sbh_p / roi_scale)
+                                            if sbw * sbh < (bw * bh * 0.92): 
+                                                valid_boxes.append((bx + sbx, by + sby, min(bw, sbw), min(bh, sbh)))
+                                                continue
+                                valid_boxes.append((bx, by, bw, bh))
+                        
+                        if not valid_boxes:
+                            valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
+                        
+                        # 👑 👑 👑 【100% 移植桌面版純血原汁 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
+                        # 👑 修正第二部分 try 區塊銜接，結構 100% 嚴密閉合，徹底消滅 SyntaxError 斷頭車禍！
+                        for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
+                            cx, cy = bx + bw // 2, by + bh // 2
+                            
+                            ideal_pad_w = int((bw / ratio - bw) / 2)
+                            ideal_pad_h = int((bh / ratio - bh) / 2)
+                            
+                            pad_l = min(cx - bw // 2, ideal_pad_w)
+                            pad_r = min((w_high - cx) - bw // 2, ideal_pad_w)
+                            pad_t = min(cy - bh // 2, ideal_pad_h)
+                            pad_b = min((h_high - cy) - bh // 2, ideal_pad_h)
+                            
+                            x1 = max(0, cx - bw // 2 - pad_l)
+                            x2 = min(w_high, cx + bw // 2 + pad_r)
+                            y1 = max(0, cy - bh // 2 - pad_t)
+                            y2 = min(h_high, cy + bh // 2 + pad_b)
+                            
+                            cropped = img[y1:y2, x1:x2]
+                            if cropped.size == 0: continue
+                            
+                            if is_rotated_for_calculation:
+                                if rotation_mode == 90: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                elif rotation_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
+                                elif rotation_mode == 270: cropped = cv2.rotate(cropped, cv2.ROTATE_90_CLOCKWISE)
+                            
+                            # 👑 容量限制二分搜尋法
+                            t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
+                            for _ in range(10):
+                                mid = (low + high) // 2
+                                _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, mid])
+                                if len(buf) <= t_bytes: best_q = mid; low = mid + 1
+                                else: high = mid - 1
+                            _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
+                            
+                            base_name, _ = os.path.splitext(file.name)
+                            out_img_name = f"{base_name}_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
+                            zip_file.writestr(out_img_name, buf.tobytes())
+                            saved += 1
+                            
+                    except Exception as e:
+                        st.error(f"Error {file.name}: {str(e)}")
                     
-                    try:
-                        # 👑 👑 👑 【100% 採用純血 OpenCV 鋼鐵直男硬解晶片】 👑 👑 👑
-                        # 徹底拋棄在雲端Linux會篡改像素內存的 ImageOps，改用最純淨、0出錯的 OpenCV 解碼原始肉身！
-                        file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
-                        img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-                        if img_orig is None: continue
-                        
-                        h_orig, w_orig, _ = img_orig.shape
-                        
-                        # 👑 【雲端防爆降維盾】：限制探測圖最大寬度為 1000
-                        probe_scale = 1.0
-                        if w_orig > 1000:
-                            probe_scale = 1000.0 / w_orig
-                            w_probe = 1000
-                            h_probe = int(h_orig * probe_scale)
-                            img_probe_orig = cv2.resize(img_orig, (w_probe, h_probe), interpolation=cv2.INTER_AREA)
-                        else:
-                            img_probe_orig = img_orig.copy()
-                        
-                        h_p_o, w_p_o, _ = img_probe_orig.shape
-                        
-                        # 👑 👑 👑 【四軌道全維度智慧面積決策分流大腦】 👑 👑 👑
-                        # 在背景用純 OpenCV 的最優化算力矩陣跑 4 角度探測，絕不踩踏內存，徹底消滅重複圖與亂切！
-                        contours_0 = get_ai_bounding_boxes(img_probe_orig)
-                        img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
-                        contours_90 = get_ai_bounding_boxes(img_probe_90)
-                        img_probe_180 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_180)
-                        contours_180 = get_ai_bounding_boxes(img_probe_180)
-                        img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
-                        contours_270 = get_ai_bounding_boxes(img_probe_270)
-                        
-                        # 👑 鎖死 A 版黃金過濾閥門（> 0.015），在1000縮圖下完美剔除影子雜訊，力保短可樂機不碎裂！
-                        area_0 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.015))
-                        h_p_90, w_p_90, _ = img_probe_90.shape
-                        area_90 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.015))
-                        h_p_180, w_p_180, _ = img_probe_180.shape
-                        area_180 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_180 if cv2.contourArea(cv2.convexHull(c)) > (w_p_180 * h_p_180 * 0.015))
-                        h_p_270, w_p_270, _ = img_probe_270.shape
-                        area_270 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.015))
-                        
-                        # 🧠 智慧面積大決策：找出特徵最飽滿、看卡片最完整的獲勝角度開刀。一輛車只走一條線，重複圖徹底歸零！
-                        max_area = max(area_0, area_90, area_180, area_270)
-                        
-                        if max_area == area_90 and area_90 > (area_0 * 1.15):
-                            img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
-                            contours = contours_90
-                            rotation_mode = 90
-                            is_rotated_for_calculation = True
-                        elif max_area == area_180 and area_180 > (area_0 * 1.15):
-                            img = cv2.rotate(img_orig, cv2.ROTATE_180)
-                            contours = contours_180
-                            rotation_mode = 180
-                            is_rotated_for_calculation = True
-                        elif max_area == area_270 and area_270 > (area_0 * 1.15):
-                            img = cv2.rotate(img_orig, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                            contours = contours_270
-                            rotation_mode = 270
-                            is_rotated_for_calculation = True
-                        else:
-                            img = img_orig
-                            contours = contours_0
-                            rotation_mode = 0
-                            is_rotated_for_calculation = False
+                    progress_bar.progress(idx / len(uploaded_files))
+            
+            st.session_state.daily_usage += len(uploaded_files)
+            st.session_state.monthly_usage += len(uploaded_files)
+            st.success(L["success"].format(saved))
+            
+            zip_buffer.seek(0)
+            st.download_button(
+                label=L["dl_btn"],
+                data=zip_buffer,
+                file_name="processed_centered_images.zip",
+                mime="application/zip",
+                use_container_width=True
+            )
