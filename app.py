@@ -309,11 +309,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         
         main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
         layout_cols = main_col.columns([0.25, 0.75])
-        layout_cols[0].image(contents["orig_thumb"], caption=L["orig_lbl"], use_container_width=True)
+        layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], use_container_width=True)
         
-        sub_grid_cols = layout_cols[1].columns(3)
+        # 👑 🎯 完美校正：透過將縱列拉寬為 5 縱列（原 3 縱列），將每一張預覽圖的物理呈現寬度精準縮小至目前的 60% 大小！
+        sub_grid_cols = layout_cols.columns(5)
         for c_idx, crop_data in enumerate(contents["crops"]):
-            with sub_grid_cols[c_idx % 3]:
+            with sub_grid_cols[c_idx % 5]:
                 st.image(crop_data["thumb_bytes"], use_container_width=True)
                 st.caption(f"🎯 {crop_data['img_name']}")
                 btn_id = f"del_{orig_key}_{crop_data['img_name']}_{c_idx}"
