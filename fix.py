@@ -1,6 +1,6 @@
 import os
 
-# 👑 全自動雲端自動化編譯器 ── 鋼鐵 A 版完全體程式碼（前半段）
+# 👑 全自動雲端自動化編譯器 ── 2026 全域變數置頂完全體（前半段）
 PART1 = r'''import os, io, zipfile, cv2, gc, shutil, hashlib, numpy as np
 from PIL import Image
 import streamlit as st
@@ -8,6 +8,9 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
+
+# 👑 全域變數安全置頂防線：開機秒級寫入全域記憶體，100% 永久死鎖 NameError 崩潰！
+saved = 0
 
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
@@ -117,7 +120,7 @@ else:
     if side_col.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", width="stretch", key="side_pack_2"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
         st.rerun()
-    if side_col.button(r"🇺🇸 Mega Vault ($4.99) ── +2000 Credits", width="stretch", type="primary", key="side_pack_3"):
+    if side_col.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", width="stretch", type="primary", key="side_pack_3"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 2000})
         st.rerun()
     if side_col.button("🚪 Sign Out Workspace", width="stretch", key="logout_btn"):
@@ -159,9 +162,8 @@ if st.session_state.temp_ready:
 elif not start_btn:
     st.stop()
 '''
-# 👑 全自動雲端自動化編譯器 ── 鋼鐵 A 版完全體程式碼（後半段與自動合流寫入晶片）
-PART2 = r'''saved = 0
-progress_bar = main_col.progress(0)
+# 👑 全自動雲端自動化編譯器 ── 2026 全域變數置頂完全體（後半段與實體寫入核心）
+PART2 = r'''progress_bar = main_col.progress(0)
 session = load_rembg_session()
 st.session_state.master_preview_dict = {}
 temp_out_dir = "/tmp/processed_centered_images"
@@ -210,7 +212,7 @@ for idx, file in enumerate(uploaded_files, 1):
             contours = contours_normal
             is_rotated_for_calculation = False
             h, w = h_o, w_o
-        
+            
         valid_boxes = []
         for c in contours:
             hull = cv2.convexHull(c)
@@ -231,7 +233,7 @@ for idx, file in enumerate(uploaded_files, 1):
                                 valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
                                 continue
                 valid_boxes.append((bx, by, bw, bh))
-        
+                
         if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
         
         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
@@ -328,9 +330,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     st.rerun()
 '''
 
-# 👑 全自動無損物理合流寫入晶片
+# 👑 全自動將全域置頂版程式碼寫入 app.py
 with open("app.py", "w", encoding="utf-8") as f:
     f.write(PART1 + PART2)
 
 import streamlit as st
-st.success("👑 Complete Core Code compiled into app.py successfully! Please click Reboot App now!")
+st.success("👑 全域變數安全置頂版已全自動合流完成！請火速點擊 Reboot App 強制重啟！")
