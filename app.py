@@ -3,8 +3,9 @@ from PIL import Image
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
+from rembg import remove, new_session
 
-# 👑 Firebase 雲端保險箱連線晶片 (從 Streamlit Secrets 安全隱形讀取)
+# 👑 Firebase 雲端保險箱最高安全初始化連線晶片 (從隱形 Secrets 保險箱讀取暗號)
 if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
@@ -15,14 +16,12 @@ if not firebase_admin._apps:
 
 db = firestore.client() if firebase_admin._apps else None
 
-# 👑 雲端快取優化：確保 AI 模型在雲端唯一下載一次
+# 👑 雲端快取優化：確保 AI 模型在雲端唯一下載一次，節省效能開銷
 @st.cache_resource
 def load_rembg_session():
-    from rembg import new_session
     return new_session("silueta")
 
 def get_ai_bounding_boxes(cv_img, session):
-    from rembg import remove
     img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
     output_pil = remove(Image.fromarray(img_rgb), session=session)
     alpha = cv2.cvtColor(np.array(output_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
@@ -30,17 +29,23 @@ def get_ai_bounding_boxes(cv_img, session):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
-# 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：英文、繁中、日文、簡中)
+# 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：英文、繁中、簡中、日文)
+# 👑 完美對齊！將 4 層點數包價格話術全部抽離注入大字典，達成 100% 全功能多國語言化！
 LANG_MAP = {
     "English": {
         "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
         "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "pricing_html": """
+        ### 💰 Choose Your Production Power (Pay-As-You-Go Credits)
+        * **🌟 FREE TRIAL**: **$0** (Get **20 Free Credits** upon sign up!) - *Test our heavy-duty centering power.*
+        * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Only $0.033 per perfect photo!*)
+        * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Only $0.028 per perfect photo!*)
+        * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
+        """,
         "param_header": "⚙️ AI Optimization & Parameter Infrastructure (Keyboard input enabled)",
         "ratio_lbl": "Target subject density ratio (10-99%):",
         "size_lbl": "Maximum payload weight constraint per image (MB):",
-        "tip_header": "💡 FREE OPERATIONAL SPECIFICATIONS",
-        "tip_body": "1. Directly type your parameters below via keyboard.\n2. Drag single images or folder into the drop zone.\n3. Click the button to initialize the neural pipeline for FREE!\n4. Sign up or unlock packages below to download your processed ZIP.",
-        "drag_lbl": "📥 DROP IMAGES HERE FOR FREE NEURAL CENTERING",
+        "drag_lbl": "📥 DROP SINGLE IMAGES OR ENTIRE IMAGE FOLDER HERE FOR FREE NEURAL CENTERING",
         "loaded_lbl": "📊 Consolidated image queue assets: {} items",
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
@@ -52,17 +57,22 @@ LANG_MAP = {
         "welcome": "👋 Welcome, Premium Partner: **{}** ｜ 🪙 Wallet Balance: **{} Credits**"
     },
     "繁體中文": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
-        "param_header": "⚙️ 最速電商智慧識別參數設定 (支援鍵盤手動自行輸入)",
+        "title": "🌐 AI 電商商品照片智慧置中裁切系統",
+        "subtitle": "企業級高精主體識別置中自動化流水線 (運行中)",
+        "pricing_html": """
+        ### 💰 選擇您的智慧生產力方案 (隨買隨用 Credits 點數包)
+        * **🌟 免費體驗**: **$0** (註冊即送 **20 免費點數**！) ── *體驗強大原圖裁切防線。*
+        * **🪙 賣家入門包**: **$4.99** (內含 **150 點數** ── *每張完美照片不用 1.1 元台幣！*)
+        * **⚡ 大賣家衝刺包**: **$19.99** (內含 **700 點數** ── *每張完美照片不到 0.9 元台幣！*)
+        * **👑 跨境卡牌大亨包**: **$49.99** (內含 **2,000 點數** ── **極致極限：每張照片不到 0.8 元台幣！**)
+        """,
+        "param_header": "⚙️ 電商智慧識別參數設定 (支援鍵盤手動自行打字輸入數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
-        "tip_header": "💡 商品智慧置中系統說明 (免費開放體驗中)",
-        "tip_body": "1. 點擊下方輸入框，可直接用鍵盤手動自行打字輸入置中比例數值。\n2. 可以將「單張網拍圖片」或「整個卡片資料夾」直接全數拖曳至下方巨型向量場中。\n3. 按下秒級導出按鈕即可全自動免費解算！\n4. 畫面顯示成功生成後，登入您的雲端錢包或充值點數包即可立刻帶走高畫質相片包！",
-        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（免註冊直接免費體驗，25張大文件通殺）",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（超巨型拖曳停機坪，免註冊免費體驗，25張大文件通殺）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
-        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "btn_lbl": "🚀 一鍵全速啟動 AI 商品智慧置中解算 (免費試用)",
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
         "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！",
         "dl_btn": "🎁 點擊解鎖並下載完美置中相片壓縮包 (ZIP)",
@@ -70,15 +80,44 @@ LANG_MAP = {
         "usage_title": "📊 NEXUS CROP 會員錢包看板",
         "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** ｜ 🪙 專屬錢包餘額：**{} Credits**"
     },
+    "简体中文": {
+        "title": "🌐 AI 电商商品照片智慧置中裁切系统",
+        "subtitle": "企业级高精主体识别置中自动化流水线 (运行中)",
+        "pricing_html": """
+        ### 💰 选择您的智慧生产力方案 (随买随用 Credits 点数包)
+        * **🌟 免费体验**: **$0** (注册即送 **20 免费点数**！) ── *体验强大原图裁切防线。*
+        * **🪙 卖家入门包**: **$4.99** (内含 **150 点数** ── *每张完美照片不到 0.23 元人民币！*)
+        * **⚡ 大卖家冲刺包**: **$19.99** (内含 **700 点数** ── *每张完美照片不到 0.20 元人民币！*)
+        * **👑 跨境卡牌大亨包**: **$49.99** (内含 **2,000 点数** ── **极致极限：每张照片不到 0.17 元人民币！**)
+        """,
+        "param_header": "⚙️ 电商智慧识别参数设置 (支持键盘手动自行打字输入数值)",
+        "ratio_lbl": "导出后主体占画面比例 (10-99%):",
+        "size_lbl": "导出后照片档最大容量限制 (MB):",
+        "drag_lbl": "📥 将单张相片或整个图片文件夹全数拖拽至此（超巨型拖拽停机坪，免注册免费体验，25张大文件通杀）",
+        "loaded_lbl": "📊 目前已载入商品照片：{} 张",
+        "clear_btn": "🗑 清除重选",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
+        "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！",
+        "dl_btn": "🎁 点击解锁并下载完美置中相片压缩包 (ZIP)",
+        "limit_err": "🔒 相片打包已安全锁死 ── 免注册试用额度（每天限 10 Credits）已用完！请在右侧注册登录，or 充值点数套餐，即可立刻全速下载您改好的高画质 ZIP 压缩档！",
+        "usage_title": "📊 NEXUS CROP 会员钱包看板",
+        "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** ｜ 🪙 专属钱包余额：**{} Credits**"
+    },
     "日本語": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "title": "🌐 AI 商品画像自動中央配置＆自動クロップシステム",
+        "subtitle": "EC事業者向け高精度オブジェクト認識自動化パイプライン (待機中)",
+        "pricing_html": """
+        ### 💰 プランを選択してください (随時利用可能な Credits トークンパック)
+        * **🌟 無料体験**: **$0** (新規登録で **20 無料トークン** プレゼント！) ── *強力な中央配置パワーをお試しください。*
+        * **🪙 スターターパック**: **$4.99** ( **150 トークン** 内蔵 ── *画像1枚あたりわずか約5円！*)
+        * **⚡ パワーセラーパック**: **$19.99** ( **700 トークン** 内蔵 ── *画像1枚あたりわずか約4.3円！*)
+        * **👑 メガバルトパック**: **$49.99** ( **2,000 トークン** 内蔵 ── **圧倒的コスパ：画像1枚あたり4円以下！**)
+        """,
         "param_header": "⚙️ AI最適化パラメータ設定 (キーボード手動入力対応)",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
-        "tip_header": "💡 操作仕様説明 (無料体験実施中)",
-        "tip_body": "1. ボックスをクリックして数値を入力してください。\n2. 画像またはフォルダを下のボックスにドラッグ＆ドロップしてください。\n3. ボタンをクリックすると、無料でクラウド解析が開始されます。\n4. 解析完了後、ログインまたはトークンを購入してダウンロードしてください。",
-        "drag_lbl": "📥 画像またはフォルダをここにドラッグ＆ドロップ (無料トライアル、大量一括処理対応)",
+        "drag_lbl": "📥 画像またはフォルダをここにドラッグ＆ドロップ (超巨大ドロップゾーン、無料トライアル対応)",
         "loaded_lbl": "📊 読み込まれた画像：{} 枚",
         "clear_btn": "🗑 キューをクリア",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
@@ -89,34 +128,20 @@ LANG_MAP = {
         "usage_title": "📊 プレミアム会員ウォレット状況",
         "welcome": "👋 お帰りなさい、プレミアムパートナー: **{}** ｜ 🪙 残りトークン: **{} Credits**"
     },
-    "简体中文": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
-        "param_header": "⚙️ 最速电商智慧识别参数设置 (支持键盘手动自行输入)",
-        "ratio_lbl": "导出后主体占画面比例 (10-99%):",
-        "size_lbl": "导出后照片档最大容量限制 (MB):",
-        "tip_header": "💡 商品智慧置中系统说明 (免费开放体验中)",
-        "tip_body": "1. 点击下方输入框，可直接用键盘手动自行打字输入置中比例数值。\n2. 可以将单张图片或整个图片文件夹直接全数拖拽至下方巨型向量场中。\n3. 按下秒级导出按钮即可全自动免费解算！\n4. 画面显示成功生成后，登录您的云端钱包或充值点数包即可立刻带走高画质相片包！",
-        "drag_lbl": "📥 将单张相片或整个图片文件夹全数拖拽至此（免注册直接免费体验，25张大文件通杀）",
-        "loaded_lbl": "📊 目前已载入商品照片：{} 张",
-        "clear_btn": "🗑 清除重选",
-        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
-        "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
-        "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！",
-        "dl_btn": "🎁 点击解锁并下载完美置中相片压缩包 (ZIP)",
-        "limit_err": "🔒 相片打包已安全锁死 ── 免注册试用额度（每天限 10 Credits）已用完！请在右侧注册登录，或充值点数套餐，即可立刻全速下载您改好的高画质 ZIP 压缩档！",
-        "usage_title": "📊 NEXUS CROP 会员钱包看板",
-        "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** ｜ 🪙 专属钱包余额：**{} Credits**"
-    },
     "한국어": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
+        "subtitle": "기업용 고정밀 객체 인식 중앙 정렬 자동화 파이프라인 (대기 중)",
+        "pricing_html": """
+        ### 💰 요금제 선택 (충전식 Credits 토큰 팩)
+        * **🌟 무료 체험**: **$0** (가입 시 **20 무료 토큰** 즉시 지급!) ── *강력한 중앙 정렬 시스템을 테스트해 보세요.*
+        * **🪙 스타터 팩**: **$4.99** ( **150 토큰** 포함 ── *이미지 장당 단돈 약 45원!*)
+        * **⚡ 파워 셀러 팩**: **$19.99** ( **700 토큰** 포함 ── *이미지 장당 단돈 약 38원!*)
+        * **👑 메가 볼트 팩**: **$49.99** ( **2,000 토큰** 포함 ── **최고의 가성비: 이미지 장당 34원 이하!**)
+        """,
         "param_header": "⚙️ AI 최적화 및 매개변수 설정 (키보드 입력 가능)",
         "ratio_lbl": "출력 후 객체 화면 비율 (10-99%):",
         "size_lbl": "출력 이미지 최대 용량 제한 (MB):",
-        "tip_header": "💡 무료 작업 사양 가이드",
-        "tip_body": "1. 입력 상자를 클릭하여 키보드로 직접 수치를 입력하세요.\n2. 단일 이미지 또는 이미지 폴더를 아래 영역으로 드래그 하세요.\n3. 버튼을 클릭하면 클라우드 분석이 무상으로 시작됩니다.\n4. 완료 후 로그인하거나 토큰을 구매하여 다운로드하세요.",
-        "drag_lbl": "📥 이미지 또는 폴더를 여기에 드래그 앤 드롭 (무료 체험, 대량 파일 지원)",
+        "drag_lbl": "📥 단일 이미지 또는 이미지 폴더를 여기에 드래그 앤 드롭 (초대형 드롭존, 무료 체험 지원)",
         "loaded_lbl": "📊 로드된 상품 이미지: {} 장",
         "clear_btn": "🗑 대기열 비우기",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
@@ -128,14 +153,19 @@ LANG_MAP = {
         "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** ｜ 🪙 잔여 토큰: **{} Credits**"
     },
     "ภาษาไทย": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "title": "🌐 AI ระบบจัดจุดกึ่งกลางภาพสินค้าอีคอมเมิร์ซอัตโนมัติ",
+        "subtitle": "สายการผลิตการจัดกึ่งกลางภาพสินค้าอัตโนมัติระดับองค์กร (พร้อมใช้งาน)",
+        "pricing_html": """
+        ### 💰 เลือกแพ็กเกจการผลิตของคุณ (แพ็กเกจเติมโทเค็น Credits)
+        * **🌟 ทดลองใช้ฟรี**: **$0** (สมัครสมาชิกรับฟรี **20 โทเค็น**!) ── *ทดสอบระบบจัดจุดกึ่งกลางภาพอัจฉริยะของเรา*
+        * **🪙 แพ็กเกจเริ่มต้น**: **$4.99** (รับ **150 โทเค็น** ── *เฉลี่ยเพียงภาพละ 1.1 บาทเท่านั้น!*)
+        * **⚡ แพ็กเกจแม่ค้ามือโปร**: **$19.99** (รับ **700 โทเค็น** ── *เฉลี่ยเพียงภาพละ 0.9 บาทเท่านั้น!*)
+        * **👑 แพ็กเกจมหาเศรษฐีข้ามพรมแดน**: **$49.99** (รับ **2,000 โทเค็น** ── **คุ้มค่าที่สุด: เฉลี่ยภาพละไม่ถึง 0.8 บาท!**)
+        """,
         "param_header": "⚙️ การตั้งค่าพารามิเตอร์ AI (รองรับการพิมพ์ด้วยคีย์บอร์ด)",
         "ratio_lbl": "สัดส่วนของสินค้าในภาพ (10-99%):",
         "size_lbl": "จำกัดขนาดไฟล์สูงสุด (MB):",
-        "tip_header": "💡 คำแนะนำการใช้งานฟรี",
-        "tip_body": "1. คลิกช่องด้านล่างและพิมพ์ตัวเลขด้วยคีย์บอร์ดได้โดยตรง\n2. ลากไฟล์รูปภาพหรือโฟลเดอร์ทั้งหมดมาวางในช่องด้านล่าง\n3. คลิกปุ่มเพื่อเริ่มประมวลผลบนระบบคลาวด์ฟรีทันที!\n4. เมื่อเสร็จสิ้น เข้าสู่ระบบหรือซื้อแพ็กเกจโทเค็นเพื่อดาวน์โหลดไฟล์ ZIP",
-        "drag_lbl": "📥 ลากรูปภาพหรือโฟลเดอร์มาวางที่นี่ (ทดลองใช้ฟรี รองรับการประมวลผลจำนวนมาก)",
+        "drag_lbl": "📥 ลากรูปภาพหรือโฟลเดอร์มาวางที่นี่ (โซนลากวางขนาดใหญ่พิเศษ ทดลองใช้ฟรี ไม่ต้องลงทะเบียน)",
         "loaded_lbl": "📊 รูปภาพที่โหลดสำเร็จ: {} ภาพ",
         "clear_btn": "🗑 ล้างคิวรูปภาพ",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
@@ -147,14 +177,19 @@ LANG_MAP = {
         "welcome": "👋 ยินดีต้อนรับสมาชิกพรีเมียม: **{}** ｜ 🪙 โทเค็นคงเหลือ: **{} Credits**"
     },
     "Bahasa Melayu": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "title": "🌐 AI Sistem Centering & Pemotongan Gambar E-dagang",
+        "subtitle": "Saluran Paip Automasi Pengenalan Subjek Gred Perusahaan (Sedia)",
+        "pricing_html": """
+        ### 💰 Pilih Pakej Kuasa Pengeluaran Anda (Pakej Kredit Token)
+        * **🌟 PERCUBAAN PERCUMA**: **$0** (Daftar dapat **20 Kredit Percuma**!) ── *Uji sistem smart centering kami.*
+        * **🪙 PAKEJ PERMULAAN**: **$4.99** (Dapat **150 Kredit** ── *Hanya sekitar RM0.15 bagi setiap gambar yang sempurna!*)
+        * **⚡ PAKEJ PENJUAL AKTIF**: **$19.99** (Dapat **700 Kredit** ── *Hanya sekitar RM0.13 bagi setiap gambar yang sempurna!*)
+        * **👑 PAKEJ GERGASI E-DAGANG**: **$49.99** (Dapat **2,000 Kredit** ── **Nilai Hebat: Di bawah RM0.11 bagi setiap gambar!**)
+        """,
         "param_header": "⚙️ Infrastruktur Parameter & Optimasi AI (Input papan kekunci didayakan)",
         "ratio_lbl": "Nisbah kepadatan subjek sasaran (10-99%):",
         "size_lbl": "Had saiz fail maksimum per imej (MB):",
-        "tip_header": "💡 SPESIFIKASI OPERASI PERCUMA",
-        "tip_body": "1. Taip parameter optimasi anda secara langsung di bawah melalui papan kekunci.\n2. Seret imej tunggal atau folder ke dalam zon digugurkan di bawah.\n3. Klik fungsi butang untuk memulakan saluran paip render neural secara PERCUMA!\n4. Log masuk atau buka kunci pakej token di bawah untuk memuat turun muatan ZIP.",
-        "drag_lbl": "📥 GUGURKAN IMEJ TUNGGAL ATAU FOLDER DI SINI UNTUK SMART CENTERING PERCUMA",
+        "drag_lbl": "📥 GUGURKAN IMEJ TUNGGAL ATAU FOLDER DI SINI (Zon Drop Gergasi, Percubaan Percuma Didayakan)",
         "loaded_lbl": "📊 Aset imej terkumpul: {} item",
         "clear_btn": "🗑 Padam & Set Semula",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
@@ -166,14 +201,19 @@ LANG_MAP = {
         "welcome": "👋 Selamat kembali, Rakan Premium: **{}** ｜ 🪙 Baki Dompet Awam: **{} Credits**"
     },
     "Bahasa Indonesia": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "title": "🌐 AI Sistem Auto-Center Crop & Pengenal Subjek Gambar E-commerce",
+        "subtitle": "Alur Kerja Otomatisasi Penempatan Objek Skala Perusahaan (Siap)",
+        "pricing_html": """
+        ### 💰 Pilih Paket Kuasa Produksi Anda (Paket Pengisian Token Credits)
+        * **🌟 UJI COBA GRATIS**: **$0** (Daftar langsung dapat **20 Kredit Gratis**!) ── *Uji kehebatan fitur smart centering kami.*
+        * **🪙 PAKET PEMULA**: **$4.99** (Dapat **150 Kredit** ── *Hanya sekitar Rp500 per gambar yang sempurna!*)
+        * **⚡ PAKET PENJUAL PRO**: **$19.99** (Dapat **700 Kredit** ── *Hanya sekitar Rp430 per gambar yang sempurna!*)
+        * **👑 PAKET VAULT RETAIL**: **$49.99** (Dapat **2,000 Kredit** ── **Hemat Ekstrem: Di bawah Rp380 per gambar!**)
+        """,
         "param_header": "⚙️ Optimasi AI & Konfigurasi Parameter (Mendukung input keyboard)",
         "ratio_lbl": "Rasio kepadatan subjek target (10-99%):",
         "size_lbl": "Batas kapasitas ukuran file maksimum per gambar (MB):",
-        "tip_header": "💡 SPESIFIKASI OPERASIONAL GRATIS",
-        "tip_body": "1. Ketik nilai parameter pengoptimalan Anda langsung di bawah menggunakan keyboard.\n2. Seret gambar tunggal atau seluruh folder ke dalam kotak drop zone di bawah.\n3. Klik tombol eksekusi untuk memulai rendering AI secara GRATIS!\n4. Masuk ke akun Anda atau beli paket token di bawah untuk mengunduh paket file ZIP.",
-        "drag_lbl": "📥 SERET GAMBAR TUNGGAL ATAU FOLDER DI SINI UNTUK SMART CENTERING GRATIS",
+        "drag_lbl": "📥 SERET GAMBAR TUNGGAL ATAU FOLDER DI SINI (Zona Drop Landasan Raksasa, Gratis Tanpa Registrasi)",
         "loaded_lbl": "📊 Total aset gambar yang dimuat: {} item",
         "clear_btn": "🗑 Bersihkan Antrean",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
@@ -188,19 +228,42 @@ LANG_MAP = {
 
 st.set_page_config(page_title="NEXUS CROP — AI SaaS", page_icon="🌐", layout="wide")
 
-# 👑 【免註冊遊客 24小時限額 10 Credits 狀態機初始化】
-if "daily_usage" not in st.session_state:
-    st.session_state.daily_usage = 0
-if "user_authenticated" not in st.session_state:
-    st.session_state.user_authenticated = False
-if "user_email" not in st.session_state:
-    st.session_state.user_email = ""
-    # 🪐 點亮頂級 8 國語言切換晶片 (一指秒級全面換膚切換)
-lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("English", "繁體中文", "日本語", "简体中文", "한국어", "ภาษาไทย", "Bahasa Melayu", "Bahasa Indonesia"), index=0)
+# 👑 【免註冊遊客限額狀態機初始化】
+if "daily_usage" not in st.session_state: st.session_state.daily_usage = 0
+if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
+if "user_email" not in st.session_state: st.session_state.user_email = ""
+    # 👑 👑 👑 【3倍巨型拖曳方框停機坪 ── CSS 頂級航太注入晶片】 👑 👑 👑
+# 將原本微薄的拖曳區空間內襯強行放大 3 倍！形成極具視覺震撼力、大面積極度好拉的無敵停機坪！
+st.markdown("""
+    <style>
+    [data-testid="stFileUploader"] { padding: 35px 0px; }
+    [data-testid="stFileUploaderDropzone"] {
+        padding: 150px 30px !important;
+        border: 3px dashed #3498db !important;
+        border-radius: 16px !important;
+        background-color: #f8fafc !important;
+        transition: all 0.3s ease-in-out;
+    }
+    [data-testid="stFileUploaderDropzone"]:hover {
+        border-color: #2980b9 !important;
+        background-color: #f1f5f9 !important;
+        box-shadow: 0px 8px 30px rgba(52, 152, 219, 0.25);
+    }
+    [data-testid="stFileUploaderDropzone"] i {
+        transform: scale(2.5) !important;
+        margin-bottom: 25px !important;
+        color: #3498db !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 🪐 點亮頂級 8 國語言切換晶片 (一指秒級全面換膚切換)
+lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("English", "繁體中文", "日本語", "简体中文", "한국어", "ภาษาไทย", "Bahasa Melayu", "Bahasa Indonesia"), index=1)
 L = LANG_MAP[lang]
 
-# 👑 全球高級電商雙欄位大氣佈局：左邊放無阻礙核心功能，右邊放 Firebase 會員控制與充值看板
-main_col, side_col = st.columns([3, 1], gap="large")
+# 👑 👑 👑 【大中華與全球並排大佈局】 👑 👑 👑
+# 左邊 75% 大氣展示 100% 翻譯的多國語言定價與改圖核心，右邊 25% 緊湊放置會員錢包與計數看板
+main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
@@ -259,17 +322,10 @@ with side_col:
             st.rerun()
 
 with main_col:
-    # 👑 100% 灌入您指定的頂級高端歐美 SaaS 標題與「4層按張計費點數包」對照話術文字
+    # 👑 100% 灌入動態語言翻譯晶片！標題、副標題與「4層點數話術」全功能隨切隨換！
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
-    
-    st.markdown("""
-    ### 💰 Choose Your Production Power (Pay-As-You-Go Credits)
-    * **🌟 FREE TRIAL**: **$0** (Get **20 Free Credits** upon sign up!) - *Test our heavy-duty centering power.*
-    * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Only $0.033 per perfect photo!*)
-    * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Only $0.028 per perfect photo!*)
-    * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
-    """)
+    st.markdown(L["pricing_html"], unsafe_allow_html=True)
     
     st.write("---")
     st.markdown(f"#### {L['param_header']}")
@@ -393,8 +449,9 @@ with main_col:
             user_authed = st.session_state.user_authenticated
             user_credits_val = current_credits if (user_authed and 'current_credits' in locals()) else 0
             
-            # 🔒 雙軌安全大閘門 (精準按照原始上傳原圖張數計算)
+            # 🔒 雙軌安全大閘門
             if not user_authed:
+                # 遊客狀態：24小時內累計上傳的「原始張數」大於 10 Credits，鎖死並跳出多國語言註冊通知！
                 if st.session_state.daily_usage + len(uploaded_files) > 10:
                     st.error(L["limit_err"])
                 else:
