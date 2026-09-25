@@ -1,5 +1,5 @@
 import os, io, zipfile, cv2, numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 import streamlit as st
 
 # 👑 雲端快取優化：確保 AI 模型在雲端只載入一次，節省記憶體
@@ -115,7 +115,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (每日免費公測額度放寬至 30 張！)
+# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已正式放寬至 30 張！)
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -173,12 +173,10 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 👑 👑 👑 【極致對齊：雲端無衝突「照妖鏡硬解晶片」最終校正純淨版】 👑 👑 👑
-                        # 100% 複製桌面版端正原檔！在最上游將 90/180/270度肉身扶正，直接洗掉標籤避開衝突
-                        bytes_data = file.read()
-                        pil_img = Image.open(io.BytesIO(bytes_data))
-                        pil_img = ImageOps.exif_transpose(pil_img) # 完美無衝突硬解
-                        img_orig = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                        # 👑 100% 採用純血 OpenCV 鋼鐵直男硬解相片肉身
+                        file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
+                        img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+                        if img_orig is None: continue
                         
                         h_orig, w_orig, _ = img_orig.shape
                         
@@ -194,16 +192,59 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 因為照片肉身已經 100% 被照妖鏡扶正，直接走純淨原版 A 的單向高質量探測線！
-                        contours = get_ai_bounding_boxes(img_probe_orig)
+                        # 👑 👑 👑 【100% 複製桌面版 ── 智慧主體數量盲測大腦】 👑 👑 👑
+                        # 彻底拔除面积比對漏洞！直接在背景用純 OpenCV 同步探測四角度的有效商品「數量」，數量多者100%強行胜出！
+                        contours_0 = get_ai_bounding_boxes(img_probe_orig)
+                        img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
+                        contours_90 = get_ai_bounding_boxes(img_probe_90)
+                        img_probe_180 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_180)
+                        contours_180 = get_ai_bounding_boxes(img_probe_180)
+                        img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
+                        contours_270 = get_ai_bounding_boxes(img_probe_270)
+                        
+                        # 👑 鎖死桌面版最完美、摔不爛的 0.015 黃金主體過濾大門
+                        valid_cnt_0 = sum(1 for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.015))
+                        
+                        h_p_90, w_p_90, _ = img_probe_90.shape
+                        valid_cnt_90 = sum(1 for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.015))
+                        
+                        h_p_180, w_p_180, _ = img_probe_180.shape
+                        valid_cnt_180 = sum(1 for c in contours_180 if cv2.contourArea(cv2.convexHull(c)) > (w_p_180 * h_p_180 * 0.015))
+                        
+                        h_p_270, w_p_270, _ = img_probe_270.shape
+                        valid_cnt_270 = sum(1 for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.015))
+                        # 🧠 智慧計數決策大腦：哪一個角度切出來的卡片數量最多，就死鎖該角度！
+                        max_cnt = max(valid_cnt_0, valid_cnt_90, valid_cnt_180, valid_cnt_270)
+                        
+                        if max_cnt == valid_cnt_90 and valid_cnt_90 > valid_cnt_0:
+                            img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+                            contours = contours_90
+                            rotation_mode = 90
+                            is_rotated_for_calculation = True
+                        elif max_cnt == valid_cnt_180 and valid_cnt_180 > valid_cnt_0:
+                            img = cv2.rotate(img_orig, cv2.ROTATE_180)
+                            contours = contours_180
+                            rotation_mode = 180
+                            is_rotated_for_calculation = True
+                        elif max_cnt == valid_cnt_270 and valid_cnt_270 > valid_cnt_0:
+                            img = cv2.rotate(img_orig, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                            contours = contours_270
+                            rotation_mode = 270
+                            is_rotated_for_calculation = True
+                        else:
+                            img = img_orig
+                            contours = contours_0
+                            rotation_mode = 0
+                            is_rotated_for_calculation = False
+
+                        h_high, w_high, _ = img.shape
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
                         
-                        # 🔴 100% 鎖死跟您桌面版一模一樣、最完美的 0.015 黃金主體面積門檻！
-                        # 徹底抹除所有縮圖噪點與影子干擾，力保偏暗短可樂機一整台完好不碎！
+                        # 🔴 100% 複製桌面版 A 的 0.015 迴圈拆分公式！
                         for c in contours:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_p_o * h_p_o * 0.015):
+                            if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.015):
                                 bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
                                 bx = int(bx_p * scale_factor)
                                 by = int(by_p * scale_factor)
@@ -211,10 +252,10 @@ if uploaded_files:
                                 bh = int(bh_p * scale_factor)
                                 
                                 bx, by = max(0, bx), max(0, by)
-                                bw = min(w_orig - bx, bw)
-                                bh = min(h_orig - by, bh)
+                                bw = min(w_high - bx, bw)
+                                bh = min(h_high - by, bh)
                                 
-                                roi = img_orig[by:by+bh, bx:bx+bw]
+                                roi = img[by:by+bh, bx:bx+bw]
                                 if roi.size > 0:
                                     g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                                     e_roi = cv2.Canny(g_roi, 50, 150)
@@ -222,10 +263,7 @@ if uploaded_files:
                                         roi_h, roi_w, _ = roi.shape
                                         roi_scale = 500.0 / roi_w if roi_w > 500 else 1.0
                                         roi_probe = cv2.resize(roi, (500, int(roi_h * roi_scale)), interpolation=cv2.INTER_AREA) if roi_w > 500 else roi.copy()
-                                        
-                                        # 💡 純血 BGR 矩陣無損轉換去背
-                                        from rembg import remove as rm_bg
-                                        s_pil = rm_bg(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
+                                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
                                         s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                                         s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -238,9 +276,9 @@ if uploaded_files:
                                 valid_boxes.append((bx, by, bw, bh))
                         
                         if not valid_boxes:
-                            valid_boxes.append((int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5)))
+                            valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
-                        # 👑 👑 👑 【100% 移植桌面版純血原汁 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
+                        # 👑 👑 👑 【100% 移植桌面版 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -248,17 +286,22 @@ if uploaded_files:
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
                             pad_l = min(cx - bw // 2, ideal_pad_w)
-                            pad_r = min((w_orig - cx) - bw // 2, ideal_pad_w)
+                            pad_r = min((w_high - cx) - bw // 2, ideal_pad_w)
                             pad_t = min(cy - bh // 2, ideal_pad_h)
-                            pad_b = min((h_orig - cy) - bh // 2, ideal_pad_h)
+                            pad_b = min((h_high - cy) - bh // 2, ideal_pad_h)
                             
                             x1 = max(0, cx - bw // 2 - pad_l)
-                            x2 = min(w_orig, cx + bw // 2 + pad_r)
+                            x2 = min(w_high, cx + bw // 2 + pad_r)
                             y1 = max(0, cy - bh // 2 - pad_t)
-                            y2 = min(h_orig, cy + bh // 2 + pad_b)
+                            y2 = min(h_high, cy + bh // 2 + pad_b)
                             
-                            cropped = img_orig[y1:y2, x1:x2]
+                            cropped = img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
+                            
+                            if is_rotated_for_calculation:
+                                if rotation_mode == 90: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                elif rotation_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
+                                elif rotation_mode == 270: cropped = cv2.rotate(cropped, cv2.ROTATE_90_CLOCKWISE)
                             
                             # 👑 容量限制二分搜尋法
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
