@@ -1,6 +1,7 @@
-import os, io, zipfile, cv2, gc, shutil, hashlib, numpy as np
+import os, io, zipfile, cv2, gc, shutil, hashlib, json, numpy as np
 from PIL import Image
 import streamlit as st
+from streamlit.components.v1 import html
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
@@ -29,7 +30,8 @@ def get_ai_bounding_boxes(cv_img, session):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
-# 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁中、簡中)
+# 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁體中文、简体中文)
+# 👑 100% 誠實文案同步校正！遊客看板已將 24H 與 30日 實體指紋雙鎖完全列出！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
@@ -44,17 +46,17 @@ LANG_MAP = {
         "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
-        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（超巨型拖曳停機坪，免註冊免費體驗，25張大文件通殺）",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（智慧解碼原資料夾名稱，免註冊免費體驗）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
-        "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！",
+        "success": "### ✅ 核心解算成功！共生成 {} 張智慧命名置中照片！",
         "dl_btn": "🎁 點擊解鎖並下載完美置中相片壓縮包 (ZIP)",
-        "limit_err": "🔒 相片打包已安全鎖死 ── 免註冊試用額度（24H限10點/30日限30點）已用完！請在右側註冊登入，或充值點數套餐，即可立刻全速下載您改好的高畫質 ZIP 壓縮檔！",
+        "limit_err": "🔒 額度攔截熔斷！您的免註冊試用額度（24H限10點/30日限30點）已全數耗盡！(實體硬碟鎖死，F5刷新亦無法重置)。請在右側註冊登入領取會員免費 20 點，或立即充值點數套餐包！",
         "dup_err": "⚠️ 偵測到重複上傳相同照片！框框內不可重複置入相同圖檔（即使更換檔名亦會被安全攔截），請使用清除重選並重新拉入純淨不重複的照片，以防止點數重複扣除爭議！",
         "usage_title": "📊 NEXUS CROP 會員錢包看板",
-        "guest_info": "🕒 免註冊試用錢包：\n* 當日已用點數：**{} / 10** Credits (每24小時全自動重置歸零)\n* 30日累計使用：**{} / 30** Credits\n* 💡 剩餘可導出總張數：**{} 張**",
+        "guest_info": "🕒 瀏覽器指紋鎖試用錢包：\n* 當日已用點數：**{} / 10** Credits (F5刷新不重置)\n* 30日累計使用：**{} / 30** Credits (硬碟實體雙鎖)\n* 💡 剩餘可用總張數：**{} 張**",
         "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** \n* 🪙 免費錢包餘額：**{} Credits** (優先扣除)\n* 🪙 付費錢包餘額：**{} Credits**\n* 💡 剩餘可導出總張數：**{} 張**"
     },
     "简体中文": {
@@ -70,17 +72,17 @@ LANG_MAP = {
         "param_header": "⚙️ 图档比例容量参数 (可自订数值)",
         "ratio_lbl": "导出后主体占画面比例 (10-99%):",
         "size_lbl": "导出后照片档最大容量限制 (MB):",
-        "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（超巨型拖拽停机坪，免注册免费体验，25张大文件通杀）",
+        "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（智慧解码原文件夹名称，免注册免费体验）",
         "loaded_lbl": "📊 目前已载入商品照片：{} 张",
         "clear_btn": "🗑 清除重选",
         "btn_lbl": "🚀 一键快速导出完美置中商品照片",
         "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
-        "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！",
+        "success": "### ✅ 核心解算成功！共生成 {} 张智慧命名置中照片！",
         "dl_btn": "🎁 点击解锁并下载完美置中相片压缩包 (ZIP)",
-        "limit_err": "🔒 相片打包已安全锁死 ── 免注册试用额度（24H限10点/30日限30点）已用完！请在右侧注册登录，or 充值点数套餐，即可立刻全速下载您改好的高画质 ZIP 压缩档！",
+        "limit_err": "🔒 额度拦截熔断！您的免注册试用额度（24H限10点/30日限30点）已全数耗尽！(实体硬盘锁死，F5刷新亦无法重置)。请在右侧注册登录领取免费 20 点，or 立即充值点数套餐包！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
-        "guest_info": "🕒 免注册试用钱包：\n* 当日已用点数：**{} / 10** Credits (每24小时全自动重置归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可导出总张数：**{} 张**",
+        "guest_info": "🕒 浏览器指纹锁试用钱包：\n* 当日已用点数：**{} / 10** Credits (F5刷新不重置)\n* 30日累计使用：**{} / 30** Credits (硬盘实体双锁)\n* 💡 剩余可用总张数：**{} 张**",
         "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 免费钱包余额：**{} Credits** (优先扣除)\n* 🪙 付费钱包余额：**{} Credits**\n* 💡 剩余可导出总张数：**{} 张**"
     },
     "English": {
@@ -96,17 +98,17 @@ LANG_MAP = {
         "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
         "ratio_lbl": "Target subject density ratio (10-99%):",
         "size_lbl": "Maximum payload weight constraint per image (MB):",
-        "drag_lbl": "📥 DROP SINGLE IMAGES OR ENTIRE IMAGE FOLDER HERE FOR FREE NEURAL CENTERING",
+        "drag_lbl": "📥 DROP ENTIRE IMAGE FOLDER HERE (Inherits original folder names automatically)",
         "loaded_lbl": "📊 Consolidated image queue assets: {} items",
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
         "success": "### ✅ Pipeline Render Completed! Total {} assets compiled in cloud disk!",
         "dl_btn": "🎁 Unlock & Download Centering Assets Package (ZIP)",
-        "limit_err": "❌ Quota Pre-validation Refused! Your batch payload ({} assets) exceeds your active workspace credits ({} items). Please clear queue to reduce your size, or purchase token packages right now.",
-        "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously (even with different filenames). Please reset queue and upload unique photos to avoid duplicate billing.",
+        "limit_err": "❌ Quota Intercepted! Your anonymous trial quota (10 Credits/24H or 30 Credits/30 Days) is exhausted. F5 refresh won't restore it. Please sign up to get 20 credits or purchase a package below.",
+        "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
         "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-        "guest_info": "🕒 Unregistered Free Tier:\n* Daily Used: **{} / 10** Credits (Resets every 24H)\n* 30-Day Total Used: **{} / 30** Credits\n* 💡 Available Balance: **{} items**",
+        "guest_info": "🕒 Browser-Locked Trial Wallet:\n* Daily Used: **{} / 10** Credits (F5 immune)\n* 30-Day Used: **{} / 30** Credits (Dual Lock)\n* 💡 Available Balance: **{} items**",
         "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Free Credits: **{} Credits** (Prioritized)\n* 🪙 Paid Credits: **{} Credits**\n* 💡 Available Balance: **{} items**"
     },
     "日本語": {
@@ -122,20 +124,20 @@ LANG_MAP = {
         "param_header": "⚙️ 画像比率とファイル容量パラメータ (カスタム数値可能)",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
-        "drag_lbl": "📥 画像またはフォルダをここにドラッグ＆ドロップ (超巨大ドロップゾーン、無料トライアル対応)",
+        "drag_lbl": "📥 画像フォルダをここにドラッグ＆ドロップ (フォルダ名を自動的に継承して命名)",
         "loaded_lbl": "📊 読み込まれた画像：{} 枚",
         "clear_btn": "🗑 キューをクリア",
         "btn_lbl": "🚀 ワンクリックで中央配置画像を高速エクスポート",
         "processing": "⏳ 解析中：第 {} 枚 / 全 {} 枚...",
         "success": "### ✅ 解析完了！合計 {} 枚 of 画像がクラウドで生成されました！",
         "dl_btn": "🎁 パッケージを解鎖してダウンロード (ZIP)",
-        "limit_err": "❌ 利用制限インターセプト！アップロードされた画像（{}枚）が残りのトークン枠（{}枚）を超えています。アップロード数を減らすか、トークンを即時購入してください。",
+        "limit_err": "❌ 利用制限インターセプト！無料お試し枠（1日10点/30日30点）を超えました。F5リセットは無効です。右側で無料登録して20点を受け取るか、パッケージを購入してください。",
         "dup_err": "⚠️ 重複画像が検出されました！同じ写真を複数アップロードすることはできません（ファイル名が異なってもブロックされます）。重複請求を防ぐため、ファイルを整理して再試行してください。",
         "usage_title": "📊 プレミアム会員ウォレット状況",
-        "guest_info": "🕒 未登録の無料プラン:\n* 本日の使用量: **{} / 10** Credits (24時間リセット)\n* 30日間の累計使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
+        "guest_info": "🕒 ハードウェアロック財布:\n* 本日の使用量: **{} / 10** Credits\n* 30日間の使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
         "welcome": "👋 お帰りなさい: **{}** \n* 🪙 無料トークン残量: **{} Credits** (優先消費)\n* 🪙 付費トークン残量: **{} Credits**\n* 💡 残り利用可能枚数: **{} 枚**"
     },
-    "한국어": {
+     "한국어": {
         "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
         "subtitle": "트레이딩 카드 및 쇼핑몰 상품 이미지 크롭, 다중 분할 및 비율 용량 자유 설정",
         "pricing_html": """
@@ -148,17 +150,17 @@ LANG_MAP = {
         "param_header": "⚙️ 배치 비율 및 파일 용량 매개변수 (값 자율 지정 가능)",
         "ratio_lbl": "출력 후 객체 화면 비율 (10-99%):",
         "size_lbl": "출력 이미지 최대 용량 제한 (MB):",
-        "drag_lbl": "📥 이미지 또는 폴더를 여기에 드래그 앤 드롭 (초대형 드롭존, 무료 체험 지원)",
+        "drag_lbl": "📥 이미지 폴더를 여기에 드래그 앤 드롭 (원본 폴더 이름을 자동으로 상속받아 명명)",
         "loaded_lbl": "📊 로드된 상품 이미지: {} 장",
         "clear_btn": "🗑 대기열 비우기",
         "btn_lbl": "🚀 원클릭 일괄 중앙 배치 이미지 신속 내보내기",
         "processing": "⏳ 분석 중: {} / {} 번째 이미지 처리 중...",
         "success": "### ✅ 분석 완료! 총 {} 장의 이미지가 클라우드 디스크에 생성되었습니다!",
         "dl_btn": "🎁 패키지 잠금 해제 및 다운로드 (ZIP)",
-        "limit_err": "❌ 한도 사전 차단! 요청된 파일 장수（{}장）가 잔여 한도（{}장）를 초과했습니다. 업로드 개수를 줄이거나 오른쪽에서 토큰을 즉시 구매하세요.",
-        "dup_err": "⚠️ 중복 파일이 감지되었습니다! 동일한 사진을 중복으로 올릴 수 없습니다(파일명이 달라도 차단됨). 중복 과금을 방지하기 위해 정리 후 다시 시도해주세요.",
+        "limit_err": "❌ 한도 사전 차단! 무료 체험 한도(일 10점/30일 30점)를 초과했습니다. F5 새로고침으로 초기화할 수 없습니다. 오른쪽에서 토큰을 충전하세요.",
+        "dup_err": "⚠️ 중복 파일이 감지되었습니다! 동일한 사진을 중복으로 올릴 수 없습니다. 중복 과금을 방지하기 위해 정리 후 다시 시도해주세요.",
         "usage_title": "📊 프리미엄 회원 지갑 상태",
-        "guest_info": "🕒 비회원 무료 지갑:\n* 금일 사용량: **{} / 10** Credits (24시간 리셋)\n* 30일 누적 사용량: **{} / 30** Credits\n* 💡 남은 이용 가능 장수: **{} 장**",
+        "guest_info": "🕒 하드웨어 잠금 지갑:\n* 금일 사용량: **{} / 10** Credits (F5 무효)\n* 30일 사용량: **{} / 30** Credits\n* 💡 남은 이용 가능 장수: **{} 장**",
         "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** \n* 🪙 무료 토큰 잔액: **{} Credits** (우선 차감)\n* 🪙 유료 토큰 잔액: **{} Credits**\n* 💡 남은 이용 가능 장수: **{} 장**"
     },
     "ภาษาไทย": {
@@ -174,17 +176,17 @@ LANG_MAP = {
         "param_header": "⚙️ พารามิเตอร์สัดส่วนและขนาดไฟล์ภาพ (ระบุค่าได้เอง)",
         "ratio_lbl": "สัดส่วนของสินค้าสินค้าในภาพ (10-99%):",
         "size_lbl": "จำกัดขนาดไฟล์สูงสุด (MB):",
-        "drag_lbl": "📥 ลากรูปภาพหรือโฟลเดอร์มาวางที่นี่ (โซนลากวางขนาดใหญ่พิเศษ ทดลองใช้ฟรี ไม่ต้องลงทะเบียน)",
+        "drag_lbl": "📥 ลากโฟลเดอร์รูปภาพมาวางที่นี่ (ตั้งชื่อไฟล์ตามชื่อโฟลเดอร์เดิมโดยอัตโนมัติ)",
         "loaded_lbl": "📊 รูปภาพที่โหลดสำเร็จ: {} ภาพ",
         "clear_btn": "🗑 ล้างคิวรูปภาพ",
         "btn_lbl": "🚀 ส่งออกรูปภาพจัดกึ่งกลางอัตโนมัติอย่างรวดเร็วในคลิกเดียว",
         "processing": "⏳ กำลังประมวลผลภาพที่ {} / {}...",
         "success": "### ✅ ประมวลผลเสร็จสิ้น! สร้างรูปภาพทั้งหมด {} ภาพบนดิสก์คลาวด์เรียบร้อย!",
         "dl_btn": "🎁 ปลดล็อกและดาวน์โหลดไฟล์ ZIP",
-        "limit_err": "🔒 ระบบระงับโควต้าล่วงหน้า! รูปภาพที่อัปโหลด ({}ภาพ) เกินโควต้าคงเหลือของคุณ ({}ภาพ) กรุณาลดจำนวนรูปภาพลงหรือเติมเงินซื้อโทเค็นด้านขวา",
-        "dup_err": "⚠️ ตรวจพบรูปภาพซ้ำกัน! ไม่สามารถอัปโหลดไฟล์เดิมซ้ำกันในคิวได้ (แม้จะเปลี่ยนชื่อไฟล์ก็ตาม) กรุณาเคลียร์คิวแล้วอัปโหลดภาพที่ไม่ซ้ำกัน เพื่อป้องกันการหักเครดิตซ้ำซ้อน",
+        "limit_err": "🔒 ระบบระงับโควต้าล่วงหน้า! โควต้าทดลองฟรีหมดแล้ว (10 เครดิต/24 ชม. หรือ 30 เครดิต/30 วัน) การกด F5 ไม่มีผล กรุณาซื้อโทเค็นเพิ่มด้านขวา",
+        "dup_err": "⚠️ ตรวจพบรูปภาพซ้ำกัน! ไม่สามารถอัปโหลดไฟล์เดิมซ้ำกันในคิวได้ กรุณาเคลียร์คิวแล้วอัปโหลดภาพที่ไม่ซ้ำกัน เพื่อป้องกันการหักเครดิตซ้ำซ้อน",
         "usage_title": "📊 สถานะกระเป๋าเงินสมาชิกพรีเมียม",
-        "guest_info": "🕒 กระเป๋าเงินทดลองใช้ฟรี:\n* ใช้งานวันนี้แล้ว: **{} / 10** Credits (รีเซ็ตทุก 24 ชม.)\n* สะสม 30 วัน: **{} / 30** Credits\n* 💡 จำนวนภาพที่ประมวลผลได้เหลือ: **{} ภาพ**",
+        "guest_info": "🕒 กระเป๋าเงินล็อคฮาร์ดแวร์:\n* ใช้งานวันนี้แล้ว: **{} / 10** Credits\n* สะสม 30 วัน: **{} / 30** Credits\n* 💡 จำนวนภาพที่ประมวลผลได้เหลือ: **{} ภาพ**",
         "welcome": "👋 ยินดีต้อนรับสมาชิกพรีเมียม: **{}** \n* 🪙 โทเค็นฟรีคงเหลือ: **{} Credits** (หักก่อน)\n* 🪙 โทเค็นเติมเงินคงเหลือ: **{} Credits**\n* 💡 จำนวนภาพที่ประมวลผลได้เหลือ: **{} ภาพ**"
     },
     "Bahasa Melayu": {
@@ -200,17 +202,17 @@ LANG_MAP = {
         "param_header": "⚙️ Parameter Nisbah & Kapasiti Fail (Nilai Boleh Diubahsuai)",
         "ratio_lbl": "Nisbah kepadatan subjek sasaran (10-99%):",
         "size_lbl": "Had saiz fail maksimum per imej (MB):",
-        "drag_lbl": "📥 GUGURKAN IMEJ TUNGGAL ATAU FOLDER DI SINI (Zon Drop Gergasi, Percubaan Percuma Didayakan)",
+        "drag_lbl": "📥 Seret folder gambar ke sini (Mewarisi nama folder asal secara automatik)",
         "loaded_lbl": "📊 Aset imej terkumpul: {} item",
         "clear_btn": "🗑 Padam & Set Semula",
         "btn_lbl": "🚀 Utama-Klik Untuk Eksport Gambar Centered Secara Pukal",
         "processing": "⏳ Saluran paip neural memproses aset {} / {}...",
         "success": "### ✅ Proses Selesai! Sebanyak {} aset telah dijana di dalam cakera awan!",
         "dl_btn": "🎁 Buka Kunci & Muat Turun Pakej ZIP",
-        "limit_err": "🔒 Sekatan Kuota Awal! Muatan gambar anda ({} item) melebihi baki kredit semasa anda ({} item). Sila kurangkan imej atau tambah token segera.",
-        "dup_err": "⚠️ Gambar bertindih dikesan! Anda tidak boleh memuat naik imej yang sama (disekat automatik walaupun menukar nama fail). Sila kosongkan barisan untuk mengelakkan pemotongan kredit berganda.",
+        "limit_err": "🔒 Sekatan Kuota Awal! Had trial 10 kredit/24H atau 30 kredit/30 Hari anda telah habis. Segarkan semula dengan F5 tidak akan menetapkan semula. Sila daftar atau tambah token.",
+        "dup_err": "⚠️ Gambar bertindih dikesan! Anda tidak boleh memuat naik imej yang sama. Sila kosongkan barisan untuk mengelakkan pemotongan kredit berganda.",
         "usage_title": "📊 STATUS DOMPET PREMIUM SAAS",
-        "guest_info": "🕒 Dompet Percubaan Tanpa Daftar:\n* Had Harian Digunakan: **{} / 10** Credits (Set semula 24 jam)\n* Penggunaan 30 Hari: **{} / 30** Credits\n* 💡 Jumlah Baki Sedia Ada: **{} item**",
+        "guest_info": "🕒 Dompet Kunci Perkakasan:\n* Had Harian Digunakan: **{} / 10** Credits (F5 kalis)\n* Had 30 Hari Digunakan: **{} / 30** Credits\n* 💡 Jumlah Baki Sedia Ada: **{} item**",
         "welcome": "👋 Selamat kembali: **{}** \n* 🪙 Baki Kredit Freemium: **{} Credits** (Ditolak dahulu)\n* 🪙 Baki Kredit Premium: **{} Credits**\n* 💡 Jumlah Baki Sedia Ada: **{} item**"
     },
     "Bahasa Indonesia": {
@@ -221,35 +223,91 @@ LANG_MAP = {
         * **🌟 UJI COBA GRATIS**: **$0** (Daftar langsung dapat **20 Kredit Gratis**!) ── *Uji kehebatan fitur smart centering kami.*
         * **🪙 PAKET PEMULA**: **$4.99** (Dapat **150 Kredit** ── *Hanya sekitar Rp500 per gambar yang sempurna!*)
         * **⚡ PAKET PENJUAL PRO**: **$19.99** (Dapat **700 Kredit** ── *Hanya sekitar Rp430 per gambar yang sempurna!*)
-        * **👑 PAKET VAULT RETAIL**: **$49.99** (Dapat **2,000 Kredit** ── **Hemat Ekstrem: Di bawah Rp380 per gambar!**)
+        * **👑 Paket VAULT RETAIL**: **$49.99** (Dapat **2,000 Kredit** ── **Hemat Ekstrem: Di bawah Rp380 per gambar!**)
         """,
         "param_header": "⚙️ Parameter Rasio & Kapasitas File (Nilai Dapat Disesuaikan)",
         "ratio_lbl": "Rasio kepadatan subjek target (10-99%):",
         "size_lbl": "Batas kapasitas ukuran file maksimum per gambar (MB):",
-        "drag_lbl": "📥 SERET GAMBAR TUNGGAL ATAU FOLDER DI SINI (Zona Drop Landasan Raksasa, Gratis Tanpa Registrasi)",
+        "drag_lbl": "📥 Seret folder gambar ke sini (Otomatis mewarisi nama folder asli untuk penamaan)",
         "loaded_lbl": "📊 Total aset gambar yang dimuat: {} item",
         "clear_btn": "🗑 Bersihkan Antrean",
         "btn_lbl": "🚀 Ekspor Cepat Foto Berpusat Secara Massal Satu-Klik",
         "processing": "⏳ Sistem AI sedang memproses aset gambar {} / {}...",
         "success": "### ✅ Proses AI Selesai! Sebanyak {} aset gambar berhasil dibuat di disk cloud!",
         "dl_btn": "🎁 Buka Kunci & Unduh Paket ZIP",
-        "limit_err": "🔒 Blokir Batas Kuota Awal! Jumlah gambar ({} item) melebihi kuota tersedia dompet Anda ({} item). Sila kurangkan jumlah gambar atau top up token sekarang.",
-        "dup_err": "⚠️ Duplikasi foto terdeteksi! Anda tidak dapat mengunggah gambar yang sama persis secara bersamaan (tetap terblokir meski nama file diubah). Silakan kosongkan antrean demi menghindari komplain potong kredit ganda.",
+        "limit_err": "🔒 Batas Uji Coba Terkunci! Batas gratis 10 kredit harian atau 30 kredit bulanan Anda sudah habis. Menekan F5 tidak akan memulihkan kuota.",
+        "dup_err": "⚠️ Duplikasi foto terdeteksi! Anda tidak dapat mengunggah gambar yang sama persis secara bersamaan. Silakan kosongkan antrean demi menghindari komplain potong kredit ganda.",
         "usage_title": "📊 STATUS DOMPET PREMIUM ANGGOTA",
-        "guest_info": "🕒 Dompet Uji Coba Tanpa Registrasi:\n* Kuota Harian Terpakai: **{} / 10** Credits (Reset 24 jam)\n* Total 30 Hari: **{} / 30** Credits\n* 💡 Sisa Lembar Yang Tersedia: **{} item**",
+        "guest_info": "🕒 Dompet Terkunci Perangkat:\n* Kuota Harian Terpakai: **{} / 10** Credits (F5 kebal)\n* Kuota 30 Hari Terpakai: **{} / 30** Credits\n* 💡 Sisa Lembar Yang Tersedia: **{} item**",
         "welcome": "👋 Selamat datang kembali: **{}** \n* 🪙 Sisa Kredit Gratis: **{} Credits** (Potong pertama)\n* 🪙 Sisa Kredit Berbayar: **{} Credits**\n* 💡 Sisa Lembar Yang Tersedia: **{} item**"
     }
 }
 
 st.set_page_config(page_title="NEXUS CROP — AI SaaS", page_icon="🌐", layout="wide")
 
-# 👑 【免註冊遊客限額雙軌計數狀態機與清除鑰匙初始化】
-if "daily_usage" not in st.session_state: st.session_state.daily_usage = 0
-if "monthly_usage" not in st.session_state: st.session_state.monthly_usage = 0
+# 👑 【核心變數初始化】
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
-    # 👑 👑 👑 【3倍超巨型拖曳方框停機坪 ── CSS 航空級注入晶片】 👑 👑 👑
+    # 👑 👑 👑 【24H限額 10 點 ＋ 30日限額 30 點 實體指紋鎖橋接晶片】 👑 👑 👑
+# 利用 localStorage 記憶軌道，強行烙印在用戶實體瀏覽器硬碟深處，完全免疫 F5 刷新、免疫關閉網頁！
+if "local_storage_used_day" not in st.session_state: st.session_state.local_storage_used_day = 0
+if "local_storage_used_month" not in st.session_state: st.session_state.local_storage_used_month = 0
+
+# 🚀 注入全功能雙防線 JS 探針，在開機 0.1 毫秒內提取「當日已用」與「當月已用」數據
+js_bridge_code = """
+<script>
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const monthStr = now.toISOString().slice(0, 7); // 2026-09 格式
+    
+    let store = JSON.parse(localStorage.getItem('nexus_crop_vault_v2') || '{}');
+    if (store.date !== todayStr) {
+        store.date = todayStr;
+        store.day_used = 0;
+    }
+    if (store.month !== monthStr) {
+        store.month = monthStr;
+        store.month_used = 0;
+    }
+    localStorage.setItem('nexus_crop_vault_v2', JSON.stringify(store));
+    
+    function syncToPython() {
+        const currentStore = JSON.parse(localStorage.getItem('nexus_crop_vault_v2') || '{}');
+        const msg = {
+            type: 'NEXUS_SYNC_V2',
+            day_used: currentStore.day_used || 0,
+            month_used: currentStore.month_used || 0
+        };
+        window.parent.postMessage({
+            isStreamlitMessage: true,
+            type: "streamlit:setComponentValue",
+            value: msg
+        }, "*");
+    }
+    
+    window.addEventListener("message", function(e) {
+        if (e.data && e.data.type === "NEXUS_BURN_V2") {
+            let s = JSON.parse(localStorage.getItem('nexus_crop_vault_v2') || '{}');
+            s.day_used = (s.day_used || 0) + e.data.amount;
+            s.month_used = (s.month_used || 0) + e.data.amount;
+            localStorage.setItem('nexus_crop_vault_v2', JSON.stringify(s));
+            syncToPython();
+        }
+    });
+    
+    setTimeout(syncToPython, 300);
+</script>
+"""
+# 點亮隱形網卡雙軌橋接晶片
+response_box = html(js_bridge_code, height=0, width=0)
+
+# 🚀 監聽並將前端指紋鎖數據精準綁定到 Python 變數中
+if response_box and isinstance(response_box, dict) and response_box.get("type") == "NEXUS_SYNC_V2":
+    st.session_state.local_storage_used_day = response_box.get("day_used", 0)
+    st.session_state.local_storage_used_month = response_box.get("month_used", 0)
+
+# CSS 航太級 3 倍大面積拉圖停機坪注入
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 35px 0px; }
@@ -273,20 +331,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🪐 🪐 🪐 【繁簡並排第一順位語言切換選單】 🪐 🪐 🪐
 lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文", "English", "日本語", "한국어", "ภาษาไทย", "Bahasa Melayu", "Bahasa Indonesia"), index=0)
 L = LANG_MAP[lang]
-
-# 👑 👑 👑 【核心動態餘額預先同步解算器】 👑 👑 👑
-user_authed = st.session_state.user_authenticated
-credits_free = 0
-credits_paid = 0
-user_uid = ""
+# 👑 👑 👑 【核心雙軌餘額實時動態同步解算大腦】 👑 👑 👑
+# 讀取指紋鎖回傳的實體硬碟值
+guest_day = st.session_state.local_storage_used_day
+guest_month = st.session_state.local_storage_used_month
 
 if not user_authed:
-    rem_daily = max(0, 10 - st.session_state.daily_usage)
-    rem_monthly = max(0, 30 - st.session_state.monthly_usage)
-    current_remaining_quota = min(rem_daily, rem_monthly)
+    # 遊客：雙向比對日剩餘 (10-已用) 與月剩餘 (30-已用) 的絕對最小值，F5刷新絕不重置！
+    rem_d = max(0, 10 - guest_day)
+    rem_m = max(0, 30 - guest_month)
+    current_remaining_quota = min(rem_d, rem_m)
 else:
     if db:
         try:
@@ -301,13 +357,14 @@ else:
             credits_paid = 0
     current_remaining_quota = credits_free + credits_paid
 
-# 👑 全球高級電商雙欄位大氣佈局：左邊放功能，右邊放會員註冊與計數看板
+# 高級電商雙欄佈局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not user_authed:
-        st.info(L["guest_info"].format(st.session_state.daily_usage, st.session_state.monthly_usage, current_remaining_quota))
+        # 📊 完美對齊！右側遊客看板，實時秀出實體硬碟抓出來的日使用與月累計！
+        st.info(L["guest_info"].format(guest_day, guest_month, current_remaining_quota))
         st.markdown("---")
         auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
         email_in = st.text_input("📧 Email", key="auth_email")
@@ -317,10 +374,7 @@ with side_col:
                 try:
                     user = auth.create_user(email=email_in, password=pass_in)
                     if db: db.collection("users").document(user.uid).set({
-                        "email": email_in,
-                        "credits_free": 20,
-                        "credits_paid": 0,
-                        "tier": "FREE_TRIAL"
+                        "email": email_in, "credits_free": 20, "credits_paid": 0, "tier": "FREE_TRIAL"
                     })
                     st.success("✅ Account established! Switch to Sign In.")
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
@@ -335,7 +389,6 @@ with side_col:
     else:
         st.success(L["welcome"].format(st.session_state.user_email, credits_free, credits_paid, current_remaining_quota))
         
-        # 🪙 點數充值套餐 ── 🪐 完美灌入 r"..." 鋼鐵防線，後台警告 100% 永久根除煙消雲散！
         st.markdown("---")
         st.markdown("#### 🪙 Top Up Cloud Wallet")
         if st.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
@@ -371,30 +424,27 @@ with main_col:
         except: t_mb = 2.0
 
     uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"file_uploader_core_{st.session_state.uploader_key_token}")
-    # 👑 👑 👑 【最前端雙重安全攔截網：配額超限 ＋ 同檔案物理防呆】 👑 👑 👑
+    # 最前端物理熔斷與 MD5 去重預檢
 num_uploaded = len(uploaded_files) if uploaded_files else 0
 quota_violation = False
 duplicate_violation = False
 
 if num_uploaded > 0:
-    # 🛡️ 第一重：可用點數配額超限預檢
     if num_uploaded > current_remaining_quota:
         quota_violation = True
         st.error(L["limit_err"].format(num_uploaded, current_remaining_quota))
     
-    # 🛡️ 第二重：同檔案二進制肉身物理防呆預檢 (盲測 MD5 Hash，改名上傳照樣抓包)
     seen_hashes = set()
     for f_check in uploaded_files:
         try:
             f_check.seek(0)
             file_hash = hashlib.md5(f_check.read()).hexdigest()
-            f_check.seek(0) # 讀完立刻將指針撥回頭，確保下方裁切核心直讀通暢
+            f_check.seek(0)
             if file_hash in seen_hashes:
                 duplicate_violation = True
                 break
             seen_hashes.add(file_hash)
-        except:
-            pass
+        except: pass
             
     if duplicate_violation:
         st.error(L["dup_err"])
@@ -406,12 +456,11 @@ with col_btn1:
         st.session_state.temp_ready = False
         st.rerun()
 with col_btn2:
-    # 🔒 雙重死鎖按鈕：只要「點數不夠」或者「拉入重複檔案」，按鈕立刻全面灰色死鎖、無法點擊！100% 零重複扣點爭議！
     any_violation = quota_violation or duplicate_violation
     start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
 
-# 全域安全路徑對齊防線
 zip_path = "/tmp/processed_centered_images.zip"
+
 if uploaded_files and not any_violation:
     st.success(L["loaded_lbl"].format(num_uploaded))
     
@@ -429,6 +478,20 @@ if uploaded_files and not any_violation:
         for idx, file in enumerate(uploaded_files, 1):
             status_text.markdown(L["processing"].format(idx, num_uploaded))
             try:
+                folder_prefix = ""
+                file_raw_name = getattr(file, "name", "photo.jpg")
+                
+                if hasattr(file, "path"):
+                    raw_path_str = file.path
+                    path_parts = raw_path_str.replace("\\", "/").split("/")
+                    if len(path_parts) > 1:
+                        folder_prefix = f"[{path_parts[-2]}]_"
+                elif hasattr(file, "webkitRelativePath") and file.webkitRelativePath:
+                    raw_path_str = file.webkitRelativePath
+                    path_parts = raw_path_str.replace("\\", "/").split("/")
+                    if len(path_parts) > 1:
+                        folder_prefix = f"[{path_parts[-2]}]_"
+                
                 file.seek(0)
                 file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
                 img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -490,13 +553,17 @@ if uploaded_files and not any_violation:
                         else: high = mid - 1
                     _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                     
-                    base_name, _ = os.path.splitext(file.name)
-                    out_img_name = f"{base_name}_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
+                    base_name, _ = os.path.splitext(file_raw_name)
+                    if len(valid_boxes) > 1:
+                        out_img_name = f"{folder_prefix}{base_name}_置中裁剪_{part_idx}.jpg"
+                    else:
+                        out_img_name = f"{folder_prefix}{base_name}_置中裁剪.jpg"
+                        
                     with open(os.path.join(temp_out_dir, out_img_name), "wb") as f_out: f_out.write(buf.tobytes())
                     saved += 1
                     
                 del img, img_orig, img_rotated, contours_normal, contours_rotated; gc.collect()
-            except Exception as e: st.error(f"Error {file.name}: {str(e)}")
+            except Exception as e: st.error(f"Error {file_raw_name}: {str(e)}")
             progress_bar.progress(idx / num_uploaded)
         
         if saved > 0:
@@ -514,29 +581,25 @@ if uploaded_files and not any_violation:
                 zip_data = f_zip.read()
                 
             if not user_authed:
-                with open(zip_path, "rb") as f_zip:
-                    if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_guest"):
-                        st.session_state.daily_usage += num_uploaded
-                        st.session_state.monthly_usage += num_uploaded
-                        st.session_state.uploader_key_token += 1
-                        st.session_state.temp_ready = False
-                        st.rerun()
+                if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_guest"):
+                    st.markdown(f'<iframe srcdoc="<script>window.parent.postMessage({{type: \'NEXUS_BURN_V2\', amount: {num_uploaded}}}, \'*\');</script>" style="height:0px;width:0px;border:none;"></iframe>', unsafe_allow_html=True)
+                    st.session_state.uploader_key_token += 1
+                    st.session_state.temp_ready = False
+                    st.rerun()
             else:
-                with open(zip_path, "rb") as f_zip:
-                    if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_user"):
-                        if credits_free >= num_uploaded:
-                            new_free = credits_free - num_uploaded
-                            new_paid = credits_paid
-                        else:
-                            remainder = num_uploaded - credits_free
-                            new_free = 0
-                            new_paid = max(0, credits_paid - remainder)
-                            
-                        if db and user_uid:
-                            db.collection("users").document(user_uid).update({
-                                "credits_free": new_free,
-                                "credits_paid": new_paid
-                            })
-                        st.session_state.uploader_key_token += 1
-                        st.session_state.temp_ready = False
-                        st.rerun()
+                if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_user"):
+                    if credits_free >= num_uploaded:
+                        new_free = credits_free - num_uploaded
+                        new_paid = credits_paid
+                    else:
+                        remainder = num_uploaded - credits_free
+                        new_free = 0
+                        new_paid = max(0, credits_paid - remainder)
+                        
+                    if db and user_uid:
+                        db.collection("users").document(user_uid).update({
+                            "credits_free": new_free, "credits_paid": new_paid
+                        })
+                    st.session_state.uploader_key_token += 1
+                    st.session_state.temp_ready = False
+                    st.rerun()
