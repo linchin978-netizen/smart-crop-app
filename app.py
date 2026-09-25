@@ -29,15 +29,93 @@ def get_remote_ip():
         if ctx and hasattr(ctx, "headers"):
             headers = ctx.headers
             if "X-Forwarded-For" in headers:
-                return headers["X-Forwarded-For"].split(",")[0].strip()
+                return headers["X-Forwarded-For"].split(",").strip()
             elif "X-Real-IP" in headers:
                 return headers["X-Real-IP"].strip()
     except:
         pass
     return "127.0.0.1"
-    # 🌍 跨國網拍 SaaS 多國語言大字典 (A面：繁體中文、简体中文)
-# 👑 遵照創辦人最高戰術指示：高雅溫柔提示、註冊大送 50 免費點數、遊客午夜全自動清空歸零！
+    # 🌍 跨國網拍 SaaS 9 國語言大字典 (第一面：English, Deutsch, Français)
+# 👑 遵照您的指示排序：英文 -> 德文 -> 法文，高雅提示、合併大錢包計費永久無限制！
 LANG_MAP = {
+    "English": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Trading Card & E-commerce Photo Smart Centering, Batch Splitting, and Weight Control System",
+        "pricing_html": """
+        ### 💰 Choose Your Production Power (Unified Global Token Wallet)
+        * **🌟 FREE TRIAL**: **$0** (Get **50 Free Credits** immediately upon sign up!)
+        * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Tokens never expire, use anytime!*)
+        * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Designed for cross-border high-volume setups.*)
+        * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
+        """,
+        "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
+        "ratio_lbl": "Target subject density ratio (10-99%):",
+        "size_lbl": "Maximum payload weight constraint per image (MB):",
+        "drag_lbl": "📥 DROP ENTIRE IMAGE FOLDER HERE (Keeps original filenames format)",
+        "loaded_lbl": "📊 Consolidated image queue assets: {} items",
+        "clear_btn": "🗑 Clear & Reset Queue",
+        "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
+        "processing": "⏳ Neural pipeline processing asset {} / {}...",
+        "success": "### ✅ Pipeline Render Completed! Total {} centered photos compiled! Please click below to download.",
+        "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
+        "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to claim 50 free credits bonus instantly, or purchase a token package on the right!",
+        "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
+        "usage_title": "📊 PREMIUM WORKSPACE WALLET",
+        "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits (Resets at 00:00 midnight)\n* 30-Day Used: **{} / 30** Credits (Cloud tracked)\n* 💡 Available Balance: **{} items**",
+        "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Total Active Wallet: **{} Credits** (Includes free bonus, lifetime valid)\n* 💡 Available Balance: **{} items**"
+    },
+    "Deutsch": {
+        "title": "🌐 Intelligente Objekterkennung & Auto-Zentrierter Zuschnitt",
+        "subtitle": "E-Commerce- und Sammelkarten-Fotos intelligent zentrieren, stapelweise aufteilen und Dateigröße optimieren",
+        "pricing_html": """
+        ### 💰 Wählen Sie Ihre Produktionsleistung (Einheitliches Guthaben-Konto)
+        * **🌟 KOSTENLOSE TESTVERSION**: **$0** (Erhalten Sie sofort **50 Gratis-Credits** bei der Registrierung!)
+        * **🪙 STARTER-PAKET**: **$4.99** (Enthält **150 Credits** - *Guthaben läuft nie ab!*)
+        * **⚡ POWER-SELLER**: **$19.99** (Enthält **700 Credits** - *Perfekt für hohe Stückzahlen.*)
+        * **👑 MEGA-TRESOR**: **$49.99** (Enthält **2.000 Credits** - **Weniger als $0.025 pro perfektem Foto!**)
+        """,
+        "param_header": "⚙️ Parameter für Layout-Verhältnis & Dateigröße",
+        "ratio_lbl": "Ziel-Dichte des Hauptobjekts (10-99%):",
+        "size_lbl": "Maximale Dateigrößenbeschränkung pro Bild (MB):",
+        "drag_lbl": "📥 ZIEHEN SIE DEN GESAMTEN BILDERORDNER HIERHER (Behält das ursprüngliche Dateinamenformat bei)",
+        "loaded_lbl": "📊 Geladene Medien-Assets: {} Elemente",
+        "clear_btn": "🗑 Warteschlange zurücksetzen",
+        "btn_lbl": "🚀 Zentrierte Fotos mit einem Klick exportieren",
+        "processing": "⏳ Verarbeitung läuft: Bild {} / {}...",
+        "success": "### ✅ Verarbeitung abgeschlossen! Insgesamt {} zentrierte Fotos erstellt! Bitte unten herunterladen.",
+        "dl_btn": "🎁 Zentrierte Bilder herunterladen (ZIP)",
+        "limit_err": "🔒 Entschuldigung, Ihr anonymes Testguthaben ist aufgebraucht. Bitte registrieren Sie sich rechts, um 50 Gratis-Credits zu erhalten, oder kaufen Sie ein Paket!",
+        "dup_err": "⚠️ Doppelte Fotos erkannt! Sie können identische Bilder nicht gleichzeitig hochladen. Bitte Warteschlange zurücksetzen.",
+        "usage_title": "📊 PREMIUM WORKSPACE WALLET",
+        "guest_info": "🕒 Anonymes IP-Guthaben:\n* Heute genutzt: **{} / 10** Credits (Zurücksetzung um Mitternacht)\n* 30-Tage genutzt: **{} / 30** Credits\n* 💡 Verfügbares Guthaben: **{} Bilder**",
+        "welcome": "👋 Willkommen, Premium-Partner: **{}** \n* 🪙 Gesamtguthaben: **{} Credits** (Lebenslang gültig)\n* 💡 Verfügbares Guthaben: **{} Bilder**"
+    },
+    "Français": {
+        "title": "🌐 Reconnaissance Inteligente de l'Objet & Recadrage Centré",
+        "subtitle": "Centrage intelligent, division par lots et contrôle du poids des photos e-commerce et cartes à collectionner",
+        "pricing_html": """
+        ### 💰 Choisissez Votre Puissance de Production (Portefeuille de Crédits Unique)
+        * **🌟 ESSAI GRATUIT**: **$0** (Obtenez **50 crédits gratuits** dès votre inscription !)
+        * **🪙 PACK SOUVENT**: **$4.99** (Comprend **150 crédits** - *Les crédits n'expirent jamais !*)
+        * **⚡ VENDEUR PRO**: **$19.99** (Comprend **700 crédits** - *Idéal pour les gros volumes de production.*)
+        * **👑 MEGA COFFRE**: **$49.99** (Comprend **2 000 crédits** - **Moins de 0,025 $ par photo parfaite !**)
+        """,
+        "param_header": "⚙️ Paramètres de Proportion du Mises en Page & Poids de Fichier",
+        "ratio_lbl": "Ratio de densité de l'objet cible (10-99%) :",
+        "size_lbl": "Limite de poids maximale par image (Mo) :",
+        "drag_lbl": "📥 GLISSEZ LE DOSSIER D'IMAGES ICI (Conserve le format des noms de fichiers originaux)",
+        "loaded_lbl": "📊 Actifs multimédias chargés : {} éléments",
+        "clear_btn": "🗑 Réinitialiser la file d'attente",
+        "btn_lbl": "🚀 Exporter les photos centrées en un clic",
+        "processing": "⏳ Traitement en cours : Image {} / {}...",
+        "success": "### ✅ Traitement terminé ! {} photos centrées générées au total ! Veuillez cliquer ci-dessous pour télécharger.",
+        "dl_btn": "🎁 Télécharger le package d'images centrées (ZIP)",
+        "limit_err": "🔒 Désolé, votre quota d'essai anonyme est épuisé. Veuillez vous inscrire à droite pour réclamer 50 crédits gratuits, ou achetez un pack !",
+        "dup_err": "⚠️ Photos en double détectées ! Vous ne pouvez pas télécharger des images identiques simultanément. Veuillez réinitialiser la file d'attente.",
+        "usage_title": "📊 PREMIUM WORKSPACE WALLET",
+        "guest_info": "🕒 Portefeuille IP Anonyme :\n* Utilisé aujourd'hui : **{} / 10** crédits (Réinitialisé à minuit)\n* Utilisé sur 30 jours : **{} / 30** crédits\n* 💡 Solde disponible : **{} éléments**",
+        "welcome": "👋 Bienvenue, Partenaire Premium : **{}** \n* 🪙 Solde total actif : **{} crédits** (Valable à vie)\n* 💡 Solde disponible : **{} éléments**"
+    },
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
         "subtitle": "卡牌、網拍商品照一鍵自動裁切、主體完美置中、圖檔比例容量自由設定",
@@ -51,7 +129,7 @@ LANG_MAP = {
         "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
-        "drag_lbl": "📥 將「單張相相」或「整個圖片資料夾」全數拖曳至此（原檔名導出流，免註冊免費體驗）",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（原檔名導出流，免註冊免費體驗）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
@@ -87,34 +165,8 @@ LANG_MAP = {
         "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录直接领取免费 50 点大礼包，or 立即充值点数套餐包解锁更高生产力！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
-        "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用额度：**{} / 10** Credits (午夜12点全自动清空归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可用总张数：**{} 张**",
+        "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用额度：**{} / 10** Comics (午夜12点全自动清空归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可用总张数：**{} 张**",
         "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 专属钱包总余额：**{} Credits** (含免费赠点，永久无时间数量限制)\n* 💡 剩余可导出总张数：**{} 张**"
-    },
-    "English": {
-        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-        "subtitle": "Trading Card & E-commerce Photo Smart Centering, Batch Splitting, and Weight Control System",
-        "pricing_html": """
-        ### 💰 Choose Your Production Power (Unified Global Token Wallet)
-        * **🌟 FREE TRIAL**: **$0** (Get **50 Free Credits** immediately upon sign up!)
-        * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Tokens never expire, use anytime!*)
-        * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Designed for cross-border high-volume setups.*)
-        * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
-        """,
-        "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
-        "ratio_lbl": "Target subject density ratio (10-99%):",
-        "size_lbl": "Maximum payload weight constraint per image (MB):",
-        "drag_lbl": "📥 DROP ENTIRE IMAGE FOLDER HERE (Keeps original filenames format)",
-        "loaded_lbl": "📊 Consolidated image queue assets: {} items",
-        "clear_btn": "🗑 Clear & Reset Queue",
-        "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
-        "processing": "⏳ Neural pipeline processing asset {} / {}...",
-        "success": "### ✅ Pipeline Render Completed! Total {} assets compiled!",
-        "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
-        "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to get your 50 credits bonus instantly, or purchase a token package below.",
-        "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
-        "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-        "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits (Resets completely at 00:00 midnight)\n* 30-Day Used: **{} / 30** Credits\n* 💡 Available Balance: **{} items**",
-        "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Total Active Wallet: **{} Credits** (Includes free bonus, lifetime valid)\n* 💡 Available Balance: **{} items**"
     },
     "日本語": {
         "title": "🌐 AI 商品画像自動中央配置＆自動クロップシステム",
@@ -124,7 +176,7 @@ LANG_MAP = {
         * **🌟 無料体験**: **$0** (新規登録・ログインで **50 無料トークン** プレゼント！)
         * **🪙 スターターパック**: **$4.99** ( **150 トークン** ── *トークンは永久に有効、時間や枚数の制限なし！*)
         * **⚡ パワーセラーパック**: **$19.99** ( **700 トークン** ── *クロスボーダー大口セラー向けゴールデンセット！*)
-        * **👑 メガバルトパック**: **$49.99** ( **2,000 トークン** 内蔵 ── **圧倒的コスパ：画像1枚あたり4円以下！**)
+        * **👑 メガバルトパック**: **$49.99** ( **2,000 トークン** 内蔵 ── **圧倒的コスパ！**)
         """,
         "param_header": "⚙️ 画像比率とファイル容量パラメータ (カスタム数値可能)",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
@@ -140,7 +192,85 @@ LANG_MAP = {
         "dup_err": "⚠️ 重複画像が検出されました！同じ写真を複数アップロードすることはできません。重複請求を防ぐため、ファイルを整理して再試行してください。",
         "usage_title": "📊 プレミアム会員ウォレット状況",
         "guest_info": "🕒 IPお試し財布:\n* 本日の使用量: **{} / 10** Credits (夜12時に全自動リセット)\n* 30日間の使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
-        "welcome": "👋 お帰りなさい: **{}** \n* 🪙 統合ウォレット残高: **{} Credits** (無料贈呈分を含む、生涯有効)\n* 💡 残り利用可能枚数: **{} 枚**"
+        "welcome": "👋 お帰りなさい: **{}** \n* 🪙 統合ウォレット残高: **{} Credits** (生涯有効)\n* 💡 残り利用可能枚数: **{} 枚**"
+    },
+    "韓文": {
+        "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
+        "subtitle": "트레이딩 카드 및 쇼핑몰 상품 이미지 크롭, 다중 분할 및 비율 용량 자유 설정",
+        "pricing_html": """
+        ### 💰 요금제 선택 (충전식 통합 대형 지갑 팩)
+        * **🌟 무료 체험**: **$0** (가입 시 **50 무료 토큰** 즉시 지급!)
+        * **🪙 스타터 팩**: **$4.99** ( **150 토큰** 포함 ── *토큰은 만료일 없이 평생 사용 가능!*)
+        * **⚡ 파워 셀러 팩**: **$19.99** ( **700 토큰** 포함 ── *글로벌 대형 셀러를 위한 강력 추천 패키지!*)
+        * **👑 메가 볼트 팩**: **$49.99** ( **2,000 토큰** 포함 ── **최고의 가성비 토큰 패키지!**)
+        """,
+        "param_header": "⚙️ 배치 비율 및 파일 용량 매개변수 (값 자율 지정 가능)",
+        "ratio_lbl": "출력 후 객체 화면 비율 (10-99%):",
+        "size_lbl": "출력 이미지 최대 용량 제한 (MB):",
+        "drag_lbl": "📥 이미지 폴더를 여기에 드래그 앤 드롭 (원본 파일 이름 유지)",
+        "loaded_lbl": "📊 로드된 상품 이미지: {} 장",
+        "clear_btn": "🗑 대기열 비우기",
+        "btn_lbl": "🚀 원클릭 일괄 중앙 배치 이미지 신속 내보내기",
+        "processing": "⏳ 분석 중: {} / {} 번째 이미지 처리 중...",
+        "success": "### ✅ 분석 완료! 토큰이 성공적으로 차감되었습니다. 총 {} 장의 이미지가 생성되었습니다!",
+        "dl_btn": "🎁 압축 패키지 다운로드 (ZIP)",
+        "limit_err": "🔒 죄송합니다, 무료 체험 한도가 초과되었습니다. 오른쪽에서 무료 가입하고 50 토큰 대형 보너스를 받거나 패키지를 충전하세요!",
+        "dup_err": "⚠️ 중복 파일이 감지되었습니다! 동일한 사진을 중복으로 올릴 수 없습니다. 대기열을 비우고 다시 시도해주세요.",
+        "usage_title": "📊 프리미엄 회원 지갑 상태",
+        "guest_info": "🕒 IP 체험 지갑:\n* 금일 사용량: **{} / 10** Credits (자정에 자동 초기화)\n* 30일 사용량: **{} / 30** Credits\n* 💡 남은 이용 가능 장수: **{} 장**",
+        "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** \n* 🪙 통합 지갑 총잔액: **{} Credits** (평생 유효)\n* 💡 남은 이용 가능 장수: **{} 장**"
+    },
+    "馬來文": {
+        "title": "🌐 AI Sistem Centering & Pemotongan Gambar E-dagang",
+        "subtitle": "Pemotongan Automatik, Pengasingan Gambar Pukal, dan Tetapan Bebas Saiz Fail Sasaran",
+        "pricing_html": """
+        ### 💰 Pilih Pakej Kuasa Pengeluaran Anda (Dompet Token Bersepadu)
+        * **🌟 PERCUBAAN PERCUMA**: **$0** (Daftar masuk dapat **50 Kredit Percuma** segera!)
+        * **🪙 PAKEJ PERMULAAN**: **$4.99** (Dapat **150 Kredit** ── *Token sah selama-lamanya!*)
+        * **⚡ PAKEJ PENJUAL AKTIF**: **$19.99** (Dapat **700 Kredit** ── *Pelan terbaik untuk penjual antarabangsa.*)
+        * **👑 PAKEJ GERGASI SAAS**: **$49.99** (Dapat **2,000 Kredit** ── **Nilai hebat di bawah $0.025 setiap gambar!**)
+        """,
+        "param_header": "⚙️ Parameter Nisbah & Kapasiti Fail (Nilai Boleh Diubahsuai)",
+        "ratio_lbl": "Nisbah kepadatan subjek sasaran (10-99%):",
+        "size_lbl": "Had saiz fail maksimum per imej (MB):",
+        "drag_lbl": "📥 Seret folder gambar ke sini (Kekalkan nama format fail asal)",
+        "loaded_lbl": "📊 Aset imej terkumpul: {} item",
+        "clear_btn": "🗑 Padam & Set Semula",
+        "btn_lbl": "🚀 Eksport Gambar Centered Secara Pukal Satu-Klik",
+        "processing": "⏳ Saluran paip neural memproses aset {} / {}...",
+        "success": "### ✅ Proses Selesai! Kredit telah ditolak. Sebanyak {} aset telah dijana!",
+        "dl_btn": "🎁 Muat Turun Pakej ZIP Gambar",
+        "limit_err": "🔒 Maaf, kuota trial tanpa pendaftaran anda telah habis. Sila daftar akaun percuma untuk tebus bonus 50 kredit segera atau beli pakej token di sebelah kanan!",
+        "dup_err": "⚠️ Gambar bertindih dikesan! Anda tidak boleh memuat naik imej yang sama. Sila kosongkan barisan untuk mengelakkan pemotongan kredit ganda.",
+        "usage_title": "📊 STATUS DOMPET PREMIUM SAAS",
+        "guest_info": "🕒 Dompet IP Anonim:\n* Digunakan Hari Ini: **{} / 10** Credits (Set semula pada tengah malam)\n* Had 30 Hari Digunakan: **{} / 30** Credits\n* 💡 Jumlah Baki Sedia Ada: **{} item**",
+        "welcome": "👋 Selamat kembali: **{}** \n* 🪙 Baki Dompet Bersepadu: **{} Credits** (Sah seumur hidup)\n* 💡 Jumlah Baki Sedia Ada: **{} item**"
+    },
+    "印尼文": {
+        "title": "🌐 AI Sistem Auto-Center Crop & Pengenal Subjek Gambar E-commerce",
+        "subtitle": "Pemotongan Otomatis, Pemisahan Objek Massal, dan Konfigurasi Bebas Rasio Ukuran File",
+        "pricing_html": """
+        ### 💰 Pilih Paket Kuasa Produksi Anda (Dompet Terpadu Massal)
+        * **🌟 UJI COBA GRATIS**: **$0** (Daftar akun langsung dapat **50 Kredit Gratis** !)
+        * **🪙 PAKET PEMULA**: **$4.99** (Dapat **150 Kredit** ── *Token berlaku selamanya, tanpa kedaluwarsa!*)
+        * **⚡ PAKET PENJUAL PRO**: **$19.99** (Dapat **700 Kredit** ── *Sangat direkomendasikan untuk penjual lintas batas.*)
+        * **👑 Paket VAULT RETAIL**: **$49.99** (Dapat **2,000 Kredit** ── **Sangat hemat di bawah $0.025 per gambar!**)
+        """,
+        "param_header": "⚙️ Parameter Rasio & Kapasitas File (Nilai Dapat Disesuaikan)",
+        "ratio_lbl": "Rasio kepadatan subjek target (10-99%):",
+        "size_lbl": "Batas kapasitas ukuran file maksimum per gambar (MB):",
+        "drag_lbl": "📥 Seret folder gambar ke sini (Pertahankan format nama file asli)",
+        "loaded_lbl": "📊 Total aset gambar yang dimuat: {} item",
+        "clear_btn": "🗑 Bersihkan Antrean",
+        "btn_lbl": "🚀 Ekspor Cepat Foto Berpusat Secara Massal Satu-Klik",
+        "processing": "⏳ Sistem AI sedang memproses aset gambar {} / {}...",
+        "success": "### ✅ Proses AI Selesai! Kredit berhasil dipotong, sebanyak {} aset gambar dibuat!",
+        "dl_btn": "🎁 Unduh Paket ZIP Gambar Berpusat",
+        "limit_err": "🔒 Maaf, batas uji coba tanpa pendaftaran Anda sudah habis. Silakan mendaftar gratis di sebelah kanan untuk mengklaim bonus 50 kredit, atau beli paket token!",
+        "dup_err": "⚠️ Duplikasi foto terdeteksi! Anda tidak dapat mengunggah gambar yang sama persis secara bersamaan. Silakan bersihkan antrean.",
+        "usage_title": "📊 STATUS DOMPET PREMIUM ANGGOTA",
+        "guest_info": "🕒 Dompet IP Anonim:\n* Kuota Terpakai Hari Ini: **{} / 10** Credits (Reset otomatis jam 12 malam)\n* Kuota 30 Hari Terpakai: **{} / 30** Credits\n* 💡 Sisa Lembar Yang Tersedia: **{} item**",
+        "welcome": "👋 Selamat datang kembali: **{}** \n* 🪙 Saldo Dompet Terpadu: **{} Credits** (Berlaku seumur hidup)\n* 💡 Sisa Lembar Yang Tersedia: **{} item**"
     }
 }
 
@@ -151,33 +281,9 @@ if "user_authenticated" not in st.session_state: st.session_state.user_authentic
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
 
-# CSS 航太級 3 倍大面積拉圖停機坪注入
-st.markdown("""
-    <style>
-    [data-testid="stFileUploader"] { padding: 35px 0px; }
-    [data-testid="stFileUploaderDropzone"] {
-        padding: 150px 30px !important;
-        border: 3px dashed #3498db !important;
-        border-radius: 16px !important;
-        background-color: #f8fafc !important;
-        transition: all 0.3s ease-in-out;
-    }
-    [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: #2980b9 !important;
-        background-color: #f1f5f9 !important;
-        box-shadow: 0px 8px 30px rgba(52, 152, 219, 0.25);
-    }
-    [data-testid="stFileUploaderDropzone"] i {
-        transform: scale(2.5) !important;
-        margin-bottom: 25px !important;
-        color: #3498db !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文"), index=0)
+lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("English", "Deutsch", "Français", "繁體中文", "简体中文", "日本語", "韓文", "馬來文", "印尼文"), index=3)
 L = LANG_MAP[lang]
-# 👑 👑 👑 【實體 IP 雲端資料庫防白嫖解算核心】 👑 👑 👑
+# 👑 👑 👑 【實體 IP 雲端資料庫防白嫖大腦】 👑 👑 👑
 visitor_ip = get_remote_ip()
 current_date_str = datetime.now().strftime("%Y-%m-%d")
 current_month_str = datetime.now().strftime("%Y-%m")
@@ -193,13 +299,12 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
         ip_doc_ref = db.collection("guest_ips").document(visitor_ip)
         ip_data = ip_doc_ref.get().to_dict()
         if ip_data:
-            # ⚡ 午夜12點日曆全自動跨夜重置歸零保險絲
+            # ⚡ 午夜12點日曆自動跨夜重置歸零
             if ip_data.get("last_date") == current_date_str:
                 guest_used_day = ip_data.get("day_used", 0)
             else:
                 guest_used_day = 0
-            
-            # ⚡ 30日累計額度重置防線
+            # ⚡ 30日累計限額防線
             if ip_data.get("last_month") == current_month_str:
                 guest_used_month = ip_data.get("month_used", 0)
             else:
@@ -207,7 +312,7 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
     except:
         pass
 
-# 👑 雙軌錢包配額即時結算
+# 👑 雙軌大錢包配額即時結算
 if not user_authed:
     rem_day = max(0, 10 - guest_used_day)
     rem_month = max(0, 30 - guest_used_month)
@@ -254,7 +359,6 @@ with side_col:
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
     else:
         st.success(L["welcome"].format(st.session_state.user_email, credits_total, current_remaining_quota))
-        
         st.markdown("---")
         st.markdown("#### 🪙 Top Up Cloud Unified Wallet")
         if st.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
@@ -263,10 +367,9 @@ with side_col:
         if st.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", use_container_width=True, key="side_pack_2"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
             st.rerun()
-        if st.button(r"🇺🇸 Mega Vault ($4.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
+        if st.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 2000})
             st.rerun()
-            
         if st.button("🚪 Sign Out Workspace", use_container_width=True):
             st.session_state.user_authenticated = False
             st.session_state.user_email = ""
@@ -277,9 +380,9 @@ with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
     st.markdown(L["pricing_html"], unsafe_allow_html=True)
-    
     st.write("---")
     st.markdown(f"#### {L['param_header']}")
+    
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         ratio_str = st.text_input(L["ratio_lbl"], value="90", key="crop_ratio")
@@ -292,7 +395,6 @@ with main_col:
 
     uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"file_uploader_core_{st.session_state.uploader_key_token}")
 
-    # 最前端物理熔斷與 MD5 去重預檢
     num_uploaded = len(uploaded_files) if uploaded_files else 0
     quota_violation = False
     duplicate_violation = False
@@ -324,7 +426,6 @@ with main_col:
             st.session_state.temp_ready = False
             st.rerun()
     with col_btn2:
-        # 🔒 雙重最高安全死鎖：當剩餘可用總張數 <= 0 時，按鈕直接灰色死鎖、完全不給按，高雅提示註冊！
         any_violation = quota_violation or duplicate_violation or (current_remaining_quota <= 0 and num_uploaded == 0)
         start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
 
@@ -451,7 +552,7 @@ with main_col:
                         for f in files: zip_file.write(os.path.join(root, f), f)
                 st.session_state.compiled_saved = saved
                 st.session_state.temp_ready = True
-                st.success(L["success"].format(num_uploaded))
+                st.success(L["success"].format(saved))
                 st.rerun()
                 
         # 🔓 🔓 🔓 【終極時機：直到真正點擊下載按鈕，雲端才正式執行扣點！】 🔓 🔓 🔓
