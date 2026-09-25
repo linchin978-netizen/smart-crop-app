@@ -1,5 +1,5 @@
 import os, io, zipfile, cv2, gc, numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 from rembg import remove, new_session
 import streamlit as st
 
@@ -114,7 +114,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已放寬至 30 張！)
+# 📊 右上方 FREE 使用額度面板
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -172,69 +172,60 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 👑 100% 採用與桌面版同級的「照妖鏡硬解」上游機制
-                        bytes_data = file.read()
-                        pil_img = Image.open(io.BytesIO(bytes_data))
-                        pil_img = ImageOps.exif_transpose(pil_img) 
-                        img_orig = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                        # 👑 👑 👑 【100% 原汁原味：桌面版純淨硬解流水線】 👑 👑 👑
+                        file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
+                        img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+                        if img_orig is None: continue
                         
-                        h_orig, w_orig, _ = img_orig.shape
+                        # 👑 【像素級 AI 盲測大腦】：1:1 完全重現桌面版一字不差的雙角度比對！
+                        contours_normal = get_ai_bounding_boxes(img_orig)
                         
-                        # 👑 【雲端防爆降維盾】：限制探測圖最大寬度為 1000
-                        probe_scale = 1.0
-                        if w_orig > 1000:
-                            probe_scale = 1000.0 / w_orig
-                            w_probe = 1000
-                            h_probe = int(h_orig * probe_scale)
-                            img_probe_orig = cv2.resize(img_orig, (w_probe, h_probe), interpolation=cv2.INTER_AREA)
+                        img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+                        contours_rotated = get_ai_bounding_boxes(img_rotated)
+                        
+                        h_o, w_o, _ = img_orig.shape
+                        valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
+                        
+                        h_r, w_r, _ = img_rotated.shape
+                        valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
+                        # 👑 1:1 複製桌面版決策分流：數量平手時，100% 退回原圖 0 度！
+                        if valid_cnt_rotated > valid_cnt_normal:
+                            img = img_rotated
+                            contours = contours_rotated
+                            is_rotated_for_calculation = True
+                            h, w = h_r, w_r
                         else:
-                            img_probe_orig = img_orig.copy()
+                            img = img_orig
+                            contours = contours_normal
+                            is_rotated_for_calculation = False
+                            h, w = h_o, w_o
                         
-                        h_p_o, w_p_o, _ = img_probe_orig.shape
-                        
-                        # 👑 100% 複製桌面版 A 的單向高質量探測流水線，座標與肉身 100% 純淨合體！
-                        contours = get_ai_bounding_boxes(img_probe_orig)
-                        scale_factor = 1.0 / probe_scale
                         valid_boxes = []
-                        
-                        # 🔴 100% 鎖死您桌面版最完美的 0.015 黃金主體過濾迴圈！
+                        # 🔴 100% 鎖死原版桌面版 A 0.015 的核心過濾與大圖開刀流程！橫圖、樹、卡片、碎塊通通與桌面版同步大圓滿！
                         for c in contours:
                             hull = cv2.convexHull(c)
-                            if cv2.contourArea(hull) > (w_p_o * h_p_o * 0.015):
-                                bx_p, by_p, bw_p, bh_p = cv2.boundingRect(hull)
-                                bx = int(bx_p * scale_factor)
-                                by = int(by_p * scale_factor)
-                                bw = int(bw_p * scale_factor)
-                                bh = int(bh_p * scale_factor)
-                                
-                                bx, by = max(0, bx), max(0, by)
-                                bw = min(w_orig - bx, bw)
-                                bh = min(h_orig - by, bh)
-                                
-                                roi = img_orig[by:by+bh, bx:bx+bw]
+                            if cv2.contourArea(hull) > (w * h * 0.015):
+                                bx, by, bw, bh = cv2.boundingRect(hull)
+                                roi = img[by:by+bh, bx:bx+bw]
                                 if roi.size > 0:
                                     g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                                     e_roi = cv2.Canny(g_roi, 50, 150)
                                     if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
-                                        roi_h, roi_w, _ = roi.shape
-                                        roi_scale = 500.0 / roi_w if roi_w > 500 else 1.0
-                                        roi_probe = cv2.resize(roi, (500, int(roi_h * roi_scale)), interpolation=cv2.INTER_AREA) if roi_w > 500 else roi.copy()
-                                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
+                                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)), session=session)
                                         s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                                         s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                                         if s_cnt:
                                             sbx_p, sby_p, sbw_p, sbh_p = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
-                                            sbx, sby, sbw, bh_new = int(sbx_p / roi_scale), int(sby_p / roi_scale), int(sbw_p / roi_scale), int(sbh_p / roi_scale)
-                                            if sbw * bh_new < (bw * bh * 0.92): 
-                                                valid_boxes.append((bx + sbx, by + sby, min(bw, sbw), min(bh, bh_new)))
+                                            if sbw_p * sbh_p < (bw * bh * 0.92):
+                                                valid_boxes.append((bx + sbx_p, by + sby_p, min(bw, sbw_p), min(bh, sbh_p)))
                                                 continue
                                 valid_boxes.append((bx, by, bw, bh))
                         
                         if not valid_boxes:
-                            valid_boxes.append((int(w_orig*0.25), int(h_orig*0.25), int(w_orig*0.5), int(w_orig*0.5)))
+                            valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(h*0.5)))
                         
-                        # 👑 👑 👑 【100% 移植桌面版純血原汁 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
+                        # 👑 👑 👑 【100% 移植桌面版 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -242,17 +233,20 @@ if uploaded_files:
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
                             pad_l = min(cx - bw // 2, ideal_pad_w)
-                            pad_r = min((w_orig - cx) - bw // 2, ideal_pad_w)
+                            pad_r = min((w - cx) - bw // 2, ideal_pad_w)
                             pad_t = min(cy - bh // 2, ideal_pad_h)
-                            pad_b = min((h_orig - cy) - bh // 2, ideal_pad_h)
+                            pad_b = min((h - cy) - bh // 2, ideal_pad_h)
                             
                             x1 = max(0, cx - bw // 2 - pad_l)
-                            x2 = min(w_orig, cx + bw // 2 + pad_r)
+                            x2 = min(w, cx + bw // 2 + pad_r)
                             y1 = max(0, cy - bh // 2 - pad_t)
-                            y2 = min(h_orig, cy + bh // 2 + pad_b)
+                            y2 = min(h, cy + bh // 2 + pad_b)
                             
-                            cropped = img_orig[y1:y2, x1:x2]
+                            cropped = img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
+                            
+                            if is_rotated_for_calculation:
+                                cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                             
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                             for _ in range(10):
@@ -267,8 +261,8 @@ if uploaded_files:
                             zip_file.writestr(out_img_name, buf.tobytes())
                             saved += 1
                             
-                        # 👑 26張大上傳免斷電垃圾即時回收
-                        del img_orig, img_probe_orig, contours
+                        # 👑 26張大上傳免斷電記憶體垃圾即時回收
+                        del img, img_orig, img_rotated, contours_normal, contours_rotated
                         gc.collect()
                             
                     except Exception as e:
