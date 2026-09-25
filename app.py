@@ -1,18 +1,19 @@
 import os, io, zipfile, cv2, numpy as np
-from PIL import Image
-from rembg import remove, new_session
+from PIL import Image, ImageOps
 import streamlit as st
 
 # 👑 雲端快取優化：確保 AI 模型在雲端只載入一次，節省記憶體
 @st.cache_resource
 def load_rembg_session():
+    from rembg import new_session
     return new_session("silueta")
 
 session = load_rembg_session()
 
 def get_ai_bounding_boxes(cv_img):
+    from rembg import remove
     img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-    output_pil = remove(img_rgb, session=session)
+    output_pil = remove(Image.fromarray(img_rgb), session=session)
     alpha = cv2.cvtColor(np.array(output_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
     _, thresh = cv2.threshold(alpha, 10, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -46,7 +47,7 @@ LANG_MAP = {
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
         "tip_header": "💡 智慧網拍系統使用說明",
         "tip_body": "1. 點擊下方輸入框，可直接用鍵盤手動自行打字輸入數值。\n2. 可以將「單張圖片」或「整個圖片資料夾」直接全數拖曳至下方區塊內（無數量限制）。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
-        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此巨型向量場中（支援多張 JPG, WEBP）",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（支援多張 JPG, WEBP）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵秒級導出完美置中商品照片",
@@ -63,7 +64,7 @@ LANG_MAP = {
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
         "tip_header": "💡 システム操作説明",
-        "tip_body": "1. 画面中央のボックスをクリックして、キーボードから手動で数値を入力してください。\n2. シングル画像または画像フォルダ全体を下の巨大な枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンラーリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
+        "tip_body": "1. 画面中央のボックスをクリックして、キーボードから手動で数値を入力してください。\n2. シングル画像または画像フォルダ全体を下の巨大な枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンダリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
         "drag_lbl": "📥 シングル画像または画像フォルダ全体をここにドラッグ＆ドロップ (巨大なベクタードロップゾーン)",
         "loaded_lbl": "📊 読み込まれた商品画像：{} 枚",
         "clear_btn": "🗑 キューをクリア",
@@ -78,7 +79,7 @@ LANG_MAP = {
 
 st.set_page_config(page_title="NEXUS CROP — AI Edition", page_icon="⚡", layout="centered")
 
-# 👑 巨型拖曳方框 CSS 注入晶片 (面積強行放大 3 倍，支援資料夾盲拉)
+# 👑 巨型拖曳方框 CSS 注入晶片
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 25px 0px; }
@@ -114,7 +115,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已正式放寬至 30 張！)
+# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已放寬至 30 張！)
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -172,10 +173,11 @@ if uploaded_files:
                     status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                     
                     try:
-                        # 👑 100% 採用純血 OpenCV 鋼鐵直男硬解相片肉身
-                        file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
-                        img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-                        if img_orig is None: continue
+                        # 👑 100% 採用與桌面版同級的「照妖鏡硬解」上游機制
+                        bytes_data = file.read()
+                        pil_img = Image.open(io.BytesIO(bytes_data))
+                        pil_img = ImageOps.exif_transpose(pil_img) 
+                        img_orig = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                         
                         h_orig, w_orig, _ = img_orig.shape
                         
@@ -191,7 +193,7 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 👑 👑 【100% 基因同步：智慧主體數量盲測大腦】 👑 👑 👑
+                        # 👑 👑 👑 【100% 桌面版計數大腦複製】 👑 👑 👑
                         contours_0 = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_90 = get_ai_bounding_boxes(img_probe_90)
@@ -200,7 +202,6 @@ if uploaded_files:
                         img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
                         contours_270 = get_ai_bounding_boxes(img_probe_270)
                         
-                        # 👑 鎖死桌面版最完美、摔不爛的 0.015 黃金主體過濾大門
                         valid_cnt_0 = sum(1 for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.015))
                         h_p_90, w_p_90, _ = img_probe_90.shape
                         valid_cnt_90 = sum(1 for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.015))
@@ -208,7 +209,6 @@ if uploaded_files:
                         valid_cnt_180 = sum(1 for c in contours_180 if cv2.contourArea(cv2.convexHull(c)) > (w_p_180 * h_p_180 * 0.015))
                         h_p_270, w_p_270, _ = img_probe_270.shape
                         valid_cnt_270 = sum(1 for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.015))
-                        # 🧠 智慧計數決策大腦：數量相同時，100% 走原圖不轉動的最安全防線！
                         max_cnt = max(valid_cnt_0, valid_cnt_90, valid_cnt_180, valid_cnt_270)
                         
                         if max_cnt == valid_cnt_90 and valid_cnt_90 > valid_cnt_0:
@@ -236,7 +236,6 @@ if uploaded_files:
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
                         
-                        # 🔴 100% 複製桌面版 A 的 0.015 迴圈拆分公式！
                         for c in contours:
                             hull = cv2.convexHull(c)
                             if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.015):
@@ -273,7 +272,7 @@ if uploaded_files:
                         if not valid_boxes:
                             valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
-                        # 👑 👑 👑 【100% 移植桌面版 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
+                        # 👑 👑 👑 【100% 刀跟肉身對齊 ── 完美還原 90 度開刀坐標！】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -293,12 +292,12 @@ if uploaded_files:
                             cropped = img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
                             
+                            # 💡 刀跟肉身完美貼合，裁切完再反向翻轉還原原始角度，絕不再錯位少圖！
                             if is_rotated_for_calculation:
                                 if rotation_mode == 90: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                                 elif rotation_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
                                 elif rotation_mode == 270: cropped = cv2.rotate(cropped, cv2.ROTATE_90_CLOCKWISE)
                             
-                            # 👑 容量限制二分搜尋法
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                             for _ in range(10):
                                 mid = (low + high) // 2
