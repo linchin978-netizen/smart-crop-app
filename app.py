@@ -103,7 +103,7 @@ if not user_authed:
                 st.session_state.user_email = email_in
                 st.rerun()
             except Exception as e: side_col.error(f"❌ Failed: {str(e)}")
-                else:
+    else:
     if db:
         try:
             user_rec = auth.get_user_by_email(st.session_state.user_email)
