@@ -49,7 +49,7 @@ LANG_MAP["English"] = {
     * **🌟 FREE TRIAL**: **$0** (Get **50 Free Credits** immediately upon sign up!)
     * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Tokens never expire, use anytime!*)
     * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Designed for cross-border high-volume setups.*)
-    * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
+    * **👑 MEGA VAULT**: **$4.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
     """,
     "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
     "ratio_lbl": "Target subject density ratio (10-99%):",
@@ -163,13 +163,13 @@ LANG_MAP["简体中文"] = {
     "clear_btn": "🗑 清除重选",
     "btn_lbl": "🚀 一键快速导出完美置中商品照片",
     "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
-    "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！请点击下方按钮下载打包！",
+    "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！请点击下方按钮 download 打包！",
     "dl_btn": "🎁 点击下载完美置中相片压缩包 (ZIP)",
     "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录直接领取免费 50 点大礼包，or 立即充值点数套餐包解锁更高生产力！",
     "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
     "usage_title": "📊 NEXUS CROP 会员钱包看板",
     "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用额度：**{} / 10** Credits (午夜12点全自动清空归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可用总张数：**{} 张**",
-    "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 专属钱包总余额：**{} Credits** (含免费赠点，永久无时间數量限制)\n* 💡 剩余可导出总张数：**{} 张**"
+    "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 专属钱包总余额：**{} Credits** (含免费赠点，永久无时间数量限制)\n* 💡 剩余可导出总张数：**{} 张**"
 }
 LANG_MAP["日本語"] = {
     "title": "🌐 AI 商品画像自動中央配置＆自動クロップシステム",
@@ -240,7 +240,7 @@ LANG_MAP["Bahasa Melayu"] = {
     "loaded_lbl": "📊 Aset imej terkumpul: {} item",
     "clear_btn": "🗑 Padam & Set Semula",
     "btn_lbl": "🚀 Eksport Gambar Centered Secara Pukal Satu-Klik",
-    "processing": "⏳ Parameter saluran paip neural memproses aset {} / {}...",
+    "processing": "⏳ Sistem AI memproses aset {} / {}...",
     "success": "### ✅ Proses Selesai! Kredit telah ditolak. Sebanyak {} aset telah dijana!",
     "dl_btn": "🎁 Muat Turun Pakej ZIP Gambar",
     "limit_err": "🔒 Maaf, kuota trial tanpa pendaftaran anda telah habis. Sila daftar akaun percuma untuk tebus bonus 50 kredit segera atau beli pakej token di sebelah kanan!",
@@ -365,7 +365,8 @@ with side_col:
             st.session_state.user_authenticated = False
             st.session_state.user_email = ""
             st.rerun()
-            # 👑 👑 👑 【100% 絕對扁平化、0縮排錯誤防護閘門】 👑 👑 👑
+
+# 👑 👑 👑 【100% 絕對扁平化、0縮排錯誤防護閘門】 👑 👑 👑
 with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
@@ -414,6 +415,7 @@ with main_col:
         if st.button(L["clear_btn"], use_container_width=True, key="clear_all_queue"):
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
+            if "preview_thumbs" in st.session_state: del st.session_state.preview_thumbs
             st.rerun()
     with col_btn2:
         any_violation = quota_violation or duplicate_violation or (current_remaining_quota <= 0 and num_uploaded == 0)
@@ -434,6 +436,9 @@ with main_col:
             if os.path.exists(zip_path): os.remove(zip_path)
             os.makedirs(temp_out_dir, exist_ok=True)
             
+            # 初始化超輕量網頁預覽記憶體快取保險箱
+            st.session_state.preview_thumbs = []
+            
             for idx, file in enumerate(uploaded_files, 1):
                 status_text.markdown(L["processing"].format(idx, num_uploaded))
                 try:
@@ -443,22 +448,23 @@ with main_col:
                     img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
                     if img_orig is None: continue
                     
+                    img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+                    h_o, w_o, _ = img_orig.shape
+                    h_r, w_r, _ = img_rotated.shape
+                    
+                    # 快速盲測解算
                     img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
                     output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
                     alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                     _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
                     contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
                     
-                    img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                     img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
                     output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
                     alpha_r = cv2.cvtColor(np.array(output_pil_r), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                     _, thresh_r = cv2.threshold(alpha_r, 10, 255, cv2.THRESH_BINARY)
                     contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                    
-                    h_o, w_o, _ = img_orig.shape
-                    valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
-                    h_r, w_r, _ = img_rotated.shape
                     valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
                     
                     if valid_cnt_rotated > valid_cnt_normal:
@@ -467,6 +473,7 @@ with main_col:
                         img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
                     
                     valid_boxes = []
+                    # 👑 100% 還原桌面 A 版防重複裁切過濾核心
                     for c in contours:
                         hull = cv2.convexHull(c)
                         if cv2.contourArea(hull) > (w * h * 0.015):
@@ -499,14 +506,16 @@ with main_col:
                         pad_t = min(cy - bh // 2, ideal_pad_h)
                         pad_b = min((h - cy) - bh // 2, ideal_pad_h)
                         
-                        x1 = cx - bw // 2 - pad_l
-                        x2 = cx + bw // 2 + pad_r
-                        y1 = cy - bh // 2 - pad_t
-                        y2 = cy + bh // 2 + pad_b
+                        x1 = cx - bw // 2 - pad_l; x2 = cx + bw // 2 + pad_r
+                        y1 = cy - bh // 2 - pad_t; y2 = cy + bh // 2 + pad_b
                         
                         cropped = img[y1:y2, x1:x2]
                         if cropped.size == 0: continue
                         if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                        
+                        # 👑 雙軌流：秒級就地壓出一張 50KB 的網頁極速預覽小縮圖，速度狂飆
+                        _, thumb_buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, 35])
+                        st.session_state.preview_thumbs.append((file_raw_name, thumb_buf.tobytes()))
                         
                         t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                         for _ in range(10):
@@ -517,14 +526,11 @@ with main_col:
                         _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                         
                         base_name, _ = os.path.splitext(file_raw_name)
-                        if len(valid_boxes) > 1:
-                            out_img_name = f"{base_name}_裁切_{part_idx}.jpg"
-                        else:
-                            out_img_name = f"{base_name}.jpg"
+                        out_img_name = f"{base_name}_裁切_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
                         with open(os.path.join(temp_out_dir, out_img_name), "wb") as f_out: f_out.write(buf.tobytes())
                         saved += 1
                         
-                    del img, img_orig, img_rotated, contours_normal, contours_rotated; gc.collect()
+                    del img, img_orig, img_rotated; gc.collect()
                 except Exception as e: st.error(f"Error {file_raw_name}: {str(e)}")
                 progress_bar.progress(idx / num_uploaded)
             
@@ -537,6 +543,7 @@ with main_col:
                 st.success(L["success"].format(num_uploaded))
                 st.rerun()
                 
+        # 🔓 🔓 🔓 【真正點擊 ZIP 下載，雲端才正式扣點！】 🔓 🔓 🔓
         if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
             zip_file_size = os.path.getsize(zip_path)
             if zip_file_size > 0:
@@ -557,4 +564,18 @@ with main_col:
                         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": new_total})
                     st.session_state.uploader_key_token += 1
                     st.session_state.temp_ready = False
+                    if "preview_thumbs" in st.session_state: del st.session_state.preview_thumbs
                     st.rerun()
+                    
+            # 🎨 🎨 🎨 【全新外掛：智慧置中相片實時預覽網格大看板 ── 物理記憶體唯讀流】 🎨 🎨 🎨
+            if "preview_thumbs" in st.session_state and st.session_state.preview_thumbs:
+                st.write("---")
+                st.markdown("### 🎨 AI 完美置中成果實時預覽網格 (下載前肉眼精密檢查看板)")
+                
+                # 航太級 4 縱列矩陣布局，完美包容複數卡牌或多張商品照
+                grid_cols = st.columns(4)
+                for t_idx, (t_name, t_bytes) in enumerate(st.session_state.preview_thumbs):
+                    target_col = grid_cols[t_idx % 4]
+                    with target_col:
+                        st.image(t_bytes, use_container_width=True)
+                        st.caption(f"📁 {t_name}")
