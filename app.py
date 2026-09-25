@@ -78,7 +78,7 @@ LANG_MAP = {
 
 st.set_page_config(page_title="NEXUS CROP — AI Edition", page_icon="⚡", layout="centered")
 
-# 👑 巨型拖曳方框 CSS 注入晶片 (面積強行放大 3 倍，支援資料夾盲拉)
+# 👑 巨型拖曳方框 CSS 注入晶片
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 25px 0px; }
@@ -121,7 +121,7 @@ st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily
 with st.expander(f"**{L['tip_header']}**", expanded=True):
     st.markdown(L["tip_body"])
 
-# ⚙️ 網拍參數配置面板 (解鎖鍵盤自由手動輸入 + 智慧防呆系統)
+# ⚙️ 網拍參數配置面板
 st.markdown("---")
 st.markdown(f"#### {L['param_header']}")
 col1, col2 = st.columns(2)
@@ -173,7 +173,6 @@ if uploaded_files:
                     
                     try:
                         # 👑 👑 👑 【100% 採用純血 OpenCV 鋼鐵直男硬解晶片】 👑 👑 👑
-                        # 徹底拋棄在雲端Linux會篡改像素內存的 ImageOps，改用最純淨、0出錯的 OpenCV 解碼原始肉身！
                         file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
                         img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
                         if img_orig is None: continue
@@ -193,7 +192,6 @@ if uploaded_files:
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
                         # 👑 👑 👑 【四軌道全維度智慧面積決策分流大腦】 👑 👑 👑
-                        # 在背景用純 OpenCV 的最優化算力矩陣跑 4 角度探測，絕不踩踏內存，徹底消滅重複圖與亂切！
                         contours_0 = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_90 = get_ai_bounding_boxes(img_probe_90)
@@ -202,7 +200,7 @@ if uploaded_files:
                         img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
                         contours_270 = get_ai_bounding_boxes(img_probe_270)
                         
-                        # 👑 鎖死 A 版黃金過濾閥門（> 0.015），在1000縮圖下完美剔除影子雜訊，力保短可樂機不碎裂！
+                        # 👑 鎖死 A 版黃金過濾閥門（> 0.015），力保短可樂機不碎裂！
                         area_0 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.015))
                         h_p_90, w_p_90, _ = img_probe_90.shape
                         area_90 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.015))
@@ -233,7 +231,8 @@ if uploaded_files:
                             contours = contours_0
                             rotation_mode = 0
                             is_rotated_for_calculation = False
-                            h_high, w_high, _ = img.shape
+                             # 👑 變數解包移到最外層！100% 徹底消滅 NameError 大死穴！
+                        h_high, w_high, _ = img.shape
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
                         
@@ -275,7 +274,6 @@ if uploaded_files:
                             valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
                         # 👑 👑 👑 【100% 移植桌面版純血原汁 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
-                        # 👑 修正第二部分 try 區塊銜接，結構 100% 嚴密閉合，徹底消滅 SyntaxError 斷頭車禍！
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
