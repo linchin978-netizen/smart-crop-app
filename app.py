@@ -1,19 +1,18 @@
 import os, io, zipfile, cv2, numpy as np
 from PIL import Image
+from rembg import remove, new_session
 import streamlit as st
 
 # 👑 雲端快取優化：確保 AI 模型在雲端只載入一次，節省記憶體
 @st.cache_resource
 def load_rembg_session():
-    from rembg import new_session
     return new_session("silueta")
 
 session = load_rembg_session()
 
 def get_ai_bounding_boxes(cv_img):
-    from rembg import remove
     img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
-    output_pil = remove(Image.fromarray(img_rgb), session=session)
+    output_pil = remove(img_rgb, session=session)
     alpha = cv2.cvtColor(np.array(output_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
     _, thresh = cv2.threshold(alpha, 10, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -64,7 +63,7 @@ LANG_MAP = {
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
         "tip_header": "💡 システム操作説明",
-        "tip_body": "1. 画面中央のボックスをクリックして、キーボードから手動で数値を入力してください。\n2. シングル画像または画像フォルダ全体を下の巨大な枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンダリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
+        "tip_body": "1. 画面中央のボックスをクリックして、キーボードから手動で数値を入力してください。\n2. シングル画像または画像フォルダ全体を下の巨大な枠内にドラッグ＆ドロップしてください。\n3. 下の実行ボタンをクリックすると、超高速レンラーリングが開始されます。\n4. 処理完了後、ZIPパッケージをダウンロードして確認してください。",
         "drag_lbl": "📥 シングル画像または画像フォルダ全体をここにドラッグ＆ドロップ (巨大なベクタードロップゾーン)",
         "loaded_lbl": "📊 読み込まれた商品画像：{} 枚",
         "clear_btn": "🗑 キューをクリア",
@@ -192,8 +191,7 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 👑 👑 【100% 複製桌面版 ── 智慧主體數量盲測大腦】 👑 👑 👑
-                        # 彻底拔除面积比對漏洞！直接在背景用純 OpenCV 同步探測四角度的有效商品「數量」，數量多者100%強行胜出！
+                        # 👑 👑 👑 【100% 基因同步：智慧主體數量盲測大腦】 👑 👑 👑
                         contours_0 = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_90 = get_ai_bounding_boxes(img_probe_90)
@@ -204,16 +202,13 @@ if uploaded_files:
                         
                         # 👑 鎖死桌面版最完美、摔不爛的 0.015 黃金主體過濾大門
                         valid_cnt_0 = sum(1 for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.015))
-                        
                         h_p_90, w_p_90, _ = img_probe_90.shape
                         valid_cnt_90 = sum(1 for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.015))
-                        
                         h_p_180, w_p_180, _ = img_probe_180.shape
                         valid_cnt_180 = sum(1 for c in contours_180 if cv2.contourArea(cv2.convexHull(c)) > (w_p_180 * h_p_180 * 0.015))
-                        
                         h_p_270, w_p_270, _ = img_probe_270.shape
                         valid_cnt_270 = sum(1 for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.015))
-                        # 🧠 智慧計數決策大腦：哪一個角度切出來的卡片數量最多，就死鎖該角度！
+                        # 🧠 智慧計數決策大腦：數量相同時，100% 走原圖不轉動的最安全防線！
                         max_cnt = max(valid_cnt_0, valid_cnt_90, valid_cnt_180, valid_cnt_270)
                         
                         if max_cnt == valid_cnt_90 and valid_cnt_90 > valid_cnt_0:
