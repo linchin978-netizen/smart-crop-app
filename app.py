@@ -37,8 +37,7 @@ def get_remote_ip():
             elif "X-Real-IP" in headers: return headers["X-Real-IP"].strip()
     except: pass
     return "127.0.0.1"
-
-# 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
+    # 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
 L = {
     "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
     "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
@@ -56,6 +55,7 @@ L = {
     "orig_lbl": "📥 Original Asset",
     "del_btn": "🗑 Reject & Remove File"
 }
+
 st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
 
 visitor_ip = get_remote_ip()
@@ -76,7 +76,6 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
     except: pass
 
 current_remaining_quota = min(10 - guest_used_day, 30 - guest_used_month) if not user_authed else credits_total
-
 # 高級電商雙欄布局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
@@ -88,14 +87,14 @@ if not user_authed:
     email_in = side_col.text_input("📧 Email", key="auth_email")
     pass_in = side_col.text_input("🔒 Password", type="password", key="auth_pass")
     if auth_mode == "Sign Up (Free 50)":
-        if side_col.button("🚀 Establish Account", use_container_width=True, key="reg_btn"):
+        if side_col.button("🚀 Establish Account", width="stretch", key="reg_btn"):
             try:
                 user = auth.create_user(email=email_in, password=pass_in)
                 if db: db.collection("users").document(user.uid).set({"email": email_in, "credits_total": 50})
-                side_col.success("✅ Account established! Switch to Sign In.")
+                side_col.success("Account established! Switch to Sign In.")
             except Exception as e: side_col.error(f"❌ Failed: {str(e)}")
     else:
-        if side_col.button("⚡ Access Account", use_container_width=True, key="login_btn"):
+        if side_col.button("⚡ Access Account", width="stretch", key="login_btn"):
             try:
                 user_record = auth.get_user_by_email(email_in)
                 st.session_state.user_authenticated = True
@@ -114,16 +113,16 @@ else:
     side_col.success(L["welcome"].format(st.session_state.user_email, credits_total))
     side_col.markdown("---")
     side_col.markdown("#### 🪙 Top Up Cloud Unified Wallet")
-    if side_col.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
+    if side_col.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", width="stretch", key="side_pack_1"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 150})
         st.rerun()
-    if side_col.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", use_container_width=True, key="side_pack_2"):
+    if side_col.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", width="stretch", key="side_pack_2"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
         st.rerun()
-    if side_col.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
+    if side_col.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", width="stretch", type="primary", key="side_pack_3"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 2000})
         st.rerun()
-    if side_col.button("🚪 Sign Out Workspace", use_container_width=True, key="logout_btn"):
+    if side_col.button("🚪 Sign Out Workspace", width="stretch", key="logout_btn"):
         st.session_state.user_authenticated = False
         st.session_state.user_email = ""
         st.rerun()
@@ -144,7 +143,7 @@ uploaded_files = main_col.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png
 num_uploaded = len(uploaded_files) if uploaded_files else 0
 
 col_btn1, col_btn2 = main_col.columns(2)
-clear_btn_triggered = col_btn1.button(L["clear_btn"], use_container_width=True, key="clear_all_queue")
+clear_btn_triggered = col_btn1.button(L["clear_btn"], width="stretch", key="clear_all_queue")
 if clear_btn_triggered:
     st.session_state.uploader_key_token += 1
     st.session_state.temp_ready = False
@@ -152,7 +151,7 @@ if clear_btn_triggered:
     st.rerun()
 
 any_violation = (num_uploaded == 0 or num_uploaded > current_remaining_quota)
-start_btn = col_btn2.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
+start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="start_pipeline", disabled=any_violation)
 
 zip_path = "/tmp/processed_centered_images.zip"
 if uploaded_files and start_btn:
@@ -270,55 +269,3 @@ if uploaded_files and start_btn:
     if saved > 0:
         st.session_state.temp_ready = True
         st.rerun()
-
-if st.session_state.temp_ready and st.session_state.master_preview_dict:
-    temp_out_dir = "/tmp/processed_centered_images"
-    if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
-    os.makedirs(temp_out_dir, exist_ok=True)
-    if os.path.exists(zip_path): os.remove(zip_path)
-    
-    total_live_count = 0
-    for orig_file, contents in list(st.session_state.master_preview_dict.items()):
-        for crop_item in contents["crops"]:
-            with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: f_out.write(crop_item["full_bytes"])
-            total_live_count += 1
-            
-    if total_live_count > 0:
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            for root, _, files in os.walk(temp_out_dir):
-                for f in files: zip_file.write(os.path.join(root, f), f)
-                
-        with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
-        
-        dl_clicked = main_col.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_final_gate")
-        if dl_clicked:
-            if db and visitor_ip != "127.0.0.1" and not user_authed:
-                db.collection("guest_ips").document(visitor_ip).set({"day_used": guest_used_day + num_uploaded, "month_used": guest_used_month + num_uploaded, "last_date": current_date_str, "last_month": current_month_str})
-            elif db and user_uid and user_authed:
-                db.collection("users").document(user_uid).update({"credits_total": max(0, credits_total - num_uploaded)})
-            st.session_state.uploader_key_token += 1
-            st.session_state.temp_ready = False
-            st.session_state.master_preview_dict = {}
-            st.rerun()
-
-    main_col.write("---")
-    main_col.markdown(f"### {L['preview_title']}")
-    
-    for orig_key, contents in list(st.session_state.master_preview_dict.items()):
-        if not contents["crops"]: continue
-        
-        main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
-        layout_cols = main_col.columns([0.25, 0.75])
-        layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], use_container_width=True)
-        
-        # 👑 🎯 完美校正：透過將縱列拉寬為 5 縱列（原 3 縱列），將每一張預覽圖的物理呈現寬度精準縮小至目前的 60% 大小！
-        sub_grid_cols = layout_cols.columns(5)
-        for c_idx, crop_data in enumerate(contents["crops"]):
-            with sub_grid_cols[c_idx % 5]:
-                st.image(crop_data["thumb_bytes"], use_container_width=True)
-                st.caption(f"🎯 {crop_data['img_name']}")
-                btn_id = f"del_{orig_key}_{crop_data['img_name']}_{c_idx}"
-                if st.button(L["del_btn"], key=btn_id, type="secondary", use_container_width=True):
-                    st.session_state.master_preview_dict[orig_key]["crops"].pop(c_idx)
-                    if not st.session_state.master_preview_dict[orig_key]["crops"]: st.session_state.master_preview_dict.pop(orig_key)
-                    st.rerun()
