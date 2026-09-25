@@ -30,7 +30,6 @@ def get_ai_bounding_boxes(cv_img, session):
     return contours
 
 # 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁中、簡中、英文、日文)
-# 👑 完璧對齊：繁中與簡中按鈕已全面精準修正為「一鍵快速導出完美置中商品照片」！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
@@ -132,7 +131,7 @@ LANG_MAP = {
         "guest_info": "🕒 未登録の無料プラン:\n* 本日の使用量: **{} / 10** Credits\n*(24時間ごとに自動リセット)*",
         "welcome": "👋 お帰りなさい、プレミアムパートナー: **{}** ｜ 🪙 残りトークン: **{} Credits**"
     },
-    "한국어": {
+     "한국어": {
         "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
         "subtitle": "기업용 고정밀 객체 인식 중앙 정렬 자동화 파이프라인 (대기 중)",
         "pricing_html": """
@@ -241,7 +240,6 @@ if "daily_usage" not in st.session_state: st.session_state.daily_usage = 0
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
     # 👑 👑 👑 【3倍超巨型拖曳方框停機坪 ── CSS 航空級注入晶片】 👑 👑 👑
-# 將內襯強制拉高放大 3 倍！形成極具視覺震撼力、盲拉 26 張散圖或整箱資料夾都無敵好拉的巨大磁場區！
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 35px 0px; }
@@ -266,17 +264,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🪐 🪐 🪐 【繁簡並排第一順位語言切換選單】 🪐 🪐 🪐
-# 完美對齊您的意志：第一為繁中、第二為簡中，中間絕不夾雜日文，最順眼流暢！
 lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文", "English", "日本語", "한국어", "ภาษาไทย", "Bahasa Melayu", "Bahasa Indonesia"), index=0)
 L = LANG_MAP[lang]
 
-# 👑 全球高級電商雙欄位大氣佈局：左邊 72% 放功能與 100% 翻譯定價，右邊 28% 放會員註冊與計數看板
+# 👑 全球高級電商雙欄位大氣佈局：左邊放功能，右邊放會員註冊與計數看板
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not st.session_state.user_authenticated:
-        # 📊 完美對齊！右側遊客計數面板 100% 隨語言秒級翻譯變動，拉高儲值誘惑力！
         st.info(L["guest_info"].format(st.session_state.daily_usage))
         st.markdown("---")
         auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
@@ -298,7 +294,6 @@ with side_col:
                     st.rerun()
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
     else:
-        # 同步 Firebase 雲端真實資料庫點數
         current_credits = 0
         user_uid = ""
         if db:
@@ -311,7 +306,6 @@ with side_col:
             except: current_credits = 0
         st.success(L["welcome"].format(st.session_state.user_email, current_credits))
         
-        # 🪙 點數充值套餐 (與主面板話術 100% 絕對完全對齊！)
         st.markdown("---")
         st.markdown("#### 🪙 Top Up Cloud Wallet")
         if st.button("🇺🇸 Starter Pack (\$4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
@@ -330,7 +324,6 @@ with side_col:
             st.rerun()
 
 with main_col:
-    # 👑 100% 灌入動態語言翻譯晶片！標題、副標題與「4層點數話術」全功能隨切隨換！
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
     st.markdown(L["pricing_html"], unsafe_allow_html=True)
@@ -353,26 +346,31 @@ with main_col:
         if st.button(L["clear_btn"], use_container_width=True, key="clear_all_queue"):
             st.rerun()
     with col_btn2:
-        # 👑 完璧對齊：大按鈕文字已 100% 同步修正為專業誠實的「一鍵快速導出完美置中商品照片」！
         start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline")
 
     if uploaded_files:
         st.success(L["loaded_lbl"].format(len(uploaded_files)))
         
-        # 👑 大方放行，允許任何遊客直接在硬碟免費跑完去背與置中裁切進度條！
         if start_btn:
             saved = 0
             progress_bar = st.progress(0)
             status_text = st.empty()
             session = load_rembg_session()
             
+            # 👑 👑 👑 【實體磁區硬體防禦打包晶片】 👑 👑 👑
+            # 徹底剷除 Buffer 快取垃圾！在開刀前一微秒把硬碟與歷史 ZIP 檔全面強制抹除洗空！
             temp_out_dir = "/tmp/processed_centered_images"
+            zip_path = "/tmp/processed_centered_images.zip"
             if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
+            if os.path.exists(zip_path): os.remove(zip_path)
             os.makedirs(temp_out_dir, exist_ok=True)
             
+            # 核心開刀迴圈
             for idx, file in enumerate(uploaded_files, 1):
                 status_text.markdown(L["processing"].format(idx, len(uploaded_files)))
                 try:
+                    # 👑 100% 對齊遊客/用戶當下點擊上傳的實體檔案肉身，杜絕讀取到第一張相片的快取幽靈
+                    file.seek(0)
                     file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
                     img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
                     if img_orig is None: continue
@@ -412,7 +410,7 @@ with main_col:
                                             continue
                             valid_boxes.append((bx, by, bw, bh))
                     
-                    if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
+                    if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(h*0.5)))
                     
                     for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                         cx, cy = bx + bw // 2, by + bh // 2
@@ -443,21 +441,20 @@ with main_col:
                 progress_bar.progress(idx / len(uploaded_files))
             
             if saved > 0:
+                # 👑 👑 👑 【即時同步大打包防護】 👑 👑 👑
+                # 趁著 start_btn 還活著的這一微秒，強行去實體硬碟把 25 張各自獨立切好的大圖壓縮包建立完畢！
+                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                    for root, _, files in os.walk(temp_out_dir):
+                        for f in files: zip_file.write(os.path.join(root, f), f)
                 st.session_state.compiled_saved = saved
                 st.session_state.temp_ready = True
                 st.success(L["success"].format(saved))
                 
+        # 👑 下載與扣點大閘門
         if "temp_ready" in st.session_state and st.session_state.temp_ready:
-            zip_path = "/tmp/processed_centered_images.zip"
-            if not os.path.exists(zip_path):
-                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for root, _, files in os.walk("/tmp/processed_centered_images"):
-                        for f in files: zip_file.write(os.path.join(root, f), f)
-                        
             user_authed = st.session_state.user_authenticated
             user_credits_val = current_credits if (user_authed and 'current_credits' in locals()) else 0
             
-            # 🔒 雙軌安全大閘門
             if not user_authed:
                 if st.session_state.daily_usage + len(uploaded_files) > 10:
                     st.error(L["limit_err"])
