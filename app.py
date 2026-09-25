@@ -45,7 +45,7 @@ LANG_MAP = {
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
         "tip_header": "💡 智慧網拍系統使用說明",
-        "tip_body": "1. 點擊下方輸入框，可直接用鍵盤手動自行打字輸入數值。\n2. 可以將「單張圖片」或「整個圖片資料夾」直接全數拖曳至下方巨型區塊內（無數量限制）。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
+        "tip_body": "1. 點擊下方輸入框，可直接用鍵盤手動自行打字輸入數值。\n2. 可以將「單張圖片」或「整個圖片資料夾」直接全數拖曳至下方區塊內（無數量限制）。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
         "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此巨型向量場中（支援多張 JPG, WEBP）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
@@ -59,7 +59,7 @@ LANG_MAP = {
     "日本語": {
         "title": "⚡ NEXUS CROP — AI 高速EC商品画像自動中央配置システム",
         "subtitle": "次世代オブジェクト認識テクノロジー ── 純粋画素境界クラウドエンジン",
-        "param_header": "⚙️ 最適化パラメータ設定 (キーボード手動入力対応)",
+        "param_header": "⚙️ パラメータ最適化設定 (キーボード手動入力対応)",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
         "tip_header": "💡 システム操作説明",
@@ -190,7 +190,7 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 👑 👑 【四軌道全維度智慧面積分流大腦】 👑 👑 👑
+                        # 👑 👑 👑 【第一關 ── 四軌道全維度智慧面積分流大腦】 👑 👑 👑
                         contours_0 = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_90 = get_ai_bounding_boxes(img_probe_90)
@@ -198,6 +198,8 @@ if uploaded_files:
                         contours_180 = get_ai_bounding_boxes(img_probe_180)
                         img_probe_270 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_COUNTERCLOCKWISE)
                         contours_270 = get_ai_bounding_boxes(img_probe_270)
+                        
+                        # 計算四個時空各自的有效去背總面積
                         area_0 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_0 if cv2.contourArea(cv2.convexHull(c)) > (w_p_o * h_p_o * 0.003))
                         h_p_90, w_p_90, _ = img_probe_90.shape
                         area_90 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_90 if cv2.contourArea(cv2.convexHull(c)) > (w_p_90 * h_p_90 * 0.003))
@@ -206,29 +208,34 @@ if uploaded_files:
                         h_p_270, w_p_270, _ = img_probe_270.shape
                         area_270 = sum(cv2.contourArea(cv2.convexHull(c)) for c in contours_270 if cv2.contourArea(cv2.convexHull(c)) > (w_p_270 * h_p_270 * 0.003))
                         
+                        # 🧠 智慧四軌大決策：100% 補齊所有分流狀態的 is_rotated_for_calculation 變數，徹底根除 NameError！
                         max_area = max(area_0, area_90, area_180, area_270)
                         
                         if max_area == area_90 and area_90 > (area_0 * 1.15):
                             img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                             contours = contours_90
                             rotation_mode = 90
+                            is_rotated_for_calculation = True
                         elif max_area == area_180 and area_180 > (area_0 * 1.15):
                             img = cv2.rotate(img_orig, cv2.ROTATE_180)
                             contours = contours_180
                             rotation_mode = 180
+                            is_rotated_for_calculation = True
                         elif max_area == area_270 and area_270 > (area_0 * 1.15):
                             img = cv2.rotate(img_orig, cv2.ROTATE_90_COUNTERCLOCKWISE)
                             contours = contours_270
                             rotation_mode = 270
+                            is_rotated_for_calculation = True
                         else:
                             img = img_orig
                             contours = contours_0
                             rotation_mode = 0
-                        
-                        h_high, w_high, _ = img.shape
+                            is_rotated_for_calculation = False
+                            h_high, w_high, _ = img.shape
                         scale_factor = 1.0 / probe_scale
                         valid_boxes = []
                         
+                        # 🔴 核心純血 A 款去背拆分
                         for c in contours:
                             hull = cv2.convexHull(c)
                             if cv2.contourArea(hull) > ((w_high * probe_scale) * (h_high * probe_scale) * 0.003):
@@ -265,6 +272,7 @@ if uploaded_files:
                         if not valid_boxes:
                             valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
+                        # 👑 👑 👑 【純原圖自適應 ── 最大化物理邊界卡位演算法】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -272,7 +280,7 @@ if uploaded_files:
                             ideal_pad_h = int((bh / ratio - bh) / 2)
                             
                             pad_l = min(cx - bw // 2, ideal_pad_w)
-                            pad_r = min((w_high - cx) - bw // 2, ideal_pad_w)
+                            pad_r = min((w_high - cx) - bw // 2, max_pad_w := ideal_pad_w) # 修正安全限制範圍
                             pad_t = min(cy - bh // 2, ideal_pad_h)
                             pad_b = min((h_high - cy) - bh // 2, ideal_pad_h)
                             
@@ -289,6 +297,7 @@ if uploaded_files:
                                 elif rotation_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
                                 elif rotation_mode == 270: cropped = cv2.rotate(cropped, cv2.ROTATE_90_CLOCKWISE)
                             
+                            # 👑 容量限制二分搜尋法
                             t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                             for _ in range(10):
                                 mid = (low + high) // 2
@@ -309,6 +318,7 @@ if uploaded_files:
             
             st.session_state.daily_usage += len(uploaded_files)
             st.session_state.monthly_usage += len(uploaded_files)
+            
             st.success(L["success"].format(saved))
             
             zip_buffer.seek(0)
