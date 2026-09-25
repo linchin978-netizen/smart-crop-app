@@ -30,7 +30,6 @@ def get_ai_bounding_boxes(cv_img, session):
     return contours
 
 # 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁體中文、简体中文)
-# 👑 遵照創辦人最高指示：全面剔除 F5、鎖死等敵意字眼，換上最高雅溫柔的電商文案！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
@@ -70,7 +69,7 @@ LANG_MAP = {
         """,
         "param_header": "⚙️ 图档比例容量参数 (可自订数值)",
         "ratio_lbl": "导出后主体占画面比例 (10-99%):",
-        "size_lbl": "导出后照片档最大容量限制 (MB):",
+        "size_lbl": "导出后照片档 maximum 容量限制 (MB):",
         "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（智慧解码原文件夹名称，免注册免费体验）",
         "loaded_lbl": "📊 目前已载入商品照片：{} 张",
         "clear_btn": "🗑 清除重选",
@@ -179,7 +178,6 @@ credits_paid = 0
 user_uid = ""
 
 if not user_authed:
-    # 遊客：直接調用 Python 後台記憶體，計算精準餘額
     current_remaining_quota = max(0, 10 - st.session_state.guest_used_counter)
 else:
     if db:
@@ -242,7 +240,9 @@ with side_col:
             st.session_state.user_authenticated = False
             st.session_state.user_email = ""
             st.rerun()
-            with main_col:
+
+# 🪐 拼接臨界點：此處開啟 with 閘門，下方第四與第五部分全部精密往右縮排 4 個空格！
+with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
     st.markdown(L["pricing_html"], unsafe_allow_html=True)
@@ -408,7 +408,7 @@ with side_col:
                     for root, _, files in os.walk(temp_out_dir):
                         for f in files: zip_file.write(os.path.join(root, f), f)
                 
-                # 👑 👑 👑 【純 Python 記憶體超速死鎖：開刀完畢、100% 現場立刻扣點！】 👑 👑 👑
+                # 👑 👑 👑 【純 Python 記憶體現場立刻扣點！】 👑 👑 👑
                 if not user_authed:
                     st.session_state.guest_used_counter += num_uploaded
                 else:
