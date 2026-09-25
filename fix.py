@@ -1,6 +1,6 @@
 import os
 
-# 👑 全自動雲端自動化編譯器 ── 2026 全域變數置頂完全體（前半段）
+# 👑 2026 變現完全體 ── 變數安全隔離架構（前半段）
 PART1 = r'''import os, io, zipfile, cv2, gc, shutil, hashlib, numpy as np
 from PIL import Image
 import streamlit as st
@@ -8,9 +8,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
-
-# 👑 全域變數安全置頂防線：開機秒級寫入全域記憶體，100% 永久死鎖 NameError 崩潰！
-saved = 0
 
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
@@ -162,8 +159,9 @@ if st.session_state.temp_ready:
 elif not start_btn:
     st.stop()
 '''
-# 👑 全自動雲端自動化編譯器 ── 2026 全域變數置頂完全體（後半段與實體寫入核心）
-PART2 = r'''progress_bar = main_col.progress(0)
+# 👑 2026 變現完全體 ── 變數安全隔離架構（後半段與實體覆蓋晶片）
+PART2 = r'''saved = 0
+progress_bar = main_col.progress(0)
 session = load_rembg_session()
 st.session_state.master_preview_dict = {}
 temp_out_dir = "/tmp/processed_centered_images"
@@ -278,6 +276,7 @@ if saved > 0:
     st.session_state.temp_ready = True
     st.rerun()
 
+# 🔒 🔒 🔓 【全自動安全隔離區：只有成果準備好了才放行渲染！】 🔓 🔒 🔒
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
@@ -330,9 +329,8 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     st.rerun()
 '''
 
-# 👑 全自動將全域置頂版程式碼寫入 app.py
 with open("app.py", "w", encoding="utf-8") as f:
     f.write(PART1 + PART2)
 
 import streamlit as st
-st.success("👑 全域變數安全置頂版已全自動合流完成！請火速點擊 Reboot App 強制重啟！")
+st.success("👑 全域隔離完全體已自動編譯完成！請立刻點選 Reboot App 重啟！")
