@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
 
-# 👑 頂層狀態機初始化防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
+# 👑 頂層狀態機初始化最前置防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
@@ -157,12 +157,10 @@ any_violation = (num_uploaded == 0 or num_uploaded > current_remaining_quota)
 start_btn = col_btn2.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
 
 zip_path = "/tmp/processed_centered_images.zip"
-
 if uploaded_files and start_btn:
     saved = 0
     progress_bar = main_col.progress(0)
     session = load_rembg_session()
-    
     st.session_state.master_preview_dict = {}
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
@@ -181,6 +179,7 @@ if uploaded_files and start_btn:
             st.session_state.master_preview_dict[file_raw_name] = {
                 "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
             }
+            
             img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
             output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
             alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
@@ -268,7 +267,7 @@ if uploaded_files and start_btn:
         st.session_state.temp_ready = True
         st.rerun()
 
-# 👑 🔓 【外層極速渲染與安全放行扣點晶片】 👑 🔓
+# 👑 🔓 【外層極速渲染與安全放行扣點晶片 ── 0縮排扁平防護】 👑 🔓
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
