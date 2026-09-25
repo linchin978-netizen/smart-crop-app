@@ -6,14 +6,12 @@ from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
 
-# 👑 頂層狀態機初始化最前置防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
 if "temp_ready" not in st.session_state: st.session_state.temp_ready = False
 if "master_preview_dict" not in st.session_state: st.session_state.master_preview_dict = {}
 
-# 👑 Firebase 雲端保險箱最高安全初始化連線晶片
 if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
@@ -24,38 +22,20 @@ if not firebase_admin._apps:
 db = firestore.client() if firebase_admin._apps else None
 
 @st.cache_resource
-def load_rembg_session():
-    # 👑 採用超輕量化 silueta 骨架神經網路模型，直接砍掉80%記憶體，徹底解決1/2崩潰
-    return new_session("silueta")
+def load_rembg_session(): return new_session("silueta")
 
 def get_remote_ip():
     try:
         ctx = st.context if hasattr(st, "context") else None
         if ctx and hasattr(ctx, "headers"):
-            headers = ctx.headers
-            if "X-Forwarded-For" in headers: return headers["X-Forwarded-For"].split(",").strip()
-            elif "X-Real-IP" in headers: return headers["X-Real-IP"].strip()
+            if "X-Forwarded-For" in ctx.headers: return ctx.headers["X-Forwarded-For"].split(",").strip()
+            elif "X-Real-IP" in ctx.headers: return ctx.headers["X-Real-IP"].strip()
     except: pass
     return "127.0.0.1"
 
-# 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
-L = {
-    "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
-    "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
-    "ratio_lbl": "Target subject density ratio (10-99%):",
-    "size_lbl": "Maximum payload weight constraint per image (MB):",
-    "drag_lbl": "📥 DROP ENTIRE IMAGE FOLDER HERE (Keeps original filenames format)",
-    "clear_btn": "🗑 Clear & Reset Queue",
-    "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
-    "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
-    "usage_title": "📊 NEXUS CROP PREMIUM WALLET",
-    "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits\n* 💡 Available Balance: **{} items**",
-    "welcome": "👋 Welcome, Premium Partner:\n**{}**\n* 🪙 Total Active Wallet: **{} Credits**",
-    "success": "### ✅ Pipeline Render Completed! Total {} assets compiled!",
-    "preview_title": "🎨 AI Auto-Centering Real-time Matrix Grid (Reject Before Download)",
-    "orig_lbl": "📥 Original Asset",
-    "del_btn": "🗑 Reject & Remove File"
-    st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
+# 🌍 🎯 精密瘦身一行流字典，100% 鋼鐵閉合，絕對不可能再截斷溢出！
+L = {"title": "🌐 Smart Subject Recognition & Auto-Center Crop", "param_header": "⚙️ Layout Ratio & Capacity Parameters", "ratio_lbl": "Target subject density ratio (10-99%):", "size_lbl": "Maximum weight constraint per image (MB):", "drag_lbl": "📥 DROP IMAGE FOLDER HERE", "clear_btn": "🗑 Clear Reset Queue", "btn_lbl": "🚀 One-Click Export Centered Photos", "dl_btn": "🎁 Download Assets Package (ZIP)", "usage_title": "📊 PREMIUM WORKSPACE WALLET", "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits\n* 💡 Available Balance: **{} items**", "welcome": "👋 Welcome, Premium Partner:\n**{}**\n* 🪙 Active Wallet: **{} Credits**", "success": "### ✅ Render Completed!", "preview_title": "🎨 AI Auto-Centering Matrix Grid (Reject Before Download)", "orig_lbl": "📥 Original Asset", "del_btn": "🗑 Reject & Remove"}
+st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
 
 visitor_ip = get_remote_ip()
 current_date_str = datetime.now().strftime("%Y-%m-%d")
@@ -159,8 +139,7 @@ if st.session_state.temp_ready:
     pass
 elif not start_btn:
     st.stop()
-    # 👑 🛸 靠左扁平化防護線 ＋ 記憶體真空回收，100% 杜絕 OOM 崩潰，預覽完美維持 60% 小巧規格！
-saved = 0
+    saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
 st.session_state.master_preview_dict = {}
@@ -232,7 +211,7 @@ for idx, file in enumerate(uploaded_files, 1):
                                 continue
                 valid_boxes.append((bx, by, bw, bh))
         
-        if not valid_boxes: valid_boxes.append((int(w*0.25), int(w*0.25), int(w*0.5), int(w*0.5)))
+        if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
         
         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
             cx, cy = bx + bw // 2, by + bh // 2
@@ -262,14 +241,12 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
-            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
+            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > part_idx else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
                 "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
             })
             saved += 1
-            
-        # 👑 🛸 航太級真空記憶體抽水：每跑完一張，立刻物理蒸發垃圾，絕不堆積！
         del img, img_orig, img_rotated, contours_normal, contours_rotated; gc.collect()
     except: pass
     progress_bar.progress(idx / num_uploaded)
@@ -318,7 +295,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         layout_cols = main_col.columns([0.25, 0.75])
         layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
         
-        # 👑 🎯 5 縱列微型矩陣：完美實現您最想要的 60% 迷你看板對照！
         sub_grid_cols = layout_cols.columns(5)
         for c_idx, crop_data in enumerate(contents["crops"]):
             with sub_grid_cols[c_idx % 5]:
