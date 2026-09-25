@@ -254,7 +254,9 @@ with side_col:
             f_check.seek(0)
             file_hash = hashlib.md5(f_check.read()).hexdigest()
             f_check.seek(0)
-            if file_hash in seen_hashes: duplicate_violation = True; break
+            if file_hash in seen_hashes: 
+                duplicate_violation = True
+                break
             seen_hashes.add(file_hash)
             
     if quota_violation: st.error(L["limit_err"])
@@ -324,7 +326,8 @@ with side_col:
                                 if s_cnt:
                                     sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
                                     if sbw * sbh < (bw * bh * 0.92):
-                                        valid_boxes.append((bx + sbx, by + sby, sbw, sbh)); continue
+                                        valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
+                                        continue
                         valid_boxes.append((bx, by, bw, bh))
                         if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
                 
