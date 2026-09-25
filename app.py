@@ -1,17 +1,16 @@
 import os, io, zipfile, cv2, gc, numpy as np
 from PIL import Image, ImageOps
+from rembg import remove, new_session
 import streamlit as st
 
 # 👑 雲端快取優化：確保 AI 模型在雲端只載入一次，節省記憶體
 @st.cache_resource
 def load_rembg_session():
-    from rembg import new_session
     return new_session("silueta")
 
 session = load_rembg_session()
 
 def get_ai_bounding_boxes(cv_img):
-    from rembg import remove
     img_rgb = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
     output_pil = remove(Image.fromarray(img_rgb), session=session)
     alpha = cv2.cvtColor(np.array(output_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
@@ -47,7 +46,7 @@ LANG_MAP = {
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
         "tip_header": "💡 智慧網拍系統使用說明",
         "tip_body": "1. 點擊下方輸入框，可直接用鍵盤手動自行打字輸入數值。\n2. 可以將「單張圖片」或「整個圖片資料夾」直接全數拖曳至下方區塊內（無數量限制）。\n3. 按下最下方秒級按鈕即可自動導出相片。\n4. 畫面顯示導出成功後點擊下載相片壓縮包進行確認。",
-        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（支援多張 JPG, WEBP）",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此巨型向量場中（支援多張 JPG, WEBP）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵秒級導出完美置中商品照片",
@@ -115,7 +114,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板
+# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已正式放寬至 30 張！)
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -257,6 +256,8 @@ if uploaded_files:
                                         roi_h, roi_w, _ = roi.shape
                                         roi_scale = 500.0 / roi_w if roi_w > 500 else 1.0
                                         roi_probe = cv2.resize(roi, (500, int(roi_h * roi_scale)), interpolation=cv2.INTER_AREA) if roi_w > 500 else roi.copy()
+                                        
+                                        # 👑 100% 全域對齊對正！徹底清空 NameError: remove is not defined 死穴！
                                         s_pil = remove(Image.fromarray(cv2.cvtColor(roi_probe, cv2.COLOR_BGR2RGB)), session=session)
                                         s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
@@ -272,6 +273,7 @@ if uploaded_files:
                         if not valid_boxes:
                             valid_boxes.append((int(w_high*0.25), int(w_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
+                        # 👑 👑 👑 【100% 移植桌面版 ── 原圖物理邊界最大化卡位置中公式】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -309,7 +311,7 @@ if uploaded_files:
                             zip_file.writestr(out_img_name, buf.tobytes())
                             saved += 1
                             
-                        # 👑 即時內存釋放與回收
+                        # 👑 即時內存釋放與垃圾強制回收
                         del img, img_orig, img_probe_orig, contours, contours_0, contours_90, contours_180, contours_270
                         gc.collect()
                             
@@ -318,8 +320,7 @@ if uploaded_files:
                     
                     progress_bar.progress(idx / len(uploaded_files))
             
-            # 👑 👑 👑 【大獲全勝防線 ── 下載按鈕強行移至 try 大迴圈最外層！】 👑 👑 👑
-            # 26張照片全部切完、垃圾全部倒乾淨後，網頁才大氣、乾淨地畫出唯一一顆下載按鈕！徹底消滅 ClientDisconnect！
+            # 👑 大獲全勝防線 ── 下載按鈕 100% 移出大迴圈！
             st.session_state.daily_usage += len(uploaded_files)
             st.session_state.monthly_usage += len(uploaded_files)
             st.success(L["success"].format(saved))
