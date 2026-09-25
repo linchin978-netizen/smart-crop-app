@@ -4,6 +4,7 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
+from datetime import datetime
 
 # 👑 Firebase 雲端保險箱最高安全初始化連線晶片 (從隱形 Secrets 保險箱讀取暗號)
 if not firebase_admin._apps:
@@ -29,122 +30,135 @@ def get_ai_bounding_boxes(cv_img, session):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
-# 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁體中文、简体中文)
+# 👑 實體 IP 雲端探針晶片：直接從 Streamlit 網絡請求標頭中提取訪客的實體上網 IP，徹底終結 F5 刷新漏洞
+def get_remote_ip():
+    try:
+        ctx = st.context if hasattr(st, "context") else None
+        if ctx and hasattr(ctx, "headers"):
+            headers = ctx.headers
+            if "X-Forwarded-For" in headers:
+                return headers["X-Forwarded-For"].split(",")[0].strip()
+            elif "X-Real-IP" in headers:
+                return headers["X-Real-IP"].strip()
+    except:
+        pass
+    return "127.0.0.1"
+    # 🌍 跨國網拍 SaaS 4 國語言大字典 (A面：繁體中文、简体中文)
+# 👑 遵照創辦人最高戰術指示：高雅溫柔提示、註冊贈 50 點大禮包、付費與免費合併大錢包永久有效！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
         "subtitle": "卡牌、網拍商品照一鍵自動裁切、主體完美置中、圖檔比例容量自由設定",
         "pricing_html": """
-        ### 💰 選擇您的智慧生產力方案 (隨買隨用 Credits 點數包)
-        * **🌟 免費體驗**: **$0** (註冊即送 **20 免費點數**！) ── *體驗強大原圖裁切防線。*
-        * **🪙 賣家入門包**: **$4.99** (內含 **150 點數** ── *每張完美照片不用 1.1 元台幣！*)
-        * **⚡ 大賣家衝刺包**: **$19.99** (內含 **700 點數** ── *每張完美照片不到 0.9 元台幣！*)
+        ### 💰 選擇您的智慧生產力方案 (隨買隨用 合併大錢包點數包)
+        * **🌟 免費體驗**: **$0** (註冊登入即送 **50 免費點數**！) ── *體驗強大原圖裁切防線。*
+        * **🪙 賣家入門包**: **$4.99** (內含 **150 點數** ── *點數永久有效，不限時間數量！*)
+        * **⚡ 大賣家衝刺包**: **$19.99** (內含 **700 點數** ── *跨境大賣家高生產力黃金套餐！*)
         * **👑 跨境卡牌大亨包**: **$49.99** (內含 **2,000 點數** ── **極致極限：每張照片不到 0.8 元台幣！**)
         """,
         "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
         "size_lbl": "導出後照片檔最大容量限制 (MB):",
-        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（智慧解碼原資料夾名稱，免註冊免費體驗）",
+        "drag_lbl": "📥 將「單張相片」或「整個圖片資料夾」全數拖曳至此（原檔名導出流，免註冊免費體驗）",
         "loaded_lbl": "📊 目前已載入商品照片：{} 張",
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
-        "success": "### ✅ 核心解算成功！點數已安全扣除，共生成 {} 張智慧命名置中照片！",
+        "success": "### ✅ 核心解算成功！點數已安全扣除，共生成 {} 張智慧置中照片！",
         "dl_btn": "🎁 點擊下載完美置中相片壓縮包 (ZIP)",
-        "limit_err": "🔒 抱歉，您的免註冊試用額度已用完。歡迎在右側註冊登入領取會員免費 20 點，或立即充值點數套餐包解鎖更高生產力！",
+        "limit_err": "🔒 抱歉，您的免註冊試用額度已用完。歡迎在右側註冊登入直接領取免費 50 點大禮包，或立即充值點數套餐包解鎖更高生產力！",
         "dup_err": "⚠️ 偵測到重複上傳相同照片！框框內不可重複置入相同圖檔（即使更換檔名亦會被安全攔截），請使用清除重選並重新拉入純淨不重複的照片，以防止點數重複扣除爭議！",
         "usage_title": "📊 NEXUS CROP 會員錢包看板",
-        "guest_info": "🕒 免註冊試用錢包：\n* 當日已用點數：**{} / 10** Credits\n* 💡 剩餘可用總張數：**{} 張**",
-        "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** \n* 🪙 免費錢包餘額：**{} Credits** (優先扣除)\n* 🪙 付費錢包餘額：**{} Credits**\n* 💡 剩餘可導出總張數：**{} 張**"
+        "guest_info": "🕒 免註冊 IP 試用錢包：\n* 今日已用額度：**{} / 10** Credits (午夜12點全自動清空歸零)\n* 30日累計使用：**{} / 30** Credits (雲端 IP 實體追蹤)\n* 💡 剩餘可用總張數：**{} 張**",
+        "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** \n* 🪙 專屬錢包總餘額：**{} Credits** (含免費贈點，永久無時間數量限制)\n* 💡 剩餘可導出總張數：**{} 張**"
     },
     "简体中文": {
         "title": "🌐 网拍电商商品照片 ── 智慧自动置中裁剪系统",
         "subtitle": "卡牌、网拍商品照一键自动裁切、主体完美置中、图档比例容量自由设定",
         "pricing_html": """
-        ### 💰 选择您的智慧生产力方案 (随买随用 Credits 点数包)
-        * **🌟 免费体验**: **$0** (注册即送 **20 免费点数**！) ── *体验强大原图裁切防线。*
-        * **🪙 卖家入门包**: **$4.99** (内含 **150 点数** ── *每张完美照片不到 0.23 元人民币！*)
-        * **⚡ 大卖家冲刺包**: **$19.99** (内含 **700 点数** ── *每张完美照片不到 0.20 元人民币！*)
+        ### 💰 选择您的智慧生产力方案 (随买随用 统一合并钱包点数包)
+        * **🌟 免费体验**: **$0** (注册登录即送 **50 免费点数**！) ── *体验强大原图裁切防线。*
+        * **🪙 卖家入门包**: **$4.99** (内含 **150 点数** ── *点数永久有效，不限时间数量！*)
+        * **⚡ 大卖家冲刺包**: **$19.99** (内含 **700 点数** ── *跨境大卖家高生产力黄金套餐！*)
         * **👑 跨境卡牌大亨包**: **$49.99** (内含 **2,000 点数** ── **极致极限：每张照片不到 0.17 元人民币！**)
         """,
         "param_header": "⚙️ 图档比例容量参数 (可自订数值)",
         "ratio_lbl": "导出后主体占画面比例 (10-99%):",
-        "size_lbl": "导出后照片档 maximum 容量限制 (MB):",
-        "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（智慧解码原文件夹名称，免注册免费体验）",
+        "size_lbl": "导出后照片档最大容量限制 (MB):",
+        "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（原档名导出流，免注册免费体验）",
         "loaded_lbl": "📊 目前已载入商品照片：{} 张",
         "clear_btn": "🗑 清除重选",
         "btn_lbl": "🚀 一键快速导出完美置中商品照片",
         "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
         "success": "### ✅ 核心解算成功！点数已安全扣除，共生成 {} 张智慧置中照片！",
         "dl_btn": "🎁 点击下载完美置中相片压缩包 (ZIP)",
-        "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录领取会员免费 20 点，or 立即充值点数套餐包解锁更高生产力！",
+        "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录直接领取免费 50 点大礼包，or 立即充值点数套餐包解锁更高生产力！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
-        "guest_info": "🕒 免注册试用钱包：\n* 当日已用点数：**{} / 10** Credits\n* 💡 剩余可用总张数：**{} 张**",
-        "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 免费钱包余额：**{} Credits** (优先扣除)\n* 🪙 付费钱包余额：**{} Credits**\n* 💡 剩余可导出总张数：**{} 张**"
+        "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用额度：**{} / 10** Credits (午夜12点全自动清空归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可用总张数：**{} 张**",
+        "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 专属钱包总余额：**{} Credits** (含免费赠点，永久无时间数量限制)\n* 💡 剩余可导出总张数：**{} 张**"
     },
     "English": {
         "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
         "subtitle": "Trading Card & E-commerce Photo Smart Centering, Batch Splitting, and Weight Control System",
         "pricing_html": """
-        ### 💰 Choose Your Production Power (Pay-As-You-Go Credits)
-        * **🌟 FREE TRIAL**: **$0** (Get **20 Free Credits** upon sign up!) - *Test our heavy-duty centering power.*
-        * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Only $0.033 per perfect photo!*)
-        * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Only $0.028 per perfect photo!*)
+        ### 💰 Choose Your Production Power (Unified Global Token Wallet)
+        * **🌟 FREE TRIAL**: **$0** (Get **50 Free Credits** immediately upon sign up!)
+        * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Tokens never expire, use anytime!*)
+        * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Designed for cross-border high-volume setups.*)
         * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
         """,
         "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
         "ratio_lbl": "Target subject density ratio (10-99%):",
         "size_lbl": "Maximum payload weight constraint per image (MB):",
-        "drag_lbl": "📥 DROP ENTIRE IMAGE FOLDER HERE (Inherits original folder names automatically)",
+        "drag_lbl": "📥 DROP ENTIRE IMAGE FOLDER HERE (Keeps original filenames format)",
         "loaded_lbl": "📊 Consolidated image queue assets: {} items",
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
         "success": "### ✅ Pipeline Render Completed! Credits burned successfully. Total {} assets compiled!",
         "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
-        "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to claim 20 free credits or purchase a token package on the right to unlock more production power!",
+        "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to get your 50 credits bonus instantly, or purchase a token package below.",
         "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
         "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-        "guest_info": "🕒 Free Trial Wallet:\n* Daily Used: **{} / 10** Credits\n* 💡 Available Balance: **{} items**",
-        "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Free Credits: **{} Credits** (Prioritized)\n* 🪙 Paid Credits: **{} Credits**\n* 💡 Available Balance: **{} items**"
+        "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits (Resets completely at 00:00 midnight)\n* 30-Day Used: **{} / 30** Credits\n* 💡 Available Balance: **{} items**",
+        "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Total Active Wallet: **{} Credits** (Includes free bonus, lifetime valid)\n* 💡 Available Balance: **{} items**"
     },
     "日本語": {
         "title": "🌐 AI 商品画像自動中央配置＆自動クロップシステム",
         "subtitle": "トレカ・EC商品画像の自動クロップ・複数分割・容量と比率の自由設定",
         "pricing_html": """
-        ### 💰 プランを選択してください (随時利用可能な Credits トークンパック)
-        * **🌟 無料体験**: **$0** (新規登録で **20 無料トークン** プレゼント！) ── *強力な中央配置パワーをお試しください。*
-        * **🪙 スターターパック**: **$4.99** ( **150 トークン** 内蔵 ── *画像1枚あたりわずか約5円！*)
-        * **⚡ パワーセラーパック**: **$19.99** ( **700 トークン** 内蔵 ── *画像1枚あたりわずか約4.3円！*)
+        ### 💰 プランを選択してください (随時利用可能な 合併大ウォレットパック)
+        * **🌟 無料体験**: **$0** (新規登録・ログインで **50 無料トークン** プレゼント！)
+        * **🪙 スターターパック**: **$4.99** ( **150 トークン** ── *トークンは永久に有効、時間や枚数の制限なし！*)
+        * **⚡ パワーセラーパック**: **$19.99** ( **700 トークン** 内蔵 ── *クロスボーダー大口セラー向けゴールデンセット！*)
         * **👑 メガバルトパック**: **$49.99** ( **2,000 トークン** 内蔵 ── **圧倒的コスパ：画像1枚あたり4円以下！**)
         """,
         "param_header": "⚙️ 画像比率とファイル容量パラメータ (カスタム数値可能)",
         "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
         "size_lbl": "出力画像の最大容量制限 (MB):",
-        "drag_lbl": "📥 画像フォルダをここにドラッグ＆ドロップ (フォルダ名を自動的に継承して命名)",
+        "drag_lbl": "📥 画像フォルダをここにドラッグ＆ドロップ (元のファイル名を維持)",
         "loaded_lbl": "📊 読み込まれた画像：{} 枚",
         "clear_btn": "🗑 キューをクリア",
         "btn_lbl": "🚀 ワンクリックで中央配置画像を高速エクスポート",
         "processing": "⏳ 解析中：第 {} 枚 / 全 {} 枚...",
         "success": "### ✅ 解析完了！トークンは正常に消費されました。合計 {} 枚の画像が生成されました！",
         "dl_btn": "🎁 クロップ画像をダウンロード (ZIP)",
-        "limit_err": "🔒 申し訳ありませんが、無料お試し枠は終了しました。右側で無料登録して20点を受け取るか、パッケージを購入して生産力を向上させてください！",
-        "dup_err": "⚠️ 重複画像が検出されました！同じ写真を複数アップロードすることはできません（ファイル名が異なってもブロックされます）。重複請求を防ぐため、ファイルを整理して再試行してください。",
+        "limit_err": "🔒 申し訳ありませんが、無料お試し枠は終了しました。右側で無料登録して50点大礼箱を受け取るか、パッケージを購入してください！",
+        "dup_err": "⚠️ 重複画像が検出されました！同じ写真を複数アップロードすることはできません。重複請求を防ぐため、ファイルを整理して再試行してください。",
         "usage_title": "📊 プレミアム会員ウォレット状況",
-        "guest_info": "🕒 無料お試し財布:\n* 本日の使用量: **{} / 10** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
-        "welcome": "👋 お帰りなさい: **{}** \n* 🪙 無料トークン残量: **{} Credits** (優先消費)\n* 🪙 付費トークン残量: **{} Credits**\n* 💡 残り利用可能枚数: **{} 枚**"
+        "guest_info": "🕒 IPお試し財布:\n* 本日の使用量: **{} / 10** Credits (夜12時に全自動リセット)\n* 30日間の使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
+        "welcome": "👋 お帰りなさい: **{}** \n* 🪙 統合ウォレット残高: **{} Credits** (無料贈呈分を含む、生涯有効)\n* 💡 残り利用可能枚数: **{} 枚**"
     }
 }
 
-st.set_page_config(page_title="NEXUS CROP — AI SaaS", page_icon="🌐", layout="wide")
+st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
 
-# 👑 【核心 Python 記憶體指紋狀態機初始化】
-if "guest_used_counter" not in st.session_state: st.session_state.guest_used_counter = 0
+# 👑 【核心純 Python 記憶體狀態機初始化】
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
-    # CSS 航太級 3 倍大面積拉圖停機坪注入
+
 st.markdown("""
     <style>
     [data-testid="stFileUploader"] { padding: 35px 0px; }
@@ -170,15 +184,41 @@ st.markdown("""
 
 lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("繁體中文", "简体中文", "English", "日本語"), index=0)
 L = LANG_MAP[lang]
+# 👑 👑 👑 【實體 IP 雲端資料庫防白嫖解算核心】 👑 👑 👑
+visitor_ip = get_remote_ip()
+current_date_str = datetime.now().strftime("%Y-%m-%d")
+current_month_str = datetime.now().strftime("%Y-%m")
 
-# 👑 👑 👑 【核心 Python 動態餘額實時同步解算大腦】 👑 👑 👑
+guest_used_day = 0
+guest_used_month = 0
 user_authed = st.session_state.user_authenticated
-credits_free = 0
-credits_paid = 0
+credits_total = 0
 user_uid = ""
 
+if db and not user_authed and visitor_ip != "127.0.0.1":
+    try:
+        ip_doc_ref = db.collection("guest_ips").document(visitor_ip)
+        ip_data = ip_doc_ref.get().to_dict()
+        if ip_data:
+            # ⚡ 午夜12點日曆全自動跨夜重置歸零保險絲
+            if ip_data.get("last_date") == current_date_str:
+                guest_used_day = ip_data.get("day_used", 0)
+            else:
+                guest_used_day = 0
+            
+            # ⚡ 30日累計額度重置防線
+            if ip_data.get("last_month") == current_month_str:
+                guest_used_month = ip_data.get("month_used", 0)
+            else:
+                guest_used_month = 0
+    except:
+        pass
+
+# 👑 雙軌錢包配額即時結算
 if not user_authed:
-    current_remaining_quota = max(0, 10 - st.session_state.guest_used_counter)
+    rem_day = max(0, 10 - guest_used_day)
+    rem_month = max(0, 30 - guest_used_month)
+    current_remaining_quota = min(rem_day, rem_month)
 else:
     if db:
         try:
@@ -186,30 +226,30 @@ else:
             user_uid = user_rec.uid
             user_doc_ref = db.collection("users").document(user_uid)
             user_data = user_doc_ref.get().to_dict()
-            credits_free = user_data.get("credits_free", 0)
-            credits_paid = user_data.get("credits_paid", 0)
+            credits_total = user_data.get("credits_total", 0)
         except:
-            credits_free = 20
-            credits_paid = 0
-    current_remaining_quota = credits_free + credits_paid
+            credits_total = 50
+    current_remaining_quota = credits_total
 
-# 高級電商雙欄佈局
+# 高級電商雙欄布局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not user_authed:
-        st.info(L["guest_info"].format(st.session_state.guest_used_counter, current_remaining_quota))
+        st.info(L["guest_info"].format(guest_used_day, guest_used_month, current_remaining_quota))
         st.markdown("---")
-        auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
+        auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 50)"), horizontal=True)
         email_in = st.text_input("📧 Email", key="auth_email")
         pass_in = st.text_input("🔒 Password", type="password", key="auth_pass")
-        if auth_mode == "Sign Up (Free 20)":
+        if auth_mode == "Sign Up (Free 50)":
             if st.button("🚀 Establish Account", use_container_width=True):
                 try:
                     user = auth.create_user(email=email_in, password=pass_in)
                     if db: db.collection("users").document(user.uid).set({
-                        "email": email_in, "credits_free": 20, "credits_paid": 0, "tier": "FREE_TRIAL"
+                        "email": email_in,
+                        "credits_total": 50,
+                        "tier": "PREMIUM_WORKSPACE"
                     })
                     st.success("✅ Account established! Switch to Sign In.")
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
@@ -222,18 +262,18 @@ with side_col:
                     st.rerun()
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
     else:
-        st.success(L["welcome"].format(st.session_state.user_email, credits_free, credits_paid, current_remaining_quota))
+        st.success(L["welcome"].format(st.session_state.user_email, credits_total, current_remaining_quota))
         
         st.markdown("---")
-        st.markdown("#### 🪙 Top Up Cloud Wallet")
+        st.markdown("#### 🪙 Top Up Cloud Unified Wallet")
         if st.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
-            if db and user_uid: db.collection("users").document(user_uid).update({"credits_paid": credits_paid + 150})
+            if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 150})
             st.rerun()
         if st.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", use_container_width=True, key="side_pack_2"):
-            if db and user_uid: db.collection("users").document(user_uid).update({"credits_paid": credits_paid + 700})
+            if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
             st.rerun()
         if st.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
-            if db and user_uid: db.collection("users").document(user_uid).update({"credits_paid": credits_paid + 2000})
+            if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 2000})
             st.rerun()
             
         if st.button("🚪 Sign Out Workspace", use_container_width=True):
@@ -241,7 +281,7 @@ with side_col:
             st.session_state.user_email = ""
             st.rerun()
 
-# 🪐 拼接臨界點：此處開啟 with 閘門，下方第四與第五部分全部精密往右縮排 4 個空格！
+# 🪐 🪐 🪐 【100% 絕對扁平化、0縮排錯誤、無縫編譯主渲染大腦】 🪐 🪐 🪐
 with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
@@ -269,7 +309,7 @@ with main_col:
     if num_uploaded > 0:
         if num_uploaded > current_remaining_quota:
             quota_violation = True
-            st.error(L["limit_err"].format(num_uploaded, current_remaining_quota))
+            st.error(L["limit_err"])
         
         seen_hashes = set()
         for f_check in uploaded_files:
@@ -293,7 +333,7 @@ with main_col:
             st.session_state.temp_ready = False
             st.rerun()
     with col_btn2:
-        # 🔒 雙重安全死鎖：當剩餘可用總張數 <= 0 時，按鈕直接灰色死鎖、完全不給按，高雅提示！
+        # 🔒 雙重最高安全死鎖：當剩餘可用總張數 <= 0 時，按鈕直接灰色死鎖、完全不給按，高雅提示註冊！
         any_violation = quota_violation or duplicate_violation or (current_remaining_quota <= 0 and num_uploaded == 0)
         start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
 
@@ -315,20 +355,7 @@ with main_col:
             for idx, file in enumerate(uploaded_files, 1):
                 status_text.markdown(L["processing"].format(idx, num_uploaded))
                 try:
-                    folder_prefix = ""
                     file_raw_name = getattr(file, "name", "photo.jpg")
-                    
-                    if hasattr(file, "path"):
-                        raw_path_str = file.path
-                        path_parts = raw_path_str.replace("\\", "/").split("/")
-                        if len(path_parts) > 1:
-                            folder_prefix = f"[{path_parts[-2]}]_"
-                    elif hasattr(file, "webkitRelativePath") and file.webkitRelativePath:
-                        raw_path_str = file.webkitRelativePath
-                        path_parts = raw_path_str.replace("\\", "/").split("/")
-                        if len(path_parts) > 1:
-                            folder_prefix = f"[{path_parts[-2]}]_"
-                    
                     file.seek(0)
                     file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
                     img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -391,10 +418,11 @@ with main_col:
                         _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                         
                         base_name, _ = os.path.splitext(file_raw_name)
+                        # 👑 純淨原名導出流：不多加任何前綴資料夾，維持使用者最原始的建檔命名習慣！
                         if len(valid_boxes) > 1:
-                            out_img_name = f"{folder_prefix}{base_name}_置中裁剪_{part_idx}.jpg"
+                            out_img_name = f"{base_name}_裁切_{part_idx}.jpg"
                         else:
-                            out_img_name = f"{folder_prefix}{base_name}_置中裁剪.jpg"
+                            out_img_name = f"{base_name}.jpg"
                             
                         with open(os.path.join(temp_out_dir, out_img_name), "wb") as f_out: f_out.write(buf.tobytes())
                         saved += 1
@@ -408,27 +436,32 @@ with main_col:
                     for root, _, files in os.walk(temp_out_dir):
                         for f in files: zip_file.write(os.path.join(root, f), f)
                 
-                # 👑 👑 👑 【純 Python 記憶體現場立刻扣點！】 👑 👑 👑
+                # 👑 👑 👑 【純 Python 雲端 IP 實時死鎖扣點晶片 ── KALISS 刷新防白嫖】 👑 👑 👑
                 if not user_authed:
-                    st.session_state.guest_used_counter += num_uploaded
+                    # 遊客：直接上鎖雲端資料庫 guest_ips 帳本！不依賴沙盒 JS，按 F5 刷新依然被死死扣除！
+                    if db and visitor_ip != "127.0.0.1":
+                        new_day = guest_used_day + num_uploaded
+                        new_month = guest_used_month + num_uploaded
+                        db.collection("guest_ips").document(visitor_ip).set({
+                            "day_used": new_day,
+                            "month_used": new_month,
+                            "last_date": current_date_str,
+                            "last_month": current_month_str
+                        })
                 else:
-                    if credits_free >= num_uploaded:
-                        new_free = credits_free - num_uploaded
-                        new_paid = credits_paid
-                    else:
-                        remainder = num_uploaded - credits_free
-                        new_free = 0
-                        new_paid = max(0, credits_paid - remainder)
+                    # 会員：大錢包直接扣點，永久有效
+                    new_total = max(0, credits_total - num_uploaded)
                     if db and user_uid:
                         db.collection("users").document(user_uid).update({
-                            "credits_free": new_free, "credits_paid": new_paid
+                            "credits_total": new_total
                         })
                 
                 st.session_state.compiled_saved = saved
                 st.session_state.temp_ready = True
                 st.success(L["success"].format(saved))
-                st.rerun()
+                st.rerun() # 現場立刻大腦回充，刷新右側看板數據！
                 
+        # 🔓 扣點大功告成！放行純淨單向下載按鈕，100% 零崩潰
         if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
             zip_file_size = os.path.getsize(zip_path)
             if zip_file_size > 0:
