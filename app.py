@@ -1,11 +1,4 @@
-import os
-import io
-import zipfile
-import cv2
-import gc
-import shutil
-import hashlib
-import numpy as np
+import os, io, zipfile, cv2, gc, shutil, hashlib, numpy as np
 from PIL import Image
 import streamlit as st
 import firebase_admin
@@ -13,15 +6,14 @@ from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
 
-if "user_authenticated" not in st.session_state: 
-    st.session_state.user_authenticated = False
-if "user_email" not in st.session_state: 
-    st.session_state.user_email = ""
-if "uploader_key_token" not in st.session_state: 
-    st.session_state.uploader_key_token = 1000
-if "temp_ready" not in st.session_state:
-    st.session_state.temp_ready = False
-    if not firebase_admin._apps:
+# 👑 頂層狀態機初始化最前置防線
+if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
+if "user_email" not in st.session_state: st.session_state.user_email = ""
+if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
+if "temp_ready" not in st.session_state: st.session_state.temp_ready = False
+
+# 👑 Firebase 安全初始化
+if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
         cred = credentials.Certificate(fb_dict)
@@ -40,19 +32,16 @@ def get_remote_ip():
         ctx = st.context if hasattr(st, "context") else None
         if ctx and hasattr(ctx, "headers"):
             headers = ctx.headers
-            if "X-Forwarded-For" in headers:
-                return headers["X-Forwarded-For"].split(",")[0].strip()
-            elif "X-Real-IP" in headers:
-                return headers["X-Real-IP"].strip()
-    except:
-        pass
+            if "X-Forwarded-For" in headers: return headers["X-Forwarded-For"].split(",")[0].strip()
+            if "X-Real-IP" in headers: return headers["X-Real-IP"].strip()
+    except: pass
     return "127.0.0.1"
 
 LANG_MAP = {}
 LANG_MAP["English"] = {
     "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
     "subtitle": "Trading Card & E-commerce Photo Smart Centering, Batch Splitting, and Weight Control System",
-    "pricing_html": "### 💰 Choose Your Production Power\n* **🌟 FREE TRIAL**: **$0** (50 Free Credits)\n* **🪙 STARTER PACK**: **$4.99** (150 Credits)",
+    "pricing_html": "### 💰 Choose Your Production Power\n* **🌟 FREE TRIAL**: **$0** (50 Free Credits)",
     "param_header": "⚙️ Layout Ratio & Capacity Parameters",
     "ratio_lbl": "Target subject density ratio (10-99%):",
     "size_lbl": "Maximum payload weight constraint per image (MB):",
@@ -63,37 +52,17 @@ LANG_MAP["English"] = {
     "processing": "⏳ Neural pipeline processing asset {} / {}...",
     "success": "### ✅ Pipeline Render Completed! Total {} centered photos compiled!",
     "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
-    "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted.",
-    "dup_err": "⚠️ Duplicate photos detected! Please reset queue.",
+    "limit_err": "🔒 Sorry, your quota is exhausted.",
+    "dup_err": "⚠️ Duplicate photos detected!",
     "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-    "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10**\n* 30-Day Used: **{} / 30**\n* 💡 Balance: **{} items**",
-    "welcome": "👋 Welcome: **{}** \n* 🪙 Wallet: **{} Credits**\n* 💡 Balance: **{} items**"
+    "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10**\n* 30-Day Used: **{} / 30**\n* 💡 Available Balance: **{} items**",
+    "welcome": "👋 Welcome: **{}** \n* 🪙 Wallet: **{} Credits**\n* 💡 Available Balance: **{} items**"
 }
 
-LANG_MAP["Deutsch"] = {
-    "title": "🌐 Intelligente Objekterkennung & Auto-Zentrierter Zuschnitt",
-    "subtitle": "E-Commerce- und Sammelkarten-Fotos intelligent zentrieren",
-    "pricing_html": "### 💰 Wählen Sie Ihre Produktionsleistung\n* **🌟 TESTVERSION**: **$0** (50 Gratis-Credits)\n* **🪙 STARTER**: **$4.99** (150 Credits)",
-    "param_header": "⚙️ Parameter für Layout-Verhältnis & Dateigröße",
-    "ratio_lbl": "Ziel-Dichte des Hauptobjekts (10-99%):",
-    "size_lbl": "Maximale Dateigrößenbeschränkung pro Bild (MB):",
-    "drag_lbl": "📥 ZIEHEN SIE DEN GESAMTEN BILDERORDNER HIERHER",
-    "loaded_lbl": "📊 Geladene Medien-Assets: {} Elemente",
-    "clear_btn": "🗑 Warteschlange zurücksetzen",
-    "btn_lbl": "🚀 Zentrierte Fotos mit einem Klick exportieren",
-    "processing": "⏳ Verarbeitung läuft: Bild {} / {}...",
-    "success": "### ✅ Verarbeitung abgeschlossen! Insgesamt {} Fotos erstellt!",
-    "dl_btn": "🎁 Zentrierte Bilder herunterladen (ZIP)",
-    "limit_err": "🔒 Entschuldigung, Ihr anonymes Testguthaben ist aufgebraucht.",
-    "dup_err": "⚠️ Doppelte Fotos erkannt! Bitte Warteschlange zurücksetzen.",
-    "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-    "guest_info": "🕒 Anonymes IP-Guthaben:\n* Heute: **{} / 10**\n* 30-Tage: **{} / 30**\n* 💡 Guthaben: **{} Bilder**",
-    "welcome": "👋 Willkommen: **{}** \n* 🪙 Gesamtguthaben: **{} Credits**\n* 💡 Guthaben: **{} Bilder**"
-}
 LANG_MAP["繁體中文"] = {
     "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
     "subtitle": "卡牌、網拍商品照一鍵自動裁切、主體完美置中、圖檔比例容量自由設定",
-    "pricing_html": "### 💰 選擇您的智慧生產力方案\n* **🌟 免費體驗**: **$0** (即送 50 免費點數)\n* **🪙 賣家入門包**: **$4.99** (內含 150 點數)",
+    "pricing_html": "### 💰 選擇您的智慧生產力方案\n* **🌟 免費體驗**: **$0** (即送 50 免費點數)",
     "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
     "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
     "size_lbl": "導出後照片檔最大容量限制 (MB):",
@@ -102,57 +71,19 @@ LANG_MAP["繁體中文"] = {
     "clear_btn": "🗑 清除重選",
     "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
     "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
-    "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！請點選下方下載。",
+    "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！請點選下方按鈕下載打包！",
     "dl_btn": "🎁 點擊下載完美置中相片壓縮包 (ZIP)",
-    "limit_err": "🔒 抱歉，您的免註冊試用額度已用完。請在右側註冊登入領取免費點數！",
-    "dup_err": "⚠️ 偵測到重複上傳相同照片！請清除重選以防止點數重複扣除爭議！",
+    "limit_err": "🔒 抱歉，您的免註冊試用額度已用完。歡迎在右側註冊登入領取點數！",
+    "dup_err": "⚠️ 偵測到重複上傳相同照片！請使用清除重選並重新拉入照片，以防止點數重複扣除！",
     "usage_title": "📊 NEXUS CROP 會員錢包看板",
     "guest_info": "🕒 免註冊 IP 試用錢包：\n* 今日已用額度：**{} / 10** Credits\n* 30日累計使用：**{} / 30** Credits\n* 💡 剩餘可用總張數：**{} 張**",
     "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** \n* 🪙 專屬錢包總餘額：**{} Credits**\n* 💡 剩餘可導出總張數：**{} 張**"
 }
 
-LANG_MAP["简体中文"] = {
-    "title": "🌐 网拍电商商品照片 ── 智慧自动置中裁剪系统",
-    "subtitle": "卡牌、网拍商品照一键自动裁切、主体完美置中、图档比例容量自由设定",
-    "pricing_html": "### 💰 选择您的智慧生产力方案\n* **🌟 免费体验**: **$0** (即送 50 免费点数)\n* **🪙 卖家入门包**: **$4.99** (内含 150 点数)",
-    "param_header": "⚙️ 图档比例容量参数 (可自订数值)",
-    "ratio_lbl": "导出后主体占画面比例 (10-99%):",
-    "size_lbl": "导出后照片档 maximum 容量限制 (MB):",
-    "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（免注册免费体验）",
-    "loaded_lbl": "📊 目前已载入商品照片：{} 张",
-    "clear_btn": "🗑 清除重选",
-    "btn_lbl": "🚀 一键快速导出完美置中商品照片",
-    "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
-    "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！",
-    "dl_btn": "🎁 点击下载完美置中相片压缩包 (ZIP)",
-    "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录！",
-    "dup_err": "⚠️ 侦测到重复上传相同照片！请使用清除重选。",
-    "usage_title": "📊 NEXUS CROP 会员钱包看板",
-    "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用：**{} / 10**\n* 30日累计：**{} / 30**\n* 💡 剩余可用：**{} 张**",
-    "welcome": "👋 欢迎回来：**{}** \n* 🪙 专属钱包总余额：**{} Credits**\n* 💡 剩余可导出：**{} 张**"
-}
-LANG_MAP["日本語"] = {
-    "title": "🌐 AI 商品画像自動中央配置＆自動クロップシステム",
-    "subtitle": "トレカ・EC商品画像の自動クロップ",
-    "pricing_html": "### 💰 プランを選択してください\n* **🌟 無料体験**: **$0** (50枚)\n* **🪙 スターター**: **$4.99** (150枚)",
-    "param_header": "⚙️ 画像比率とファイル容量パラメータ",
-    "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
-    "size_lbl": "出力画像の最大容量制限 (MB):",
-    "drag_lbl": "📥 画像フォルダをここにドラッグ＆ドロップ",
-    "loaded_lbl": "📊 読み込まれた画像：{} 枚",
-    "clear_btn": "🗑 キューをクリア",
-    "btn_lbl": "🚀 ワンクリックで中央配置画像を高速エクスポート",
-    "processing": "⏳ 解析中：第 {} 枚 / 全 {} 枚...",
-    "success": "### ✅ 解析完了！合計 {} 枚の画像が生成されました！",
-    "dl_btn": "🎁 クロップ画像をダウンロード (ZIP)",
-    "limit_err": "🔒 無料お試し枠は終了しました。",
-    "dup_err": "⚠️ 重複画像が検出されました！",
-    "usage_title": "📊 プレミアム会員ウォレット状況",
-    "guest_info": "🕒 IPお試し財布:\n* 本日: **{} / 10**\n* 30日間: **{} / 30**\n* 💡 残り利用可能: **{} 枚**",
-    "welcome": "👋 お帰りなさい: **{}** \n* 🪙 残高: **{} Credits**\n* 💡 残り利用可能: **{} 枚**"
-}
-
+LANG_MAP["Deutsch"] = LANG_MAP["English"]
 LANG_MAP["Français"] = LANG_MAP["English"]
+LANG_MAP["简体中文"] = LANG_MAP["繁體中文"]
+LANG_MAP["日本語"] = LANG_MAP["English"]
 LANG_MAP["한국어"] = LANG_MAP["English"]
 LANG_MAP["Bahasa Melayu"] = LANG_MAP["English"]
 LANG_MAP["Bahasa Indonesia"] = LANG_MAP["English"]
@@ -163,28 +94,19 @@ visitor_ip = get_remote_ip()
 current_date_str = datetime.now().strftime("%Y-%m-%d")
 current_month_str = datetime.now().strftime("%Y-%m")
 
-guest_used_day = 0
-guest_used_month = 0
+guest_used_day, guest_used_month, credits_total, user_uid = 0, 0, 0, ""
 user_authed = st.session_state.user_authenticated
-credits_total = 0
-user_uid = ""
 
 if db and not user_authed and visitor_ip != "127.0.0.1":
     try:
-        ip_doc_ref = db.collection("guest_ips").document(visitor_ip)
-        ip_data = ip_doc_ref.get().to_dict()
+        ip_data = db.collection("guest_ips").document(visitor_ip).get().to_dict()
         if ip_data:
-            if ip_data.get("last_date") == current_date_str:
-                guest_used_day = ip_data.get("day_used", 0)
-            if ip_data.get("last_month") == current_month_str:
-                guest_used_month = ip_data.get("month_used", 0)
-    except:
-        pass
+            if ip_data.get("last_date") == current_date_str: guest_used_day = ip_data.get("day_used", 0)
+            if ip_data.get("last_month") == current_month_str: guest_used_month = ip_data.get("month_used", 0)
+    except: pass
 
 if not user_authed:
-    rem_day = max(0, 10 - guest_used_day)
-    rem_month = max(0, 30 - guest_used_month)
-    current_remaining_quota = min(rem_day, rem_month)
+    current_remaining_quota = min(max(0, 10 - guest_used_day), max(0, 30 - guest_used_month))
 else:
     if db:
         try:
@@ -192,10 +114,10 @@ else:
             user_uid = user_rec.uid
             user_data = db.collection("users").document(user_uid).get().to_dict()
             credits_total = user_data.get("credits_total", 0)
-        except:
-            credits_total = 50
+        except: credits_total = 50
     current_remaining_quota = credits_total
-    main_col, side_col = st.columns([0.72, 0.28], gap="large")
+
+main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
@@ -232,6 +154,7 @@ with side_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
     st.write("---")
+    st.markdown(f"#### {L['param_header']}")
     
     col_p1, col_p2 = st.columns(2)
     with col_p1:
@@ -254,9 +177,7 @@ with side_col:
             f_check.seek(0)
             file_hash = hashlib.md5(f_check.read()).hexdigest()
             f_check.seek(0)
-            if file_hash in seen_hashes: 
-                duplicate_violation = True
-                break
+            if file_hash in seen_hashes: duplicate_violation = True; break
             seen_hashes.add(file_hash)
             
     if quota_violation: st.error(L["limit_err"])
@@ -273,6 +194,7 @@ with side_col:
         start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, disabled=any_violation)
 
     zip_path = "/tmp/processed_centered_images.zip"
+
     if uploaded_files and not any_violation and start_btn:
         saved = 0
         progress_bar = st.progress(0)
@@ -329,7 +251,8 @@ with side_col:
                                         valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
                                         continue
                         valid_boxes.append((bx, by, bw, bh))
-                        if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
+                
+                if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
                 
                 for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                     cx, cy = bx + bw // 2, by + bh // 2
@@ -357,8 +280,7 @@ with side_col:
                     out_name = f"{base_raw}_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_raw}.jpg"
                     with open(os.path.join(temp_out_dir, out_name), "wb") as f_out: f_out.write(final_buf)
                     saved += 1
-            except:
-                pass
+            except: pass
             progress_bar.progress(idx / num_uploaded)
         
         if saved > 0:
