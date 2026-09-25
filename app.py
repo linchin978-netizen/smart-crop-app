@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
 
-# 👑 Firebase 雲端保險箱最高安全初始化連線晶片 (從隱形 Secrets 保險箱讀取暗號)
+# 👑 Firebase 雲端保險箱最高安全初始化連線晶片
 if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
@@ -17,26 +17,25 @@ if not firebase_admin._apps:
 
 db = firestore.client() if firebase_admin._apps else None
 
-# 👑 雲端快取優化：確保 AI 模型在雲端唯一下載一次，節省效能開銷
+# 👑 雲端快取優化：確保 AI 模型在雲端唯一下載一次
 @st.cache_resource
 def load_rembg_session():
     return new_session("silueta")
 
-# 👑 實體 IP 雲端探針晶片：直接從 Streamlit 網絡請求標頭中提取訪客的實體上網 IP，徹底封死 F5 漏洞
+# 👑 實體 IP 雲端探針：直接從網路請求頭中提取實體 IP，封死 F5 漏洞
 def get_remote_ip():
     try:
         ctx = st.context if hasattr(st, "context") else None
         if ctx and hasattr(ctx, "headers"):
             headers = ctx.headers
             if "X-Forwarded-For" in headers:
-                return headers["X-Forwarded-For"].split(",").strip()
+                return headers["X-Forwarded-For"].split(",")[0].strip()
             elif "X-Real-IP" in headers:
                 return headers["X-Real-IP"].strip()
     except:
         pass
     return "127.0.0.1"
-    # 🌍 跨國網拍 SaaS 9 國語言大字典 (第一面：English, Deutsch, Français)
-# 👑 遵照您的指示排序：英文 -> 德文 -> 法文，高雅提示、合併大錢包計費永久無限制！
+    # 🌍 跨國網拍 SaaS 9 國語言大字典 (第一面：English)
 LANG_MAP = {
     "English": {
         "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
@@ -61,10 +60,10 @@ LANG_MAP = {
         "limit_err": "🔒 Sorry, your anonymous trial quota is exhausted. Please sign up to claim 50 free credits bonus instantly, or purchase a token package on the right!",
         "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
         "usage_title": "📊 PREMIUM WORKSPACE WALLET",
-        "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits (Resets at 00:00 midnight)\n* 30-Day Used: **{} / 30** Credits (Cloud tracked)\n* 💡 Available Balance: **{} items**",
+        "guest_info": "🕒 Anonymous IP Wallet:\n* Today Used: **{} / 10** Credits (Resets at 00:00 midnight)\n* 30-Day Used: **{} / 30** Credits\n* 💡 Available Balance: **{} items**",
         "welcome": "👋 Welcome, Premium Partner: **{}** \n* 🪙 Total Active Wallet: **{} Credits** (Includes free bonus, lifetime valid)\n* 💡 Available Balance: **{} items**"
     },
-    "Deutsch": {
+     "Deutsch": {
         "title": "🌐 Intelligente Objekterkennung & Auto-Zentrierter Zuschnitt",
         "subtitle": "E-Commerce- und Sammelkarten-Fotos intelligent zentrieren, stapelweise aufteilen und Dateigröße optimieren",
         "pricing_html": """
@@ -154,7 +153,7 @@ LANG_MAP = {
         """,
         "param_header": "⚙️ 图档比例容量参数 (可自订数值)",
         "ratio_lbl": "导出后主体占画面比例 (10-99%):",
-        "size_lbl": "导出后照片档最大容量限制 (MB):",
+        "size_lbl": "导出后照片档 maximum 容量限制 (MB):",
         "drag_lbl": "📥 将单张相片 or 整个图片文件夹全数拖拽至此（原档名导出流，免注册免费体验）",
         "loaded_lbl": "📊 目前已载入商品照片：{} 张",
         "clear_btn": "🗑 清除重选",
@@ -165,7 +164,7 @@ LANG_MAP = {
         "limit_err": "🔒 抱歉，您的免注册试用额度已用完。欢迎在右侧注册登录直接领取免费 50 点大礼包，or 立即充值点数套餐包解锁更高生产力！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
-        "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用额度：**{} / 10** Comics (午夜12点全自动清空归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可用总张数：**{} 张**",
+        "guest_info": "🕒 免注册 IP 试用钱包：\n* 今日已用额度：**{} / 10** Credits (午夜12点全自动清空归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可用总张数：**{} 张**",
         "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 专属钱包总余额：**{} Credits** (含免费赠点，永久无时间数量限制)\n* 💡 剩余可导出总张数：**{} 张**"
     },
     "日本語": {
@@ -194,7 +193,7 @@ LANG_MAP = {
         "guest_info": "🕒 IPお試し財布:\n* 本日の使用量: **{} / 10** Credits (夜12時に全自動リセット)\n* 30日間の使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
         "welcome": "👋 お帰りなさい: **{}** \n* 🪙 統合ウォレット残高: **{} Credits** (生涯有効)\n* 💡 残り利用可能枚数: **{} 枚**"
     },
-    "韓文": {
+    "한국어": {
         "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
         "subtitle": "트레이딩 카드 및 쇼핑몰 상품 이미지 크롭, 다중 분할 및 비율 용량 자유 설정",
         "pricing_html": """
@@ -220,7 +219,7 @@ LANG_MAP = {
         "guest_info": "🕒 IP 체험 지갑:\n* 금일 사용량: **{} / 10** Credits (자정에 자동 초기화)\n* 30일 사용량: **{} / 30** Credits\n* 💡 남은 이용 가능 장수: **{} 장**",
         "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** \n* 🪙 통합 지갑 총잔액: **{} Credits** (평생 유효)\n* 💡 남은 이용 가능 장수: **{} 장**"
     },
-    "馬來文": {
+    "Bahasa Melayu": {
         "title": "🌐 AI Sistem Centering & Pemotongan Gambar E-dagang",
         "subtitle": "Pemotongan Automatik, Pengasingan Gambar Pukal, dan Tetapan Bebas Saiz Fail Sasaran",
         "pricing_html": """
@@ -246,13 +245,13 @@ LANG_MAP = {
         "guest_info": "🕒 Dompet IP Anonim:\n* Digunakan Hari Ini: **{} / 10** Credits (Set semula pada tengah malam)\n* Had 30 Hari Digunakan: **{} / 30** Credits\n* 💡 Jumlah Baki Sedia Ada: **{} item**",
         "welcome": "👋 Selamat kembali: **{}** \n* 🪙 Baki Dompet Bersepadu: **{} Credits** (Sah seumur hidup)\n* 💡 Jumlah Baki Sedia Ada: **{} item**"
     },
-    "印尼文": {
+    "Bahasa Indonesia": {
         "title": "🌐 AI Sistem Auto-Center Crop & Pengenal Subjek Gambar E-commerce",
         "subtitle": "Pemotongan Otomatis, Pemisahan Objek Massal, dan Konfigurasi Bebas Rasio Ukuran File",
         "pricing_html": """
         ### 💰 Pilih Paket Kuasa Produksi Anda (Dompet Terpadu Massal)
         * **🌟 UJI COBA GRATIS**: **$0** (Daftar akun langsung dapat **50 Kredit Gratis** !)
-        * **🪙 PAKET PEMULA**: **$4.99** (Dapat **150 Kredit** ── *Token berlaku selamanya, tanpa kedaluwarsa!*)
+        * **🪙 Paket PEMULA**: **$4.99** (Dapat **150 Kredit** ── *Token berlaku selamanya, tanpa kedaluwarsa!*)
         * **⚡ PAKET PENJUAL PRO**: **$19.99** (Dapat **700 Kredit** ── *Sangat direkomendasikan untuk penjual lintas batas.*)
         * **👑 Paket VAULT RETAIL**: **$49.99** (Dapat **2,000 Kredit** ── **Sangat hemat di bawah $0.025 per gambar!**)
         """,
@@ -264,7 +263,7 @@ LANG_MAP = {
         "clear_btn": "🗑 Bersihkan Antrean",
         "btn_lbl": "🚀 Ekspor Cepat Foto Berpusat Secara Massal Satu-Klik",
         "processing": "⏳ Sistem AI sedang memproses aset gambar {} / {}...",
-        "success": "### ✅ Proses AI Selesai! Kredit berhasil dipotong, sebanyak {} aset gambar dibuat!",
+        "success": "### ✅ Bayes AI Selesai! Kredit berhasil dipotong, sebanyak {} aset gambar dibuat!",
         "dl_btn": "🎁 Unduh Paket ZIP Gambar Berpusat",
         "limit_err": "🔒 Maaf, batas uji coba tanpa pendaftaran Anda sudah habis. Silakan mendaftar gratis di sebelah kanan untuk mengklaim bonus 50 kredit, atau beli paket token!",
         "dup_err": "⚠️ Duplikasi foto terdeteksi! Anda tidak dapat mengunggah gambar yang sama persis secara bersamaan. Silakan bersihkan antrean.",
@@ -274,16 +273,10 @@ LANG_MAP = {
     }
 }
 
-st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
-
-# 👑 【核心純 Python 記憶體狀態機初始化】
-if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
-if "user_email" not in st.session_state: st.session_state.user_email = ""
-if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
-
-lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("English", "Deutsch", "Français", "繁體中文", "简体中文", "日本語", "韓文", "馬來文", "印尼文"), index=3)
+# 👑 裝載指定最高排序母語清單
+lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("English", "Deutsch", "Français", "繁體中文", "简体中文", "日本語", "한국어", "Bahasa Melayu", "Bahasa Indonesia"), index=3)
 L = LANG_MAP[lang]
-# 👑 👑 👑 【實體 IP 雲端資料庫防白嫖大腦】 👑 👑 👑
+# 👑 👑 👑 【實體 IP 雲端資料庫雙軌追蹤大腦】 👑 👑 👑
 visitor_ip = get_remote_ip()
 current_date_str = datetime.now().strftime("%Y-%m-%d")
 current_month_str = datetime.now().strftime("%Y-%m")
@@ -299,12 +292,10 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
         ip_doc_ref = db.collection("guest_ips").document(visitor_ip)
         ip_data = ip_doc_ref.get().to_dict()
         if ip_data:
-            # ⚡ 午夜12點日曆自動跨夜重置歸零
             if ip_data.get("last_date") == current_date_str:
                 guest_used_day = ip_data.get("day_used", 0)
             else:
                 guest_used_day = 0
-            # ⚡ 30日累計限額防線
             if ip_data.get("last_month") == current_month_str:
                 guest_used_month = ip_data.get("month_used", 0)
             else:
@@ -312,7 +303,7 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
     except:
         pass
 
-# 👑 雙軌大錢包配額即時結算
+# 👑 雙軌計數加總解算
 if not user_authed:
     rem_day = max(0, 10 - guest_used_day)
     rem_month = max(0, 30 - guest_used_month)
@@ -375,7 +366,7 @@ with side_col:
             st.session_state.user_email = ""
             st.rerun()
 
-# 👑 👑 👑 【100% 絕對扁平化、0縮排錯誤、無縫編譯主渲染大腦】 👑 👑 👑
+# 🪐 拼接臨界點：此處開啟 with 閘門，下方第九與第十部分全部精密往右縮排 4 個空格！
 with main_col:
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
@@ -453,7 +444,6 @@ with main_col:
                     img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
                     if img_orig is None: continue
                     
-                    # 👑 100% 同步 A 版純血翻轉雙向盲測邏輯
                     img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
                     output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
                     alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
@@ -478,7 +468,7 @@ with main_col:
                         img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
                     
                     valid_boxes = []
-                    # 👑 👑 👑 【100% 完美回歸您補貼的後半段二次去背、大框替換子邊界過濾內核流！】 👑 👑 👑
+                    # 👑 100% 完美回歸您補貼的後半段二次去背、大框替換子邊界過濾內核流！
                     for c in contours:
                         hull = cv2.convexHull(c)
                         if cv2.contourArea(hull) > (w * h * 0.015):
@@ -494,7 +484,6 @@ with main_col:
                                     s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                                     if s_cnt:
                                         sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
-                                        # 🎯 完美對齊！如果子面積縮小，就地 append 子邊界並 continue 熔斷，100% 杜絕重複裁出！
                                         if sbw * sbh < (bw * bh * 0.92):
                                             valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
                                             continue
@@ -502,14 +491,12 @@ with main_col:
                     
                     if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
                     
-                    # 👑 👑 👑 【100% 完美回歸純原圖最大化物理邊界卡位演算法】 👑 👑 👑
+                    # 👑 100% 完美回歸純原圖最大化物理邊界卡位演算法
                     for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                         cx, cy = bx + bw // 2, by + bh // 2
-                        
                         ideal_pad_w = int((bw / ratio - bw) / 2)
                         ideal_pad_h = int((bh / ratio - bh) / 2)
                         
-                        # 死死鎖死在原圖實體四周邊界極限值內！不夠就抓物理極限值，絕對不搞虛假複製背景
                         pad_l = min(cx - bw // 2, ideal_pad_w)
                         pad_r = min((w - cx) - bw // 2, ideal_pad_w)
                         pad_t = min(cy - bh // 2, ideal_pad_h)
@@ -522,9 +509,7 @@ with main_col:
                         
                         cropped = img[y1:y2, x1:x2]
                         if cropped.size == 0: continue
-                        
-                        if is_rotated_for_calculation:
-                            cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                        if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                         
                         t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
                         for _ in range(10):
@@ -552,10 +537,10 @@ with main_col:
                         for f in files: zip_file.write(os.path.join(root, f), f)
                 st.session_state.compiled_saved = saved
                 st.session_state.temp_ready = True
-                st.success(L["success"].format(saved))
+                st.success(L["success"].format(num_uploaded))
                 st.rerun()
                 
-        # 🔓 🔓 🔓 【終極時機：直到真正點擊下載按鈕，雲端才正式執行扣點！】 🔓 🔓 🔓
+        # 🔓 🔓 🔓 【下載點擊一瞬間才雲端扣點流】 🔓 🔓 🔓
         if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
             zip_file_size = os.path.getsize(zip_path)
             if zip_file_size > 0:
@@ -574,7 +559,6 @@ with main_col:
                     else:
                         new_total = max(0, credits_total - num_uploaded)
                         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": new_total})
-                    
                     st.session_state.uploader_key_token += 1
                     st.session_state.temp_ready = False
                     st.rerun()
