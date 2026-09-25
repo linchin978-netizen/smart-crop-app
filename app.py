@@ -4,7 +4,7 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 
-# 👑 Firebase 雲端保險箱最高資安初始化連線晶片 (從 Streamlit Secrets 保險箱讀取暗號)
+# 👑 Firebase 雲端保險箱連線晶片 (從 Streamlit Secrets 安全隱形讀取)
 if not firebase_admin._apps:
     try:
         fb_dict = dict(st.secrets["firebase"])
@@ -15,7 +15,7 @@ if not firebase_admin._apps:
 
 db = firestore.client() if firebase_admin._apps else None
 
-# 👑 雲端快取優化：確保 AI 去背模型在雲端唯一下載一次，節省效能開銷
+# 👑 雲端快取優化：確保 AI 模型在雲端唯一下載一次
 @st.cache_resource
 def load_rembg_session():
     from rembg import new_session
@@ -30,7 +30,7 @@ def get_ai_bounding_boxes(cv_img, session):
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
-# 🌍 頂級高科技 PLG 產品字典 (完美融合 4 層定價話術與費用計算)
+# 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：英文、繁中、日文、簡中)
 LANG_MAP = {
     "English": {
         "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
@@ -39,15 +39,15 @@ LANG_MAP = {
         "ratio_lbl": "Target subject density ratio (10-99%):",
         "size_lbl": "Maximum payload weight constraint per image (MB):",
         "tip_header": "💡 FREE OPERATIONAL SPECIFICATIONS",
-        "tip_body": "1. Directly type your optimization parameters below via keyboard.\n2. Drag single images or folder into the drop zone below.\n3. Click the primary button to initialize the neural render pipeline for FREE!\n4. Unlock your cloud wallet package to download the processed ZIP payload.",
-        "drag_lbl": "📥 DROP SINGLE IMAGES OR ENTIRE IMAGE FOLDER HERE FOR FREE NEURAL CENTERING",
+        "tip_body": "1. Directly type your parameters below via keyboard.\n2. Drag single images or folder into the drop zone.\n3. Click the button to initialize the neural pipeline for FREE!\n4. Sign up or unlock packages below to download your processed ZIP.",
+        "drag_lbl": "📥 DROP IMAGES HERE FOR FREE NEURAL CENTERING",
         "loaded_lbl": "📊 Consolidated image queue assets: {} items",
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
         "success": "### ✅ Pipeline Render Completed! Total {} assets compiled in cloud disk!",
         "dl_btn": "🎁 Unlock & Download Centering Assets Package (ZIP)",
-        "limit_err": "🔒 DEPLOYMENT PACK LOCKED ── Processed assets are ready! Please sign in or purchase token packages below to unlock and download your compiled high-res ZIP package immediately.",
+        "limit_err": "🔒 DEPLOYMENT PACK LOCKED ── Free trial quota cap exceeded (Max 10 Credits/24H). Please sign in or purchase token packages below to unlock high-res ZIP package immediately.",
         "usage_title": "📊 PREMIUM WORKSPACE WALLET",
         "welcome": "👋 Welcome, Premium Partner: **{}** ｜ 🪙 Wallet Balance: **{} Credits**"
     },
@@ -66,60 +66,151 @@ LANG_MAP = {
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
         "success": "### ✅ 核心解算成功！共生成 {} 張智慧置中照片！",
         "dl_btn": "🎁 點擊解鎖並下載完美置中相片壓縮包 (ZIP)",
-        "limit_err": "🔒 相片打包已安全鎖死 ── 免註冊試用額度（每天限 10 張 / 每月限 30 張）已用完！請在右側註冊/登入，或充值點數套餐，即可立刻全速下載您改好的高畫質 ZIP 壓縮檔！",
+        "limit_err": "🔒 相片打包已安全鎖死 ── 免註冊試用額度（每天限 10 Credits）已用完！請在右側註冊登入，或充值點數套餐，即可立刻全速下載您改好的高畫質 ZIP 壓縮檔！",
         "usage_title": "📊 NEXUS CROP 會員錢包看板",
-        "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** ｜ 🪙 專屬錢包餘額：**{} 點 Token**"
+        "welcome": "👋 歡迎回來，尊貴的電商夥伴：**{}** ｜ 🪙 專屬錢包餘額：**{} Credits**"
+    },
+    "日本語": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "param_header": "⚙️ AI最適化パラメータ設定 (キーボード手動入力対応)",
+        "ratio_lbl": "出力後の商品主体の表示比率 (10-99%):",
+        "size_lbl": "出力画像の最大容量制限 (MB):",
+        "tip_header": "💡 操作仕様説明 (無料体験実施中)",
+        "tip_body": "1. ボックスをクリックして数値を入力してください。\n2. 画像またはフォルダを下のボックスにドラッグ＆ドロップしてください。\n3. ボタンをクリックすると、無料でクラウド解析が開始されます。\n4. 解析完了後、ログインまたはトークンを購入してダウンロードしてください。",
+        "drag_lbl": "📥 画像またはフォルダをここにドラッグ＆ドロップ (無料トライアル、大量一括処理対応)",
+        "loaded_lbl": "📊 読み込まれた画像：{} 枚",
+        "clear_btn": "🗑 キューをクリア",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ 解析中：第 {} 枚 / 全 {} 枚...",
+        "success": "### ✅ 解析完了！合計 {} 枚の画像がクラウドで生成されました！",
+        "dl_btn": "🎁 パッケージを解鎖してダウンロード (ZIP)",
+        "limit_err": "🔒 パッケージがロックされました ── 無料枠制限(1日10 Creditsまで)を超えました。右側でログインするか、トークンを購入してダウンロードしてください。",
+        "usage_title": "📊 プレミアム会員ウォレット状況",
+        "welcome": "👋 お帰りなさい、プレミアムパートナー: **{}** ｜ 🪙 残りトークン: **{} Credits**"
+    },
+    "简体中文": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "param_header": "⚙️ 最速电商智慧识别参数设置 (支持键盘手动自行输入)",
+        "ratio_lbl": "导出后主体占画面比例 (10-99%):",
+        "size_lbl": "导出后照片档最大容量限制 (MB):",
+        "tip_header": "💡 商品智慧置中系统说明 (免费开放体验中)",
+        "tip_body": "1. 点击下方输入框，可直接用键盘手动自行打字输入置中比例数值。\n2. 可以将单张图片或整个图片文件夹直接全数拖拽至下方巨型向量场中。\n3. 按下秒级导出按钮即可全自动免费解算！\n4. 画面显示成功生成后，登录您的云端钱包或充值点数包即可立刻带走高画质相片包！",
+        "drag_lbl": "📥 将单张相片或整个图片文件夹全数拖拽至此（免注册直接免费体验，25张大文件通杀）",
+        "loaded_lbl": "📊 目前已载入商品照片：{} 张",
+        "clear_btn": "🗑 清除重选",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
+        "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！",
+        "dl_btn": "🎁 点击解锁并下载完美置中相片压缩包 (ZIP)",
+        "limit_err": "🔒 相片打包已安全锁死 ── 免注册试用额度（每天限 10 Credits）已用完！请在右侧注册登录，或充值点数套餐，即可立刻全速下载您改好的高画质 ZIP 压缩档！",
+        "usage_title": "📊 NEXUS CROP 会员钱包看板",
+        "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** ｜ 🪙 专属钱包余额：**{} Credits**"
+    },
+    "한국어": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "param_header": "⚙️ AI 최적화 및 매개변수 설정 (키보드 입력 가능)",
+        "ratio_lbl": "출력 후 객체 화면 비율 (10-99%):",
+        "size_lbl": "출력 이미지 최대 용량 제한 (MB):",
+        "tip_header": "💡 무료 작업 사양 가이드",
+        "tip_body": "1. 입력 상자를 클릭하여 키보드로 직접 수치를 입력하세요.\n2. 단일 이미지 또는 이미지 폴더를 아래 영역으로 드래그 하세요.\n3. 버튼을 클릭하면 클라우드 분석이 무상으로 시작됩니다.\n4. 완료 후 로그인하거나 토큰을 구매하여 다운로드하세요.",
+        "drag_lbl": "📥 이미지 또는 폴더를 여기에 드래그 앤 드롭 (무료 체험, 대량 파일 지원)",
+        "loaded_lbl": "📊 로드된 상품 이미지: {} 장",
+        "clear_btn": "🗑 대기열 비우기",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ 분석 중: {} / {} 번째 이미지 처리 중...",
+        "success": "### ✅ 분석 완료! 총 {} 장의 이미지가 클라우드 디스크에 생성되었습니다!",
+        "dl_btn": "🎁 패키지 잠금 해제 및 다운로드 (ZIP)",
+        "limit_err": "🔒 다운로드 패키지 잠김 ── 무료 체험 한도(일일 10 Credits)를 초과했습니다. 오른쪽에서 로그인하거나 토큰을 구매하여 다운로드하세요.",
+        "usage_title": "📊 프리미엄 회원 지갑 상태",
+        "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** ｜ 🪙 잔여 토큰: **{} Credits**"
+    },
+    "ภาษาไทย": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "param_header": "⚙️ การตั้งค่าพารามิเตอร์ AI (รองรับการพิมพ์ด้วยคีย์บอร์ด)",
+        "ratio_lbl": "สัดส่วนของสินค้าในภาพ (10-99%):",
+        "size_lbl": "จำกัดขนาดไฟล์สูงสุด (MB):",
+        "tip_header": "💡 คำแนะนำการใช้งานฟรี",
+        "tip_body": "1. คลิกช่องด้านล่างและพิมพ์ตัวเลขด้วยคีย์บอร์ดได้โดยตรง\n2. ลากไฟล์รูปภาพหรือโฟลเดอร์ทั้งหมดมาวางในช่องด้านล่าง\n3. คลิกปุ่มเพื่อเริ่มประมวลผลบนระบบคลาวด์ฟรีทันที!\n4. เมื่อเสร็จสิ้น เข้าสู่ระบบหรือซื้อแพ็กเกจโทเค็นเพื่อดาวน์โหลดไฟล์ ZIP",
+        "drag_lbl": "📥 ลากรูปภาพหรือโฟลเดอร์มาวางที่นี่ (ทดลองใช้ฟรี รองรับการประมวลผลจำนวนมาก)",
+        "loaded_lbl": "📊 รูปภาพที่โหลดสำเร็จ: {} ภาพ",
+        "clear_btn": "🗑 ล้างคิวรูปภาพ",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ กำลังประมวลผลภาพที่ {} / {}...",
+        "success": "### ✅ ประมวลผลเสร็จสิ้น! สร้างรูปภาพทั้งหมด {} ภาพบนดิสก์คลาวด์เรียบร้อย!",
+        "dl_btn": "🎁 ปลดล็อกและดาวน์โหลดไฟล์ ZIP",
+        "limit_err": "🔒 แฟ้มดาวน์โหลดถูกล็อก ── คุณใช้โควต้าทดลองใช้ฟรีเกินกำหนดแล้ว (สูงสุด 10 Credits/24 ชม.) กรุณาเข้าสู่ระบบหรือซื้อโทเค็นเพิ่มที่ด้านขวาเพื่อดาวน์โหลดไฟล์ ZIP ความละเอียดสูงทันที",
+        "usage_title": "📊 สถานะกระเป๋าเงินสมาชิกพรีเมียม",
+        "welcome": "👋 ยินดีต้อนรับสมาชิกพรีเมียม: **{}** ｜ 🪙 โทเค็นคงเหลือ: **{} Credits**"
+    },
+    "Bahasa Melayu": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "param_header": "⚙️ Infrastruktur Parameter & Optimasi AI (Input papan kekunci didayakan)",
+        "ratio_lbl": "Nisbah kepadatan subjek sasaran (10-99%):",
+        "size_lbl": "Had saiz fail maksimum per imej (MB):",
+        "tip_header": "💡 SPESIFIKASI OPERASI PERCUMA",
+        "tip_body": "1. Taip parameter optimasi anda secara langsung di bawah melalui papan kekunci.\n2. Seret imej tunggal atau folder ke dalam zon digugurkan di bawah.\n3. Klik fungsi butang untuk memulakan saluran paip render neural secara PERCUMA!\n4. Log masuk atau buka kunci pakej token di bawah untuk memuat turun muatan ZIP.",
+        "drag_lbl": "📥 GUGURKAN IMEJ TUNGGAL ATAU FOLDER DI SINI UNTUK SMART CENTERING PERCUMA",
+        "loaded_lbl": "📊 Aset imej terkumpul: {} item",
+        "clear_btn": "🗑 Padam & Set Semula",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ Saluran paip neural memproses aset {} / {}...",
+        "success": "### ✅ Proses Selesai! Sebanyak {} aset telah dijana di dalam cakera awan!",
+        "dl_btn": "🎁 Buka Kunci & Muat Turun Pakej ZIP",
+        "limit_err": "🔒 PAKEJ DIKUNCI ── Had pelan percuma telah melebihi (Maks 10 Credits/24H). Sila log masuk atau beli pakej token di bawah untuk memuat turun fail ZIP resolusi tinggi dengan segera.",
+        "usage_title": "📊 STATUS DOMPET PREMIUM SAAS",
+        "welcome": "👋 Selamat kembali, Rakan Premium: **{}** ｜ 🪙 Baki Dompet Awam: **{} Credits**"
+    },
+    "Bahasa Indonesia": {
+        "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
+        "subtitle": "Enterprise E-commerce Photo Pipeline (Standby)",
+        "param_header": "⚙️ Optimasi AI & Konfigurasi Parameter (Mendukung input keyboard)",
+        "ratio_lbl": "Rasio kepadatan subjek target (10-99%):",
+        "size_lbl": "Batas kapasitas ukuran file maksimum per gambar (MB):",
+        "tip_header": "💡 SPESIFIKASI OPERASIONAL GRATIS",
+        "tip_body": "1. Ketik nilai parameter pengoptimalan Anda langsung di bawah menggunakan keyboard.\n2. Seret gambar tunggal atau seluruh folder ke dalam kotak drop zone di bawah.\n3. Klik tombol eksekusi untuk memulai rendering AI secara GRATIS!\n4. Masuk ke akun Anda atau beli paket token di bawah untuk mengunduh paket file ZIP.",
+        "drag_lbl": "📥 SERET GAMBAR TUNGGAL ATAU FOLDER DI SINI UNTUK SMART CENTERING GRATIS",
+        "loaded_lbl": "📊 Total aset gambar yang dimuat: {} item",
+        "clear_btn": "🗑 Bersihkan Antrean",
+        "btn_lbl": "🚀 One-Click Batch Export Centered Photos",
+        "processing": "⏳ Sistem AI sedang memproses aset gambar {} / {}...",
+        "success": "### ✅ Proses AI Selesai! Sebanyak {} aset gambar berhasil dibuat di disk cloud!",
+        "dl_btn": "🎁 Buka Kunci & Unduh Paket ZIP",
+        "limit_err": "🔒 PAKET DOWNLOAD DIKUNCI ── Kuota uji coba gratis Anda telah habis (Maks 10 Credits/24 jam). Silakan masuk ke akun atau beli paket token di bawah untuk mengunduh file ZIP resolusi tinggi segera.",
+        "usage_title": "📊 STATUS DOMPET PREMIUM ANGGOTA",
+        "welcome": "👋 Selamat datang kembali, Mitra Premium: **{}** ｜ 🪙 Sisa Token Dompet Cloud: **{} Credits**"
     }
 }
 
 st.set_page_config(page_title="NEXUS CROP — AI SaaS", page_icon="🌐", layout="wide")
 
-# 👑 巨型拖曳方框 CSS 注入晶片
-st.markdown("""
-    <style>
-    [data-testid="stFileUploader"] { padding: 25px 0px; }
-    [data-testid="stFileUploaderDropzone"] {
-        padding: 60px 20px !important;
-        border: 2px dashed #3498db !important;
-        border-radius: 12px !important;
-        background-color: #f8fafc !important;
-        transition: all 0.3s ease-in-out;
-    }
-    [data-testid="stFileUploaderDropzone"]:hover {
-        border-color: #2980b9 !important;
-        background-color: #f1f5f9 !important;
-        box-shadow: 0px 4px 20px rgba(52, 152, 219, 0.15);
-    }
-    </style>
-""", unsafe_allow_html=True)
-# 👑 👑 👑 【免註冊智慧計數狀態機 ── 初始化安全晶片】 👑 👑 👑
-# 讓陌生訪客不用註冊，也能在背景紀錄他今天用了幾張，確保 10/24H 防禦不被白嫖
+# 👑 【免註冊遊客 24小時限額 10 Credits 狀態機初始化】
 if "daily_usage" not in st.session_state:
     st.session_state.daily_usage = 0
-if "monthly_usage" not in st.session_state:
-    st.session_state.monthly_usage = 0
-
-# 👑 國際密碼密鑰會員狀態機
 if "user_authenticated" not in st.session_state:
     st.session_state.user_authenticated = False
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
-
-lang = st.selectbox("🌐 Language Interface", ("English", "繁體中文"), index=0)
+    # 🪐 點亮頂級 8 國語言切換晶片 (一指秒級全面換膚切換)
+lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("English", "繁體中文", "日本語", "简体中文", "한국어", "ภาษาไทย", "Bahasa Melayu", "Bahasa Indonesia"), index=0)
 L = LANG_MAP[lang]
 
 # 👑 全球高級電商雙欄位大氣佈局：左邊放無阻礙核心功能，右邊放 Firebase 會員控制與充值看板
-main_col, side_col = st.columns([5, 2], gap="large")
+main_col, side_col = st.columns([3, 1], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not st.session_state.user_authenticated:
         # 📊 免註冊用戶，右側即時秀出他今天剩幾張免費額度，拉高焦慮感促使註冊！
-        st.info(f"🕒 Unregistered Free Tier:\n* Daily Used: **{st.session_state.daily_usage} / 10** pics\n* Monthly Used: **{st.session_state.monthly_usage} / 30** pics")
+        st.info(f"🕒 Unregistered Free Tier:\n* Daily Used: **{st.session_state.daily_usage} / 10** Credits\n*(Resets every 24 hours)*")
         st.markdown("---")
         auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
-        email_in = st.text_input("📧 Email")
-        pass_in = st.text_input("🔒 Password", type="password")
+        email_in = st.text_input("📧 Email", key="auth_email")
+        pass_in = st.text_input("🔒 Password", type="password", key="auth_pass")
         if auth_mode == "Sign Up (Free 20)":
             if st.button("🚀 Establish Account", use_container_width=True):
                 try:
@@ -149,16 +240,16 @@ with side_col:
             except: current_credits = 0
         st.success(L["welcome"].format(st.session_state.user_email, current_credits))
         
-        # 🪙 美金儲值點數包
+        # 🪙 點數充值套餐 (與主面板話術 100% 絕對完全對齊！)
         st.markdown("---")
         st.markdown("#### 🪙 Top Up Cloud Wallet")
-        if st.button("🇺🇸 Starter Pack (\$4.99) ── +150 Credits", use_container_width=True):
+        if st.button("🇺🇸 Starter Pack (\$4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits": current_credits + 150})
             st.rerun()
-        if st.button("🇺🇸 Power Seller (\$19.99) ── +700 Credits", use_container_width=True):
+        if st.button("🇺🇸 Power Seller (\$19.99) ── +700 Credits", use_container_width=True, key="side_pack_2"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits": current_credits + 700})
             st.rerun()
-        if st.button("🇺🇸 Mega Vault (\$49.99) ── +2000 Credits", use_container_width=True, type="primary"):
+        if st.button("🇺🇸 Mega Vault (\$49.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
             if db and user_uid: db.collection("users").document(user_uid).update({"credits": current_credits + 2000})
             st.rerun()
             
@@ -168,42 +259,42 @@ with side_col:
             st.rerun()
 
 with main_col:
-    # 👑 100% 灌入您指定的頂級高端歐美 SaaS 標題與「4層定價平攤話術」風格文字
+    # 👑 100% 灌入您指定的頂級高端歐美 SaaS 標題與「4層按張計費點數包」對照話術文字
     st.title(L["title"])
     st.markdown(f"### *{L['subtitle']}*")
     
     st.markdown("""
-    ### 💰 Choose Your Production Power
-    * **FREE TRIAL**: $0/mo (Limit: 10 pics/24H) - *Test our rounding-protection power.*
-    * **STARTER TIER**: $29/mo (Limit: 30 pics/day) - *For small active retail stores.*
-    * **PROFESSIONAL TIER**: $99/mo (Limit: 150 pics/day) - **Under $0.02 USD per perfect photo!**
-    * **ENTERPRISE VIP**: $1,999 Lifetime (100% Unlimited Forever) - *For global card & retail giants.*
+    ### 💰 Choose Your Production Power (Pay-As-You-Go Credits)
+    * **🌟 FREE TRIAL**: **$0** (Get **20 Free Credits** upon sign up!) - *Test our heavy-duty centering power.*
+    * **🪙 STARTER PACK**: **$4.99** (Get **150 Credits** - *Only $0.033 per perfect photo!*)
+    * **⚡ POWER SELLER**: **$19.99** (Get **700 Credits** - *Only $0.028 per perfect photo!*)
+    * **👑 MEGA VAULT**: **$49.99** (Get **2,000 Credits** - **Under $0.025 USD per masterpiece!**)
     """)
     
     st.write("---")
     st.markdown(f"#### {L['param_header']}")
     col_p1, col_p2 = st.columns(2)
     with col_p1:
-        ratio_str = st.text_input("Subject Ratio in Image (10-99%):", value="90")
+        ratio_str = st.text_input(L["ratio_lbl"], value="90", key="crop_ratio")
         try: ratio = max(10.0, min(99.0, float(ratio_str))) / 100.0
         except: ratio = 0.90
     with col_p2:
-        size_str = st.text_input("Max File Size Limit (MB):", value="2.0")
+        size_str = st.text_input(L["size_lbl"], value="2.0", key="file_size_max")
         try: t_mb = max(0.1, float(size_str))
         except: t_mb = 2.0
 
     uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True)
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        if st.button(L["clear_btn"], use_container_width=True):
+        if st.button(L["clear_btn"], use_container_width=True, key="clear_all_queue"):
             st.rerun()
     with col_btn2:
-        start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True)
+        start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline")
 
     if uploaded_files:
         st.success(L["loaded_lbl"].format(len(uploaded_files)))
         
-        # 👑 大方放行，允許任何陌生人在實體硬碟直接試用跑進度條！
+        # 👑 大方放行，允許任何遊客直接在硬碟免費跑完去背與置中裁切進度條！
         if start_btn:
             saved = 0
             progress_bar = st.progress(0)
@@ -256,7 +347,7 @@ with main_col:
                                             continue
                             valid_boxes.append((bx, by, bw, bh))
                     
-                    if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(h*0.5)))
+                    if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
                     
                     for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                         cx, cy = bx + bw // 2, by + bh // 2
@@ -291,7 +382,7 @@ with main_col:
                 st.session_state.temp_ready = True
                 st.success(L["success"].format(saved))
                 
-        # 👑 👑 👑 【情感勒索保險絲：點擊一鍵下載時，雙軌判定扣點與免費限額！】 👑 👑 👑
+        # 👑 👑 👑 【1原圖扣1點：一鍵下載時精準比對原始上傳張數！】 👑 👑 👑
         if "temp_ready" in st.session_state and st.session_state.temp_ready:
             zip_path = "/tmp/processed_centered_images.zip"
             if not os.path.exists(zip_path):
@@ -302,25 +393,22 @@ with main_col:
             user_authed = st.session_state.user_authenticated
             user_credits_val = current_credits if (user_authed and 'current_credits' in locals()) else 0
             
-            # 🔒 下載大閘門：如果「未登入」且「免註冊額度超過 10 張/24H or 30張/30天」，直接彈出紅字鎖死按鈕！
+            # 🔒 雙軌安全大閘門 (精準按照原始上傳原圖張數計算)
             if not user_authed:
-                if st.session_state.daily_usage + len(uploaded_files) > 10 or st.session_state.monthly_usage + len(uploaded_files) > 30:
+                if st.session_state.daily_usage + len(uploaded_files) > 10:
                     st.error(L["limit_err"])
                 else:
-                    # 免註冊額度足夠，放行下載並扣除免註冊額度！
                     with open(zip_path, "rb") as f_zip:
-                        if st.download_button(label=L["dl_btn"], data=f_zip.read(), file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True):
+                        if st.download_button(label=L["dl_btn"], data=f_zip.read(), file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_guest"):
                             st.session_state.daily_usage += len(uploaded_files)
-                            st.session_state.monthly_usage += len(uploaded_files)
                             st.session_state.temp_ready = False
                             st.rerun()
             else:
-                # 登入會員狀態，改走 Firebase 真實雲端 Token 扣點大腦
                 if user_credits_val < len(uploaded_files):
                     st.error(L["limit_err"])
                 else:
                     with open(zip_path, "rb") as f_zip:
-                        if st.download_button(label=L["dl_btn"], data=f_zip.read(), file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True):
+                        if st.download_button(label=L["dl_btn"], data=f_zip.read(), file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_user"):
                             new_balance = max(0, user_credits_val - len(uploaded_files))
                             if db and user_uid:
                                 db.collection("users").document(user_uid).update({"credits": new_balance})
