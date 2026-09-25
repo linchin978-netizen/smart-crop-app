@@ -16,7 +16,7 @@ if not firebase_admin._apps:
 
 db = firestore.client() if firebase_admin._apps else None
 
-# 👑 雲端快取優化：確保 AI 模型在雲端唯一下載一次
+# 👑 雲端快取優化：確保 AI 去背模型在雲端唯一下載一次
 @st.cache_resource
 def load_rembg_session():
     return new_session("silueta")
@@ -76,7 +76,7 @@ LANG_MAP = {
         "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
         "success": "### ✅ 核心解算成功！共生成 {} 张智慧置中照片！",
         "dl_btn": "🎁 点击解锁并下载完美置中相片压缩包 (ZIP)",
-        "limit_err": "❌ 额度拦截熔断！本批上传商品照量（{}张）大于您的剩余可用点数（{}点）。请使用左侧清除重选按钮减少照片上传量，或立即在右侧登录/充值点数套餐包！",
+        "limit_err": "❌ 额度拦截熔断！本批上传商品照量（{}张）大于您的剩余可用点数（{}点）。请使用左侧清除重选按钮减少照片上传量，or 立即在右侧登录/充值点数套餐包！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
         "guest_info": "🕒 免注册试用钱包：\n* 当日已用点数：**{} / 10** Credits (每24小时全自动重置归零)\n* 30日累计使用：**{} / 30** Credits\n* 💡 剩余可导出总张数：**{} 张**",
         "welcome": "👋 欢迎回来，尊贵的电商伙伴：**{}** \n* 🪙 免费钱包余额：**{} Credits** (优先扣除)\n* 🪙 付费钱包余额：**{} Credits**\n* 💡 剩余可导出总张数：**{} 张**"
@@ -108,7 +108,7 @@ LANG_MAP = {
     },
     "日本語": {
         "title": "🌐 AI 商品画像自動中央配置＆自動クロップシステム",
-        "subtitle": "トレカ・EC商品画像の自動クロップ・複数分割・容量と比率の自由設定",
+        "subtitle": "トレカ・EC商品画像の自動クロップ・複数分割・容量と比率의自由設定",
         "pricing_html": """
         ### 💰 プランを選択してください (随時利用可能な Credits トークンパック)
         * **🌟 無料体験**: **$0** (新規登録で **20 無料トークン** プレゼント！) ── *強力な中央配置パワーをお試しください。*
@@ -130,7 +130,8 @@ LANG_MAP = {
         "usage_title": "📊 プレミアム会員ウォレット状況",
         "guest_info": "🕒 未登録の無料プラン:\n* 本日の使用量: **{} / 10** Credits (24時間リセット)\n* 30日間の累計使用量: **{} / 30** Credits\n* 💡 残り利用可能枚数: **{} 枚**",
         "welcome": "👋 お帰りなさい: **{}** \n* 🪙 無料トークン残量: **{} Credits** (優先消費)\n* 🪙 付費トークン残量: **{} Credits**\n* 💡 残り利用可能枚数: **{} 枚**"
-        "한국어": {
+    },
+    "한국어": {
         "title": "🌐 AI 이커머스 상품 이미지 자동 중앙 배치 시스템",
         "subtitle": "트레이딩 카드 및 쇼핑몰 상품 이미지 크롭, 다중 분할 및 비율 용량 자유 설정",
         "pricing_html": """
@@ -166,7 +167,7 @@ LANG_MAP = {
         * **👑 แพ็กเกจมหาเศรษฐีข้ามพรมแดน**: **$49.99** (รับ **2,000 โทเค็น** ── **คุ้มค่าที่สุด: เฉลี่ยภาพละไม่ถึง 0.8 บาท!**)
         """,
         "param_header": "⚙️ พารามิเตอร์สัดส่วนและขนาดไฟล์ภาพ (ระบุค่าได้เอง)",
-        "ratio_lbl": "สัดส่วนของสินค้าในภาพ (10-99%):",
+        "ratio_lbl": "สัดส่วนของสินค้าสินค้าในภาพ (10-99%):",
         "size_lbl": "จำกัดขนาดไฟล์สูงสุด (MB):",
         "drag_lbl": "📥 ลากรูปภาพหรือโฟลเดอร์มาวางที่นี่ (ทดลองใช้ฟรี ไม่ต้องลงทะเบียน)",
         "loaded_lbl": "📊 รูปภาพที่โหลดสำเร็จ: {} ภาพ",
@@ -199,7 +200,7 @@ LANG_MAP = {
         "btn_lbl": "🚀 Eksport Gambar Centered Secara Pukal Pantas Satu-Klik",
         "processing": "⏳ Saluran paip neural memproses aset {} / {}...",
         "success": "### ✅ Proses Selesai! Sebanyak {} aset telah dijana di dalam cakera awan!",
-        "dl_btn": "🎁 Buka Kunci & Muat Tunun Pakej ZIP",
+        "dl_btn": "🎁 Buka Kunci & Muat Turun Pakej ZIP",
         "limit_err": "🔒 Sekatan Kuota Awal! Muatan gambar anda ({} item) melebihi baki kredit semasa anda ({} item). Sila kurangkan imej atau tambah token segera.",
         "usage_title": "📊 STATUS DOMPET PREMIUM SAAS",
         "guest_info": "🕒 Dompet Percubaan Tanpa Daftar:\n* Had Harian Digunakan: **{} / 10** Credits (Set semula 24 jam)\n* Penggunaan 30 Hari: **{} / 30** Credits\n* 💡 Jumlah Baki Sedia Ada: **{} item**",
@@ -227,7 +228,7 @@ LANG_MAP = {
         "dl_btn": "🎁 Buka Kunci & Unduh Paket ZIP",
         "limit_err": "🔒 Blokir Batas Kuota Awal! Jumlah gambar ({} item) melebihi kuota tersedia dompet Anda ({} item). Sila kurangkan jumlah gambar atau top up token sekarang.",
         "usage_title": "📊 STATUS DOMPET PREMIUM ANGGOTA",
-        "guest_info": "🕒 Dompet Uji Coba Tanpa Registrasi:\n* Kuota Harian Terpakai: **{} / 10** Credits (Reset 24 jam)\n* Total 30 Hari: **{} / 30** Credits\n* 💡 Sisa Lembar Yang Tersedia: **{} item**",
+        "guest_info": "🕒 Dompet Uji Coba Tanpa Indonesia:\n* Kuota Harian Terpakai: **{} / 10** Credits (Reset 24 jam)\n* Total 30 Hari: **{} / 30** Credits\n* 💡 Sisa Lembar Yang Tersedia: **{} item**",
         "welcome": "👋 Selamat datang kembali: **{}** \n* 🪙 Sisa Kredit Gratis: **{} Credits** (Potong pertama)\n* 🪙 Sisa Kredit Berbayar: **{} Credits**\n* 💡 Sisa Lembar Yang Tersedia: **{} item**"
     }
 }
@@ -269,19 +270,16 @@ lang = st.selectbox("🌐 Language Interface ｜ 多國語言切換晶片", ("�
 L = LANG_MAP[lang]
 
 # 👑 👑 👑 【核心動態餘額預先同步解算器】 👑 👑 👑
-# 無論網頁怎麼整理，在繪製畫面第一行前，先去 Firebase 或記憶體解算出該訪客精確的「剩餘可導出總張數」！
 user_authed = st.session_state.user_authenticated
 credits_free = 0
 credits_paid = 0
 user_uid = ""
 
 if not user_authed:
-    # 遊客：取每日剩餘 (10 - 已用) 與每月剩餘 (30 - 已用) 的絕對最小值，死鎖極限！
     rem_daily = max(0, 10 - st.session_state.daily_usage)
     rem_monthly = max(0, 30 - st.session_state.monthly_usage)
     current_remaining_quota = min(rem_daily, rem_monthly)
 else:
-    # 會員：直接連線 Firebase 撈出真實雙軌點數
     if db:
         try:
             user_rec = auth.get_user_by_email(st.session_state.user_email)
@@ -295,13 +293,12 @@ else:
             credits_paid = 0
     current_remaining_quota = credits_free + credits_paid
 
-# 👑 全球高級電商雙欄位大氣佈局：左邊放功能，右邊放會員註冊與計數看板
+# 👑 全球高級電商雙欄位大氣佈局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not user_authed:
-        # 📊 遊客看板：實時動態噴出精準的「剩餘可導出總張數」！
         st.info(L["guest_info"].format(st.session_state.daily_usage, st.session_state.monthly_usage, current_remaining_quota))
         st.markdown("---")
         auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
@@ -328,7 +325,6 @@ with side_col:
                     st.rerun()
                 except Exception as e: st.error(f"❌ Failed: {str(e)}")
     else:
-        # 📊 會員看板：清晰看見自己的免費與付費餘額、以及加總後的剩餘可用總張數！
         st.success(L["welcome"].format(st.session_state.user_email, credits_free, credits_paid, current_remaining_quota))
         
         st.markdown("---")
@@ -367,14 +363,12 @@ with main_col:
 
     uploaded_files = st.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"file_uploader_core_{st.session_state.uploader_key_token}")
     # 👑 👑 👑 【最前端物理安全攔截網】 👑 👑 👑
-# 預先偵測使用者拉進來的「實體原圖張數」是否大於他的「剩餘可用張數」！
 num_uploaded = len(uploaded_files) if uploaded_files else 0
 quota_violation = False
 
 if num_uploaded > 0:
     if num_uploaded > current_remaining_quota:
         quota_violation = True
-        # 🚨 最前端強行警報熔斷！彈出客製化錯誤紅字，不給任何人白白消耗您的雲端 AI 算力！
         st.error(L["limit_err"].format(num_uploaded, current_remaining_quota))
 
 col_btn1, col_btn2 = st.columns(2)
@@ -384,7 +378,6 @@ with col_btn1:
         st.session_state.temp_ready = False
         st.rerun()
 with col_btn2:
-    # 🔒 按鈕實體死鎖盾牌：如果 quota_violation 為 True，直接強行將按鈕狀態設為 disabled=True（實體灰色卡死、完全無法點擊）！
     start_btn = st.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=quota_violation)
 
 # 全域安全路徑對齊防線
@@ -485,7 +478,6 @@ if uploaded_files and not quota_violation:
             st.session_state.temp_ready = True
             st.success(L["success"].format(saved))
             
-    # 🔒 下載防禦保險絲 ── 1原圖扣1點與遊客大防線
     if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
         zip_file_size = os.path.getsize(zip_path)
         if zip_file_size > 0:
