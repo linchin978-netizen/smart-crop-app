@@ -155,14 +155,12 @@ start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="
 
 zip_path = "/tmp/processed_centered_images.zip"
 
-# 🛸 終極大絕招：在此執行「網頁預先留存熔斷機制」！
-# 如果有暫存成果，或者使用者沒有按下執行按鈕，直接強行斬斷代碼（st.stop）放行！
-# 這意味著下方第四部分（最核心的 AI 算法）在貼上時，最左邊「完全不需要任何空格縮排」，徹徹底底扁平化靠左！
-if "temp_ready" in st.session_state and st.session_state.temp_ready:
+# 🛸 👑 狀態機死鎖完美修復：只要暫存區有東西（temp_ready == True），綠色通道直接放行，不准觸發 st.stop()！
+if st.session_state.temp_ready:
     pass
-elif not (uploaded_files and start_btn):
+elif not start_btn:
     st.stop()
-    # 👑 🛸 受惠於第三部分的 st.stop 機制，這裡代碼「最左邊完全不留半個空格」，徹底根除 IndentationError！
+    # 👑 🛸 靠左扁平化防護線，100% 杜絕 IndentationError，進度條跑完立刻亮起！
 saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
@@ -265,7 +263,7 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
-            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) >Part_idx else f"{base_name}.jpg"
+            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
                 "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
@@ -278,7 +276,6 @@ if saved > 0:
     st.session_state.temp_ready = True
     st.rerun()
 
-# 🔓 🔓 🔓 【持久化安全外層渲染扣點大面板 ── 0 縮排靠左技術】 🔓 🔓 🔓
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
