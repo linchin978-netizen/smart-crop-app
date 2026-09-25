@@ -1,4 +1,4 @@
-import os, io, zipfile, cv2, numpy as np
+import os, io, zipfile, cv2, gc, numpy as np
 from PIL import Image, ImageOps
 import streamlit as st
 
@@ -115,7 +115,7 @@ L = LANG_MAP[lang]
 st.title(L["title"])
 st.markdown(f"*{L['subtitle']}*")
 
-# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已放寬至 30 張！)
+# 📊 右上方 FREE 使用額度面板 (每日免費公測額度已正式放寬至 30 張！)
 st.info(f"**{L['usage_title']}** ｜ 🕒 Daily Limit: **{st.session_state.daily_usage} / 30** ｜ 📅 30 Days Count: **{st.session_state.monthly_usage} / 60**")
 
 # 💡 使用說明大面板
@@ -193,7 +193,7 @@ if uploaded_files:
                         
                         h_p_o, w_p_o, _ = img_probe_orig.shape
                         
-                        # 👑 👑 👑 【100% 桌面版計數大腦複製】 👑 👑 👑
+                        # 👑 👑 👑 【100% 桌面版商品計數決策大腦】 👑 👑 👑
                         contours_0 = get_ai_bounding_boxes(img_probe_orig)
                         img_probe_90 = cv2.rotate(img_probe_orig.copy(), cv2.ROTATE_90_CLOCKWISE)
                         contours_90 = get_ai_bounding_boxes(img_probe_90)
@@ -270,9 +270,9 @@ if uploaded_files:
                                 valid_boxes.append((bx, by, bw, bh))
                         
                         if not valid_boxes:
-                            valid_boxes.append((int(w_high*0.25), int(h_high*0.25), int(w_high*0.5), int(w_high*0.5)))
+                            valid_boxes.append((int(w_high*0.25), int(w_high*0.25), int(w_high*0.5), int(w_high*0.5)))
                         
-                        # 👑 👑 👑 【100% 刀跟肉身對齊 ── 完美還原 90 度開刀坐標！】 👑 👑 👑
+                        # 👑 👑 👑 【刀與肉身完璧歸趙 ── 置中裁切】 👑 👑 👑
                         for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
                             cx, cy = bx + bw // 2, by + bh // 2
                             
@@ -292,7 +292,6 @@ if uploaded_files:
                             cropped = img[y1:y2, x1:x2]
                             if cropped.size == 0: continue
                             
-                            # 💡 刀跟肉身完美貼合，裁切完再反向翻轉還原原始角度，絕不再錯位少圖！
                             if is_rotated_for_calculation:
                                 if rotation_mode == 90: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                                 elif rotation_mode == 180: cropped = cv2.rotate(cropped, cv2.ROTATE_180)
@@ -310,6 +309,10 @@ if uploaded_files:
                             out_img_name = f"{base_name}_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
                             zip_file.writestr(out_img_name, buf.tobytes())
                             saved += 1
+                            
+                        # 👑 【26張大上傳免斷電核心】：開刀存檔完畢，立刻將大影像從記憶體中強行抹除釋放！
+                        del img, img_orig, img_probe_orig, contours, contours_0, contours_90, contours_180, contours_270
+                        gc.collect() # 命令 Linux 核心強制回收垃圾，力保下載按鈕刷新不踩紅線！
                             
                     except Exception as e:
                         st.error(f"Error {file.name}: {str(e)}")
