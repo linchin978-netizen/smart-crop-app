@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
 
-# 👑 頂層狀態機初始化防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
+# 👑 頂層狀態機初始化最前置防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
@@ -19,8 +19,7 @@ if not firebase_admin._apps:
         fb_dict = dict(st.secrets["firebase"])
         cred = credentials.Certificate(fb_dict)
         firebase_admin.initialize_app(cred)
-    except:
-        pass
+    except: pass
 
 db = firestore.client() if firebase_admin._apps else None
 
@@ -37,7 +36,8 @@ def get_remote_ip():
             elif "X-Real-IP" in headers: return headers["X-Real-IP"].strip()
     except: pass
     return "127.0.0.1"
-    # 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
+
+# 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
 L = {
     "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
     "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
@@ -55,7 +55,6 @@ L = {
     "orig_lbl": "📥 Original Asset",
     "del_btn": "🗑 Reject & Remove File"
 }
-
 st.set_page_config(page_title="NEXUS CROP — AI Unified SaaS", page_icon="🌐", layout="wide")
 
 visitor_ip = get_remote_ip()
@@ -76,6 +75,7 @@ if db and not user_authed and visitor_ip != "127.0.0.1":
     except: pass
 
 current_remaining_quota = min(10 - guest_used_day, 30 - guest_used_month) if not user_authed else credits_total
+
 # 高級電商雙欄布局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
@@ -154,122 +154,132 @@ any_violation = (num_uploaded == 0 or num_uploaded > current_remaining_quota)
 start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="start_pipeline", disabled=any_violation)
 
 zip_path = "/tmp/processed_centered_images.zip"
-if uploaded_files and start_btn:
-    saved = 0
-    progress_bar = main_col.progress(0)
-    session = load_rembg_session()
-    st.session_state.master_preview_dict = {}
-    temp_out_dir = "/tmp/processed_centered_images"
-    if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
-    if os.path.exists(zip_path): os.remove(zip_path)
-    os.makedirs(temp_out_dir, exist_ok=True)
-    
-    for idx, file in enumerate(uploaded_files, 1):
-        try:
-            file_raw_name = file.name
-            file.seek(0)
-            file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
-            img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            if img_orig is None: continue
+
+# 🛸 終極大絕招：在此執行「網頁預先留存熔斷機制」！
+# 如果有暫存成果，或者使用者沒有按下執行按鈕，直接強行斬斷代碼（st.stop）放行！
+# 這意味著下方第四部分（最核心的 AI 算法）在貼上時，最左邊「完全不需要任何空格縮排」，徹徹底底扁平化靠左！
+if "temp_ready" in st.session_state and st.session_state.temp_ready:
+    pass
+elif not (uploaded_files and start_btn):
+    st.stop()
+    # 👑 🛸 受惠於第三部分的 st.stop 機制，這裡代碼「最左邊完全不留半個空格」，徹底根除 IndentationError！
+saved = 0
+progress_bar = main_col.progress(0)
+session = load_rembg_session()
+st.session_state.master_preview_dict = {}
+temp_out_dir = "/tmp/processed_centered_images"
+if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
+if os.path.exists(zip_path): os.remove(zip_path)
+os.makedirs(temp_out_dir, exist_ok=True)
+
+for idx, file in enumerate(uploaded_files, 1):
+    try:
+        file_raw_name = file.name
+        file.seek(0)
+        file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
+        img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if img_orig is None: continue
+        
+        _, orig_thumb_buf = cv2.imencode(".jpg", img_orig, [cv2.IMWRITE_JPEG_QUALITY, 35])
+        st.session_state.master_preview_dict[file_raw_name] = {
+            "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
+        }
+        
+        img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
+        output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
+        alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+        _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
+        contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+        img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
+        output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
+        alpha_r = cv2.cvtColor(np.array(output_pil_r), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+        _, thresh_r = cv2.threshold(alpha_r, 10, 255, cv2.THRESH_BINARY)
+        contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        h_o, w_o, _ = img_orig.shape
+        valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
+        h_r, w_r, _ = img_rotated.shape
+        valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
+        
+        if valid_cnt_rotated > valid_cnt_normal:
+            img = img_rotated
+            contours = contours_rotated
+            is_rotated_for_calculation = True
+            h, w = h_r, w_r
+        else:
+            img = img_orig
+            contours = contours_normal
+            is_rotated_for_calculation = False
+            h, w = h_o, w_o
+        
+        valid_boxes = []
+        for c in contours:
+            hull = cv2.convexHull(c)
+            if cv2.contourArea(hull) > (w * h * 0.015):
+                bx, by, bw, bh = cv2.boundingRect(hull)
+                roi = img[by:by+bh, bx:bx+bw]
+                if roi.size > 0:
+                    g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                    e_roi = cv2.Canny(g_roi, 50, 150)
+                    if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
+                        s_pil = remove(Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)), session=session)
+                        s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+                        _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
+                        s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        if s_cnt:
+                            sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
+                            if sbw * sbh < (bw * bh * 0.92):
+                                valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
+                                continue
+                valid_boxes.append((bx, by, bw, bh))
+        
+        if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
+        
+        for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
+            cx, cy = bx + bw // 2, by + bh // 2
+            ideal_pad_w = int((bw / ratio - bw) / 2)
+            ideal_pad_h = int((bh / ratio - bh) / 2)
             
-            _, orig_thumb_buf = cv2.imencode(".jpg", img_orig, [cv2.IMWRITE_JPEG_QUALITY, 35])
-            st.session_state.master_preview_dict[file_raw_name] = {
-                "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
-            }
+            pad_l = min(cx - bw // 2, ideal_pad_w)
+            pad_r = min((w - cx) - bw // 2, ideal_pad_w)
+            pad_t = min(cy - bh // 2, ideal_pad_h)
+            pad_b = min((h - cy) - bh // 2, ideal_pad_h)
             
-            img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
-            output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
-            alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-            _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
-            contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            x1 = cx - bw // 2 - pad_l; x2 = cx + bw // 2 + pad_r
+            y1 = cy - bh // 2 - pad_t; y2 = cy + bh // 2 + pad_b
             
-            img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
-            img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
-            output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
-            alpha_r = cv2.cvtColor(np.array(output_pil_r), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-            _, thresh_r = cv2.threshold(alpha_r, 10, 255, cv2.THRESH_BINARY)
-            contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cropped = img[y1:y2, x1:x2]
+            if cropped.size == 0: continue
+            if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
             
-            h_o, w_o, _ = img_orig.shape
-            valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
-            h_r, w_r, _ = img_rotated.shape
-            valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
+            _, cropped_thumb_buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, 35])
             
-            if valid_cnt_rotated > valid_cnt_normal:
-                img = img_rotated
-                contours = contours_rotated
-                is_rotated_for_calculation = True
-                h, w = h_r, w_r
-            else:
-                img = img_orig
-                contours = contours_normal
-                is_rotated_for_calculation = False
-                h, w = h_o, w_o
+            t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
+            for _ in range(10):
+                mid = (low + high) // 2
+                _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, mid])
+                if len(buf) <= t_bytes: best_q = mid; low = mid + 1
+                else: high = mid - 1
+            _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
-            valid_boxes = []
-            for c in contours:
-                hull = cv2.convexHull(c)
-                if cv2.contourArea(hull) > (w * h * 0.015):
-                    bx, by, bw, bh = cv2.boundingRect(hull)
-                    roi = img[by:by+bh, bx:bx+bw]
-                    if roi.size > 0:
-                        g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                        e_roi = cv2.Canny(g_roi, 50, 150)
-                        if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
-                            s_pil = remove(Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)), session=session)
-                            s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-                            _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
-                            s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                            if s_cnt:
-                                sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
-                                if sbw * sbh < (bw * bh * 0.92):
-                                    valid_boxes.append((bx + sbx, by + sby, sbw, sbh))
-                                    continue
-                    valid_boxes.append((bx, by, bw, bh))
+            base_name, _ = os.path.splitext(file_raw_name)
+            out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) >Part_idx else f"{base_name}.jpg"
             
-            if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
-            
-            for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
-                cx, cy = bx + bw // 2, by + bh // 2
-                ideal_pad_w = int((bw / ratio - bw) / 2)
-                ideal_pad_h = int((bh / ratio - bh) / 2)
-                
-                pad_l = min(cx - bw // 2, ideal_pad_w)
-                pad_r = min((w - cx) - bw // 2, ideal_pad_w)
-                pad_t = min(cy - bh // 2, ideal_pad_h)
-                pad_b = min((h - cy) - bh // 2, ideal_pad_h)
-                
-                x1 = cx - bw // 2 - pad_l; x2 = cx + bw // 2 + pad_r
-                y1 = cy - bh // 2 - pad_t; y2 = cy + bh // 2 + pad_b
-                
-                cropped = img[y1:y2, x1:x2]
-                if cropped.size == 0: continue
-                if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                
-                _, cropped_thumb_buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, 35])
-                
-                t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
-                for _ in range(10):
-                    mid = (low + high) // 2
-                    _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, mid])
-                    if len(buf) <= t_bytes: best_q = mid; low = mid + 1
-                    else: high = mid - 1
-                _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
-                
-                base_name, _ = os.path.splitext(file_raw_name)
-                out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
-                
-                st.session_state.master_preview_dict[file_raw_name]["crops"].append({
-                    "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
-                })
-                saved += 1
-        except: pass
-        progress_bar.progress(idx / num_uploaded)
-    
-    if saved > 0:
-        st.session_state.temp_ready = True
-        st.rerun()
-        if st.session_state.temp_ready and st.session_state.master_preview_dict:
+            st.session_state.master_preview_dict[file_raw_name]["crops"].append({
+                "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
+            })
+            saved += 1
+    except: pass
+    progress_bar.progress(idx / num_uploaded)
+
+if saved > 0:
+    st.session_state.temp_ready = True
+    st.rerun()
+
+# 🔓 🔓 🔓 【持久化安全外層渲染扣點大面板 ── 0 縮排靠左技術】 🔓 🔓 🔓
+if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     os.makedirs(temp_out_dir, exist_ok=True)
@@ -309,7 +319,6 @@ if uploaded_files and start_btn:
         layout_cols = main_col.columns([0.25, 0.75])
         layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
         
-        # 👑 🎯 5 縱列微型矩陣排列，將裁切預覽圖在螢幕上的物理呈現大小精準縮小至 60%，版面極致緊湊！
         sub_grid_cols = layout_cols.columns(5)
         for c_idx, crop_data in enumerate(contents["crops"]):
             with sub_grid_cols[c_idx % 5]:
