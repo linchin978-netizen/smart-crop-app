@@ -31,7 +31,6 @@ def get_ai_bounding_boxes(cv_img, session):
     return contours
 
 # 🌍 跨國網拍 SaaS 8 國語言大字典 (A面：繁體中文、简体中文)
-# 👑 100% 誠實文案同步校正！遊客看板已將 24H 與 30日 實體指紋雙鎖完全列出！
 LANG_MAP = {
     "繁體中文": {
         "title": "🌐 網拍電商商品照片 ── 智慧自動置中裁剪系統",
@@ -41,7 +40,7 @@ LANG_MAP = {
         * **🌟 免費體驗**: **$0** (註冊即送 **20 免費點數**！) ── *體驗強大原圖裁切防線。*
         * **🪙 賣家入門包**: **$4.99** (內含 **150 點數** ── *每張完美照片不用 1.1 元台幣！*)
         * **⚡ 大賣家衝刺包**: **$19.99** (內含 **700 點數** ── *每張完美照片不到 0.9 元台幣！*)
-        * **👑 跨境卡牌大亨包**: **$49.99** (內含 **2,000 點數** ── **極致極限：每張照片不到 0.8 元台幣！**)
+        * **👑 跨境卡牌大亨包**: **$4.99** (內含 **2,000 點數** ── **極致極限：每張照片不到 0.8 元台幣！**)
         """,
         "param_header": "⚙️ 圖檔比例容量參數 (可自訂數值)",
         "ratio_lbl": "導出後主體佔畫面比例 (10-99%):",
@@ -51,8 +50,8 @@ LANG_MAP = {
         "clear_btn": "🗑 清除重選",
         "btn_lbl": "🚀 一鍵快速導出完美置中商品照片",
         "processing": "⏳ 智慧光學解算中：第 {} 張 / 共 {} 張...",
-        "success": "### ✅ 核心解算成功！共生成 {} 張智慧命名置中照片！",
-        "dl_btn": "🎁 點擊解鎖並下載完美置中相片壓縮包 (ZIP)",
+        "success": "### ✅ 核心解算成功！點數已安全扣除，共生成 {} 張智慧置中照片！",
+        "dl_btn": "🎁 點擊下載完美置中相片壓縮包 (ZIP)",
         "limit_err": "🔒 額度攔截熔斷！您的免註冊試用額度（24H限10點/30日限30點）已全數耗盡！(實體硬碟鎖死，F5刷新亦無法重置)。請在右側註冊登入領取會員免費 20 點，或立即充值點數套餐包！",
         "dup_err": "⚠️ 偵測到重複上傳相同照片！框框內不可重複置入相同圖檔（即使更換檔名亦會被安全攔截），請使用清除重選並重新拉入純淨不重複的照片，以防止點數重複扣除爭議！",
         "usage_title": "📊 NEXUS CROP 會員錢包看板",
@@ -77,9 +76,9 @@ LANG_MAP = {
         "clear_btn": "🗑 清除重选",
         "btn_lbl": "🚀 一键快速导出完美置中商品照片",
         "processing": "⏳ 智慧光学解算中：第 {} 张 / 共 {} 张...",
-        "success": "### ✅ 核心解算成功！共生成 {} 张智慧命名置中照片！",
-        "dl_btn": "🎁 点击解锁并下载完美置中相片压缩包 (ZIP)",
-        "limit_err": "🔒 额度拦截熔断！您的免注册试用额度（24H限10点/30日限30点）已全数耗尽！(实体硬盘锁死，F5刷新亦无法重置)。请在右侧注册登录领取免费 20 点，or 立即充值点数套餐包！",
+        "success": "### ✅ 核心解算成功！点数已安全扣除，共生成 {} 张智慧置中照片！",
+        "dl_btn": "🎁 点击下载完美置中相片压缩包 (ZIP)",
+        "limit_err": "🔒 额度拦截熔断！您的免注册试用额度（24H限10点/30日限30点）已全数耗尽！(实体硬盘锁死，F5刷新亦无法重置)。请在右側注册登录领取免费 20 点，or 立即充值点数套餐包！",
         "dup_err": "⚠️ 侦测到重复上传相同照片！框框内不可重复置入相同图档（即使更换档名亦会被安全拦截），请使用清除重选并重新拉入纯净不重复的照片，以防止点数重复扣除争议！",
         "usage_title": "📊 NEXUS CROP 会员钱包看板",
         "guest_info": "🕒 浏览器指纹锁试用钱包：\n* 当日已用点数：**{} / 10** Credits (F5刷新不重置)\n* 30日累计使用：**{} / 30** Credits (硬盘实体双锁)\n* 💡 剩余可用总张数：**{} 张**",
@@ -103,8 +102,8 @@ LANG_MAP = {
         "clear_btn": "🗑 Clear & Reset Queue",
         "btn_lbl": "🚀 One-Click Quick Export Centered Photos",
         "processing": "⏳ Neural pipeline processing asset {} / {}...",
-        "success": "### ✅ Pipeline Render Completed! Total {} assets compiled in cloud disk!",
-        "dl_btn": "🎁 Unlock & Download Centering Assets Package (ZIP)",
+        "success": "### ✅ Pipeline Render Completed! Credits burned successfully. Total {} assets compiled!",
+        "dl_btn": "🎁 Download Centering Assets Package (ZIP)",
         "limit_err": "❌ Quota Intercepted! Your anonymous trial quota (10 Credits/24H or 30 Credits/30 Days) is exhausted. F5 refresh won't restore it. Please sign up to get 20 credits or purchase a package below.",
         "dup_err": "⚠️ Duplicate photos detected! You cannot upload identical images into the dropzone simultaneously. Please reset queue and upload unique photos to avoid duplicate billing.",
         "usage_title": "📊 PREMIUM WORKSPACE WALLET",
@@ -129,8 +128,8 @@ LANG_MAP = {
         "clear_btn": "🗑 キューをクリア",
         "btn_lbl": "🚀 ワンクリックで中央配置画像を高速エクスポート",
         "processing": "⏳ 解析中：第 {} 枚 / 全 {} 枚...",
-        "success": "### ✅ 解析完了！合計 {} 枚 of 画像がクラウドで生成されました！",
-        "dl_btn": "🎁 パッケージを解鎖してダウンロード (ZIP)",
+        "success": "### ✅ 解析完了！トークンは正常に消費されました。合計 {} 枚の画像が生成されました！",
+        "dl_btn": "🎁 クロップ画像をダウンロード (ZIP)",
         "limit_err": "❌ 利用制限インターセプト！無料お試し枠（1日10点/30日30点）を超えました。F5リセットは無効です。右側で無料登録して20点を受け取るか、パッケージを購入してください。",
         "dup_err": "⚠️ 重複画像が検出されました！同じ写真を複数アップロードすることはできません（ファイル名が異なってもブロックされます）。重複請求を防ぐため、ファイルを整理して再試行してください。",
         "usage_title": "📊 プレミアム会員ウォレット状況",
@@ -155,12 +154,12 @@ LANG_MAP = {
         "clear_btn": "🗑 대기열 비우기",
         "btn_lbl": "🚀 원클릭 일괄 중앙 배치 이미지 신속 내보내기",
         "processing": "⏳ 분석 중: {} / {} 번째 이미지 처리 중...",
-        "success": "### ✅ 분석 완료! 총 {} 장의 이미지가 클라우드 디스크에 생성되었습니다!",
-        "dl_btn": "🎁 패키지 잠금 해제 및 다운로드 (ZIP)",
+        "success": "### ✅ 분석 완료! 토큰이 성공적으로 차감되었습니다. 총 {} 장의 이미지가 생성되었습니다!",
+        "dl_btn": "🎁 압축 패키지 다운로드 (ZIP)",
         "limit_err": "❌ 한도 사전 차단! 무료 체험 한도(일 10점/30일 30점)를 초과했습니다. F5 새로고침으로 초기화할 수 없습니다. 오른쪽에서 토큰을 충전하세요.",
         "dup_err": "⚠️ 중복 파일이 감지되었습니다! 동일한 사진을 중복으로 올릴 수 없습니다. 중복 과금을 방지하기 위해 정리 후 다시 시도해주세요.",
         "usage_title": "📊 프리미엄 회원 지갑 상태",
-        "guest_info": "🕒 하드웨어 잠금 지갑:\n* 금일 사용량: **{} / 10** Credits (F5 무효)\n* 30일 사용량: **{} / 30** Credits\n* 💡 남은 이용 가능 장수: **{} 장**",
+        "guest_info": "🕒 하드웨어 잠금 지갑:\n* 금일 사용량: **{} / 10** Credits (F5 무효)\n* 30일 사용량: **{} / 30** Credits (복합 잠금)\n* 💡 남은 이용 가능 장수: **{} 장**",
         "welcome": "👋 어서 오세요, 프리미엄 파트너: **{}** \n* 🪙 무료 토큰 잔액: **{} Credits** (우선 차감)\n* 🪙 유료 토큰 잔액: **{} Credits**\n* 💡 남은 이용 가능 장수: **{} 장**"
     },
     "ภาษาไทย": {
@@ -181,8 +180,8 @@ LANG_MAP = {
         "clear_btn": "🗑 ล้างคิวรูปภาพ",
         "btn_lbl": "🚀 ส่งออกรูปภาพจัดกึ่งกลางอัตโนมัติอย่างรวดเร็วในคลิกเดียว",
         "processing": "⏳ กำลังประมวลผลภาพที่ {} / {}...",
-        "success": "### ✅ ประมวลผลเสร็จสิ้น! สร้างรูปภาพทั้งหมด {} ภาพบนดิสก์คลาวด์เรียบร้อย!",
-        "dl_btn": "🎁 ปลดล็อกและดาวน์โหลดไฟล์ ZIP",
+        "success": "### ✅ ประมวลผลเสร็จสิ้น! เครดิตถูกหักแล้ว สร้างรูปภาพทั้งหมด {} ภาพเรียบร้อย!",
+        "dl_btn": "🎁 ดาวน์โหลดไฟล์ ZIP รูปภาพจัดกึ่งกลาง",
         "limit_err": "🔒 ระบบระงับโควต้าล่วงหน้า! โควต้าทดลองฟรีหมดแล้ว (10 เครดิต/24 ชม. หรือ 30 เครดิต/30 วัน) การกด F5 ไม่มีผล กรุณาซื้อโทเค็นเพิ่มด้านขวา",
         "dup_err": "⚠️ ตรวจพบรูปภาพซ้ำกัน! ไม่สามารถอัปโหลดไฟล์เดิมซ้ำกันในคิวได้ กรุณาเคลียร์คิวแล้วอัปโหลดภาพที่ไม่ซ้ำกัน เพื่อป้องกันการหักเครดิตซ้ำซ้อน",
         "usage_title": "📊 สถานะกระเป๋าเงินสมาชิกพรีเมียม",
@@ -207,8 +206,8 @@ LANG_MAP = {
         "clear_btn": "🗑 Padam & Set Semula",
         "btn_lbl": "🚀 Utama-Klik Untuk Eksport Gambar Centered Secara Pukal",
         "processing": "⏳ Saluran paip neural memproses aset {} / {}...",
-        "success": "### ✅ Proses Selesai! Sebanyak {} aset telah dijana di dalam cakera awan!",
-        "dl_btn": "🎁 Buka Kunci & Muat Turun Pakej ZIP",
+        "success": "### ✅ Proses Selesai! Kredit telah ditolak. Sebanyak {} aset telah dijana!",
+        "dl_btn": "🎁 Muat Turun Pakej ZIP Gambar",
         "limit_err": "🔒 Sekatan Kuota Awal! Had trial 10 kredit/24H atau 30 kredit/30 Hari anda telah habis. Segarkan semula dengan F5 tidak akan menetapkan semula. Sila daftar atau tambah token.",
         "dup_err": "⚠️ Gambar bertindih dikesan! Anda tidak boleh memuat naik imej yang sama. Sila kosongkan barisan untuk mengelakkan pemotongan kredit berganda.",
         "usage_title": "📊 STATUS DOMPET PREMIUM SAAS",
@@ -233,8 +232,8 @@ LANG_MAP = {
         "clear_btn": "🗑 Bersihkan Antrean",
         "btn_lbl": "🚀 Ekspor Cepat Foto Berpusat Secara Massal Satu-Klik",
         "processing": "⏳ Sistem AI sedang memproses aset gambar {} / {}...",
-        "success": "### ✅ Proses AI Selesai! Sebanyak {} aset gambar berhasil dibuat di disk cloud!",
-        "dl_btn": "🎁 Buka Kunci & Unduh Paket ZIP",
+        "success": "### ✅ Proses AI Selesai! Kredit berhasil dipotong, sebanyak {} aset gambar dibuat!",
+        "dl_btn": "🎁 Unduh Paket ZIP Gambar Berpusat",
         "limit_err": "🔒 Batas Uji Coba Terkunci! Batas gratis 10 kredit harian atau 30 kredit bulanan Anda sudah habis. Menekan F5 tidak akan memulihkan kuota.",
         "dup_err": "⚠️ Duplikasi foto terdeteksi! Anda tidak dapat mengunggah gambar yang sama persis secara bersamaan. Silakan kosongkan antrean demi menghindari komplain potong kredit ganda.",
         "usage_title": "📊 STATUS DOMPET PREMIUM ANGGOTA",
@@ -250,60 +249,59 @@ if "user_authenticated" not in st.session_state: st.session_state.user_authentic
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
     # 👑 👑 👑 【24H限額 10 點 ＋ 30日限額 30 點 實體指紋鎖橋接晶片】 👑 👑 👑
-# 利用 localStorage 記憶軌道，強行烙印在用戶實體瀏覽器硬碟深處，完全免疫 F5 刷新、免疫關閉網頁！
 if "local_storage_used_day" not in st.session_state: st.session_state.local_storage_used_day = 0
 if "local_storage_used_month" not in st.session_state: st.session_state.local_storage_used_month = 0
+# 👑 引入全自動「防白嫖硬碟扣點緩衝訊號發射器」
+if "burn_signal_trigger" not in st.session_state: st.session_state.burn_signal_trigger = 0
 
-# 🚀 注入全功能雙防線 JS 探針，在開機 0.1 毫秒內提取「當日已用」與「當月已用」數據
-js_bridge_code = """
+# 🚀 注入全功能雙防線 JS 探針，在開機 0.1 毫秒內提取並同步實體硬碟數據
+js_bridge_code = f"""
 <script>
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
-    const monthStr = now.toISOString().slice(0, 7); // 2026-09 格式
+    const monthStr = now.toISOString().slice(0, 7);
     
-    let store = JSON.parse(localStorage.getItem('nexus_crop_vault_v2') || '{}');
-    if (store.date !== todayStr) {
+    let store = JSON.parse(localStorage.getItem('nexus_crop_vault_v3') || '{{}}');
+    if (store.date !== todayStr) {{
         store.date = todayStr;
         store.day_used = 0;
-    }
-    if (store.month !== monthStr) {
+    }}
+    if (store.month !== monthStr) {{
         store.month = monthStr;
         store.month_used = 0;
-    }
-    localStorage.setItem('nexus_crop_vault_v2', JSON.stringify(store));
+    }}
+    localStorage.setItem('nexus_crop_vault_v3', JSON.stringify(store));
     
-    function syncToPython() {
-        const currentStore = JSON.parse(localStorage.getItem('nexus_crop_vault_v2') || '{}');
-        const msg = {
-            type: 'NEXUS_SYNC_V2',
+    function syncToPython() {{
+        const currentStore = JSON.parse(localStorage.getItem('nexus_crop_vault_v3') || '{{}}');
+        const msg = {{
+            type: 'NEXUS_SYNC_V3',
             day_used: currentStore.day_used || 0,
             month_used: currentStore.month_used || 0
-        };
-        window.parent.postMessage({
+        }};
+        window.parent.postMessage({{
             isStreamlitMessage: true,
             type: "streamlit:setComponentValue",
             value: msg
-        }, "*");
-    }
+        }}, "*");
+    }}
     
-    window.addEventListener("message", function(e) {
-        if (e.data && e.data.type === "NEXUS_BURN_V2") {
-            let s = JSON.parse(localStorage.getItem('nexus_crop_vault_v2') || '{}');
-            s.day_used = (s.day_used || 0) + e.data.amount;
-            s.month_used = (s.month_used || 0) + e.data.amount;
-            localStorage.setItem('nexus_crop_vault_v2', JSON.stringify(s));
-            syncToPython();
-        }
-    });
+    // 👑 鋼鐵熔斷監聽：一旦 Python 拋出開刀成功訊號，立刻在 F5 刷新前，把額度死死烙印在硬碟中！
+    if ({st.session_state.burn_signal_trigger} > 0) {{
+        let s = JSON.parse(localStorage.getItem('nexus_crop_vault_v3') || '{{}}');
+        s.day_used = (s.day_used || 0) + {st.session_state.burn_signal_trigger};
+        s.month_used = (s.month_used || 0) + {st.session_state.burn_signal_trigger};
+        localStorage.setItem('nexus_crop_vault_v3', JSON.stringify(s));
+    }}
     
-    setTimeout(syncToPython, 300);
+    setTimeout(syncToPython, 200);
 </script>
 """
 # 點亮隱形網卡雙軌橋接晶片
 response_box = html(js_bridge_code, height=0, width=0)
 
-# 🚀 監聽並將前端指紋鎖數據精準綁定到 Python 變數中
-if response_box and isinstance(response_box, dict) and response_box.get("type") == "NEXUS_SYNC_V2":
+# 🚀 監聽並將前端指紋鎖數據精準綁定到 Python 狀態機中
+if response_box and isinstance(response_box, dict) and response_box.get("type") == "NEXUS_SYNC_V3":
     st.session_state.local_storage_used_day = response_box.get("day_used", 0)
     st.session_state.local_storage_used_month = response_box.get("month_used", 0)
 
@@ -341,7 +339,6 @@ credits_paid = 0
 user_uid = ""
 
 # 👑 👑 👑 【核心雙軌餘額實時動態同步解算大腦】 👑 👑 👑
-# 讀取指紋鎖回傳的實體硬碟值
 guest_day = st.session_state.local_storage_used_day
 guest_month = st.session_state.local_storage_used_month
 
@@ -370,7 +367,7 @@ main_col, side_col = st.columns([0.72, 0.28], gap="large")
 with side_col:
     st.markdown(f"### {L['usage_title']}")
     if not user_authed:
-        # 📊 完美對齊！右側遊客看板，實時秀出實體硬碟抓出來的日使用與月累計！
+        # 📊 右側遊客看板，實時秀出實體硬碟指紋鎖抓出來的日使用與月累計！
         st.info(L["guest_info"].format(guest_day, guest_month, current_remaining_quota))
         st.markdown("---")
         auth_mode = st.radio("Portal Access", ("Sign In", "Sign Up (Free 20)"), horizontal=True)
@@ -461,6 +458,7 @@ with col_btn1:
     if st.button(L["clear_btn"], use_container_width=True, key="clear_all_queue"):
         st.session_state.uploader_key_token += 1
         st.session_state.temp_ready = False
+        st.session_state.burn_signal_trigger = 0 # 歸零訊號
         st.rerun()
 with col_btn2:
     any_violation = quota_violation or duplicate_violation
@@ -577,36 +575,40 @@ if uploaded_files and not any_violation:
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for root, _, files in os.walk(temp_out_dir):
                     for f in files: zip_file.write(os.path.join(root, f), f)
+            
+            # 👑 👑 👑 【防白嫖核心：只要開刀完畢、立刻執行扣點程序！】 👑 👑 👑
+            if not user_authed:
+                # 遊客：立刻拉高 Python 觸發鑰匙，強行逼迫前端 JavaScript 把額度灌進實體硬碟！
+                st.session_state.burn_signal_trigger = num_uploaded
+            else:
+                # 會員：一秒都不等，直接連線 Firebase 把點數扣掉！
+                if credits_free >= num_uploaded:
+                    new_free = credits_free - num_uploaded
+                    new_paid = credits_paid
+                else:
+                    remainder = num_uploaded - credits_free
+                    new_free = 0
+                    new_paid = max(0, credits_paid - remainder)
+                if db and user_uid:
+                    db.collection("users").document(user_uid).update({
+                        "credits_free": new_free, "credits_paid": new_paid
+                    })
+            
             st.session_state.compiled_saved = saved
             st.session_state.temp_ready = True
             st.success(L["success"].format(saved))
+            st.rerun() # 強制網頁刷新一微秒，將扣點餘額鐵證如山地畫在右側看板上！
             
+    # 🔓 扣點大功告成！此時才安全地放出單向下載按鈕，這時他按 F5 刷新，點數早就被扣死，大按鈕當場變灰！
     if "temp_ready" in st.session_state and st.session_state.temp_ready and os.path.exists(zip_path):
         zip_file_size = os.path.getsize(zip_path)
         if zip_file_size > 0:
             with open(zip_path, "rb") as f_zip:
                 zip_data = f_zip.read()
-                
-            if not user_authed:
-                if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_guest"):
-                    st.markdown(f'<iframe srcdoc="<script>window.parent.postMessage({{type: \'NEXUS_BURN_V2\', amount: {num_uploaded}}}, \'*\');</script>" style="height:0px;width:0px;border:none;"></iframe>', unsafe_allow_html=True)
-                    st.session_state.uploader_key_token += 1
-                    st.session_state.temp_ready = False
-                    st.rerun()
-            else:
-                if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_user"):
-                    if credits_free >= num_uploaded:
-                        new_free = credits_free - num_uploaded
-                        new_paid = credits_paid
-                    else:
-                        remainder = num_uploaded - credits_free
-                        new_free = 0
-                        new_paid = max(0, credits_paid - remainder)
-                        
-                    if db and user_uid:
-                        db.collection("users").document(user_uid).update({
-                            "credits_free": new_free, "credits_paid": new_paid
-                        })
-                    st.session_state.uploader_key_token += 1
-                    st.session_state.temp_ready = False
-                    st.rerun()
+            
+            # 放行純淨下載鈕
+            if st.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", use_container_width=True, key="dl_zip_btn_final_gate"):
+                st.session_state.uploader_key_token += 1
+                st.session_state.temp_ready = False
+                st.session_state.burn_signal_trigger = 0 # 歸零
+                st.rerun()
