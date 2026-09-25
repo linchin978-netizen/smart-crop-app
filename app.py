@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore, auth
 from rembg import remove, new_session
 from datetime import datetime
 
-# 👑 頂層狀態機初始化最前置防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
+# 👑 頂層狀態機初始化防線：一開機立刻強制寫入記憶體，100% 防止順序 KeyError 車禍
 if "user_authenticated" not in st.session_state: st.session_state.user_authenticated = False
 if "user_email" not in st.session_state: st.session_state.user_email = ""
 if "uploader_key_token" not in st.session_state: st.session_state.uploader_key_token = 1000
@@ -80,7 +80,6 @@ current_remaining_quota = min(10 - guest_used_day, 30 - guest_used_month) if not
 # 高級電商雙欄布局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
-# 👑 🛸 採用完全靠左對齊防縮排技術
 side_col.markdown(f"### {L['usage_title']}")
 if not user_authed:
     side_col.info(L["guest_info"].format(guest_used_day, max(0, current_remaining_quota)))
@@ -103,7 +102,7 @@ if not user_authed:
                 st.session_state.user_email = email_in
                 st.rerun()
             except Exception as e: side_col.error(f"❌ Failed: {str(e)}")
-    else:
+else:
     if db:
         try:
             user_rec = auth.get_user_by_email(st.session_state.user_email)
@@ -128,8 +127,7 @@ if not user_authed:
         st.session_state.user_authenticated = False
         st.session_state.user_email = ""
         st.rerun()
-        # 👑 🛸 這裡全部打碎 with 結構，代碼靠在最左側！0 空格，0 縮排錯誤機率！
-main_col.title(L["title"])
+        main_col.title(L["title"])
 main_col.write("---")
 main_col.markdown(f"#### {L['param_header']}")
 
@@ -199,9 +197,15 @@ if uploaded_files and start_btn:
             valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
             
             if valid_cnt_rotated > valid_cnt_normal:
-                img = img_rotated; contours = contours_rotated; is_rotated_for_calculation = True; h, w = h_r, w_r
+                img = img_rotated
+                contours = contours_rotated
+                is_rotated_for_calculation = True
+                h, w = h_r, w_r
             else:
-                img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
+                img = img_orig
+                contours = contours_normal
+                is_rotated_for_calculation = False
+                h, w = h_o, w_o
             
             valid_boxes = []
             for c in contours:
@@ -267,7 +271,6 @@ if uploaded_files and start_btn:
         st.session_state.temp_ready = True
         st.rerun()
 
-# 👑 🔓 【外層極速渲染與安全放行扣點晶片 ── 0縮排扁平防護】 👑 🔓
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
@@ -298,7 +301,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             st.session_state.master_preview_dict = {}
             st.rerun()
 
-    # 🎨 🎨 🎨 【左原圖 25% ── 右 1/3 平行對照微型矩陣網格看板】 🎨 🎨 🎨
     main_col.write("---")
     main_col.markdown(f"### {L['preview_title']}")
     
@@ -319,4 +321,3 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     st.session_state.master_preview_dict[orig_key]["crops"].pop(c_idx)
                     if not st.session_state.master_preview_dict[orig_key]["crops"]: st.session_state.master_preview_dict.pop(orig_key)
                     st.rerun()
-                    
