@@ -393,7 +393,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
 
-        # 👑 【真．安全扣點回呼金庫】：利用 Callback 機制，繞過 Streamlit 的 Button 判定 Bug！
+        # 👑 【真．安全扣點回回呼金庫】：利用 Callback 機制，繞過 Streamlit 的 Button 判定 Bug！
         def execute_deduct_and_cleanup():
             # 🎯 現場計算本輪收取的點數
             deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
@@ -464,7 +464,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
-            # 💡 注意：在 Callback 函數內不需要手動 st.rerun()，Streamlit 執行完會自動重整
 
         # 🚀 100% 純淨的原生一鍵下載按鈕！透過 on_click 強制綁定上面的金庫函數！
         main_col.download_button(
@@ -474,7 +473,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             mime="application/zip",
             width="stretch",
             key="dl_zip_final_gate_pure_origin_v5",
-            on_click=execute_deduct_and_cleanup  # ✨ 關鍵修復點
+            on_click=execute_deduct_and_cleanup
         )
 
     st.html("""
@@ -494,12 +493,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 渲染左側原圖，徹底消滅 Context Manager Bug！
-        with layout_cols: 
+        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols[0] 渲染左側原圖
+        with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 橫向流式渲染子圖矩陣
-        with layout_cols:
+        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols[1] 橫向流式渲染子圖矩陣
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
