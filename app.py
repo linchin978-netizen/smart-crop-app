@@ -393,18 +393,27 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
 
-        # 👑 【終極防非同步閃退金庫】：預先快照變數，強制執行連線延遲鎖，徹底解決不扣點 Bug！
+        # 👑 【照妖鏡除錯金庫】：徹底拆除 except pass，強制現形所有錯誤！
         def execute_deduct_and_cleanup():
-            import time  # 引入時間庫來對付非同步時間差
+            import time
+            import traceback
             
-            # 🔒 【核心修正 1：快照鎖定】在函數執行的第一微秒，立刻把點數與使用者狀態鎖死，絕不允許被提早清空！
+            # 1. 立即鎖定變數快照
             snapshot_keys = list(st.session_state.master_preview_dict.keys())
             deduct_amt = len(snapshot_keys)
-            
-            # 先確認身分狀態，避免非同步重新渲染時狀態遺失
             is_authenticated = st.session_state.get("user_authenticated", False)
             user_email = st.session_state.get("user_email", "")
             is_dev_bypass = st.session_state.get("is_developer_bypass", False)
+            
+            # 2. 為了防止錯誤吞掉，直接在 Session 中記錄除錯日誌，重整後才能秀在畫面上
+            st.session_state["debug_log"] = {
+                "deduct_amt": deduct_amt,
+                "db_exists": db is not None,
+                "is_authenticated": is_authenticated,
+                "user_email": user_email,
+                "is_dev_bypass": is_dev_bypass,
+                "status": "Started"
+            }
             
             if deduct_amt > 0 and db:
                 now_ip = get_remote_ip()
@@ -417,25 +426,29 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 elif "DEVELOPER_IP_WHITELIST" in globals():
                     is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
                 
+                st.session_state["debug_log"]["is_dev_final"] = is_dev
+                
                 if not is_dev:
                     if not is_authenticated:
-                        # 🔴 訪客點擊：優先穿透寫入記帳
+                        # 🔴 訪客點擊
                         live_day, live_month = 0, 0
                         try:
                             ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
                             if ip_doc:
                                 if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
                                 if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
-                        except: pass
-                        
-                        db.collection("guest_ips").document(now_ip).set({
-                            "day_used": live_day + deduct_amt,
-                            "month_used": live_month + deduct_amt,
-                            "last_date": now_date,
-                            "last_month": now_month
-                        }, merge=True)
+                            
+                            db.collection("guest_ips").document(now_ip).set({
+                                "day_used": live_day + deduct_amt,
+                                "month_used": live_month + deduct_amt,
+                                "last_date": now_date,
+                                "last_month": now_month
+                            }, merge=True)
+                            st.session_state["debug_log"]["status"] = "Guest Deduct Success"
+                        except Exception as e:
+                            st.session_state["debug_log"]["error"] = f"Guest Error: {str(e)}\n{traceback.format_exc()}"
                     else:
-                        # 👑 付費會員點擊：優先穿透寫入會員資料庫帳本
+                        # 👑 付費會員點擊
                         try:
                             user_rec = auth.get_user_by_email(user_email)
                             u_uid = user_rec.uid
@@ -466,16 +479,23 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                     "last_date": now_date,
                                     "last_month": now_month
                                 }, merge=True)
-                        except: pass
+                                st.session_state["debug_log"]["status"] = "User Deduct Success"
+                            else:
+                                st.session_state["debug_log"]["status"] = "User Document Not Found"
+                        except Exception as e:
+                            st.session_state["debug_log"]["error"] = f"User Error: {str(e)}\n{traceback.format_exc()}"
+                else:
+                    st.session_state["debug_log"]["status"] = "Bypassed because is_dev = True"
+            else:
+                st.session_state["debug_log"]["status"] = f"Skipped: deduct_amt={deduct_amt}, db_exists={db is not None}"
             
-            # 🔒 【核心修正 2：延遲緩衝阻斷】強制阻斷 0.5 秒，確保 Firebase gRPC 連線寫入完畢後，才執行洗牌！
+            # 延遲並清洗
             time.sleep(0.5)
-            
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
 
-        # 🚀 100% 純淨的原生一鍵下載按鈕！透過 on_click 強制綁定上面的金庫函數！
+        # 🚀 渲染按鈕
         main_col.download_button(
             label=L["dl_btn"],
             data=zip_data,
@@ -485,6 +505,13 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             key="dl_zip_final_gate_pure_origin_v5",
             on_click=execute_deduct_and_cleanup
         )
+
+    # 🔍 【重要：除錯面板監聽器】當點擊完畢重整回來後，如果有抓到錯誤或狀態，立刻強制攤開在最底端！
+    if "debug_log" in st.session_state:
+        st.warning("⚠️ 扣點金庫後台監測面板（請在點擊下載後查看此處內容）：")
+        st.json(st.session_state["debug_log"])
+        if "error" in st.session_state["debug_log"]:
+            st.error(f"🔴 偵測到 Firebase 執行崩潰錯誤：\n{st.session_state['debug_log']['error']}")
 
     st.html("""
         <style>
@@ -503,11 +530,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 渲染左側原圖
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 橫向流式渲染子圖矩陣
         with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
