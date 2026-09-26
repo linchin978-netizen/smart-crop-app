@@ -160,7 +160,7 @@ if uploaded_files and start_btn:
     progress_bar = main_col.progress(0)
     session = load_rembg_session()
     
-    # 🧠 【增量防禦】：不一刀切清空，只把「被使用者移除了的圖」從記憶體拔掉
+    # 🧠 增量防禦：不一刀切清空，只把「被使用者移除了的圖」拔掉
     active_uploaded_names = {f.name for f in uploaded_files}
     for old_key in list(st.session_state.master_preview_dict.keys()):
         if old_key not in active_uploaded_names:
@@ -174,7 +174,7 @@ if uploaded_files and start_btn:
     for idx, file in enumerate(uploaded_files, 1):
         file_raw_name = file.name
         
-        # 🛡️ 【精準防重複安全鎖】：如果圖之前跑過了，直接跳過不進 AI！
+        # 🛡️ 精準防重複安全鎖
         if file_raw_name in st.session_state.master_preview_dict:
             saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
             progress_bar.progress(idx / num_uploaded)
@@ -191,29 +191,52 @@ if uploaded_files and start_btn:
                 "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
             }
             
-            img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
+            # 🛡️ 【AI 節能盾】：若圖片太大，等比例縮小進去背模型，防止 1GB 記憶體超載被伺服器殺死
+            h_o, w_o, _ = img_orig.shape
+            max_side = max(h_o, w_o)
+            if max_side > 1200:
+                scale = 1200.0 / max_side
+                img_for_ai = cv2.resize(img_orig, (int(w_o * scale), int(h_o * scale)), interpolation=cv2.INTER_AREA)
+            else:
+                img_for_ai = img_orig.copy()
+            
+            img_rgb_o = cv2.cvtColor(img_for_ai, cv2.COLOR_BGR2RGB)
             output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
             alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
             _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
+            
+            # 將去背結果等比例拉回原圖尺寸計算輪廓
+            if max_side > 1200:
+                thresh_o = cv2.resize(thresh_o, (w_o, h_o), interpolation=cv2.INTER_NEAREST)
             contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-            img_rotated = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
+            # 釋放正向去背記憶體
+            del img_rgb_o, output_pil_o, alpha_o, thresh_o
+            gc.collect()
+            
+            # 旋轉盲測節能處理
+            img_rotated = cv2.rotate(img_for_ai, cv2.ROTATE_90_CLOCKWISE)
             img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
             output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
             alpha_r = cv2.cvtColor(np.array(output_pil_r), cv2.COLOR_RGBA2BGRA)[:, :, 3]
             _, thresh_r = cv2.threshold(alpha_r, 10, 255, cv2.THRESH_BINARY)
+            
+            if max_side > 1200:
+                thresh_r = cv2.resize(thresh_r, (h_o, w_o), interpolation=cv2.INTER_NEAREST)
             contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-            h_o, w_o, _ = img_orig.shape
+            # 釋放旋轉去背記憶體
+            del img_for_ai, img_rotated, img_rgb_r, output_pil_r, alpha_r, thresh_r
+            gc.collect()
+            
             valid_cnt_normal = sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015))
-            h_r, w_r, _ = img_rotated.shape
-            valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
+            valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (h_o * w_o * 0.015))
             
             if valid_cnt_rotated > valid_cnt_normal:
-                img = img_rotated
+                img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE)
                 contours = contours_rotated
                 is_rotated_for_calculation = True
-                h, w = h_r, w_r
+                h, w = w_o, h_o
             else:
                 img = img_orig
                 contours = contours_normal
@@ -230,9 +253,18 @@ if uploaded_files and start_btn:
                         g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                         e_roi = cv2.Canny(g_roi, 50, 150)
                         if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
-                            s_pil = remove(Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)), session=session)
+                            # 針對大邊邊緣進行輕量化分析
+                            roi_h, roi_w, _ = roi.shape
+                            if max(roi_h, roi_w) > 600:
+                                s_scale = 600.0 / max(roi_h, roi_w)
+                                roi_light = cv2.resize(roi, (int(roi_w*s_scale), int(roi_h*s_scale)), interpolation=cv2.INTER_AREA)
+                            else:
+                                roi_light = roi.copy()
+                            s_pil = remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)
                             s_alpha = cv2.cvtColor(np.array(s_pil), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                             _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
+                            if max(roi_h, roi_w) > 600:
+                                s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
                             s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                             if s_cnt:
                                 sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
@@ -278,9 +310,8 @@ if uploaded_files and start_btn:
                 })
                 saved += 1
             
-            # 🛡️ 釋放當前跑完的新圖暫存
-            del img_orig, img_rgb_o, output_pil_o, alpha_o, thresh_o, contours_normal
-            del img_rotated, img_rgb_r, output_pil_r, alpha_r, thresh_r, contours_rotated
+            # 清理本輪實體大圖快取
+            del img, cropped
             gc.collect()
             
         except: pass
@@ -292,14 +323,14 @@ if uploaded_files and start_btn:
         # 👑 【預覽控制與即時重綁打包防線】
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     
-    # 🔗 動態連動交集同步：若使用者在上方 file_uploader 點 X 刪除，記憶體立刻同步蒸發，整排消失
+    # 🔗 動態連動交集同步
     active_uploaded_names = {f.name for f in uploaded_files} if uploaded_files else set()
     preview_keys = list(st.session_state.master_preview_dict.keys())
     for orig_key in preview_keys:
         if orig_key not in active_uploaded_names:
             st.session_state.master_preview_dict.pop(orig_key, None)
 
-    # 📦 即時重綁打包：每次刷新畫面，只將當下留在畫面上的成果圖寫入 ZIP
+    # 📦 即時重綁打包
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     os.makedirs(temp_out_dir, exist_ok=True)
@@ -330,7 +361,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             key="dl_zip_final_gate"
         )
         
-        # 🪙 下載成功扣點並全清空重置工作台
         if dl_clicked:
             if db and visitor_ip != "127.0.0.1" and not user_authed:
                 db.collection("guest_ips").document(visitor_ip).set({
@@ -346,7 +376,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             st.session_state.master_preview_dict = {}
             st.rerun()
 
-    # 🎨 注入全域 CSS 探針：強制約束預覽圖容器等高 180px、寬度依比例自適應
+    # 🎨 注入全域 CSS 探針
     st.html("""
         <style>
             div[data-testid="stImage"] img {
@@ -376,11 +406,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols[0]:
+        with layout_cols:
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols[1]:
-            # 🔥 依照分割出來的張數動態宣告等量欄位，強迫橫向並排
+        with layout_cols:
             sub_grid_cols = st.columns(num_crops)
             
             for c_idx, crop_data in enumerate(contents["crops"]):
