@@ -430,7 +430,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 live_wallet = u_doc.get("credits_total", 0)
                                 live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
                                 live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
-                                 m_free_left = max(0, 18 - live_free_month)
+                                
+                                # 👑 【縮進對齊校正】：4個空格標準縮進，彻底抹除 IndentationError 死穴！
+                                m_free_left = max(0, 18 - live_free_month)
                                 d_free_left = max(0, 6 - live_free_day)
                                 actual_free_left = min(d_free_left, m_free_left)
                                 
@@ -483,11 +485,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完美對齊修正】：精準指定 layout_cols[0] 渲染左側原圖，徹底消滅 Context Manager Bug！
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完美對齊修正】：精準指定 layout_cols[1] 渲染右側橫向流式裁切子圖矩陣
         with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
