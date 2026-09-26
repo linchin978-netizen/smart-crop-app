@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式預覽與【真．防白嫖扣點回調晶片】
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【真．防白嫖即時算張數回調晶片】
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -379,11 +379,8 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
     if os.path.exists(zip_path): os.remove(zip_path)
     
     total_live_count = 0
-    distinct_source_files_count = 0
-    
     for orig_file, contents in list(st.session_state.master_preview_dict.items()):
         if isinstance(contents, dict) and contents.get("crops"):
-            distinct_source_files_count += 1 
             for crop_item in contents["crops"]:
                 with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: 
                     f_out.write(crop_item["full_bytes"])
@@ -396,44 +393,52 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        # 👑 【真．防白嫖異步扣點回調大腦】：利用 callback 機制，在檔案下載的同一微秒，強行攔截、優先扣點！
-        def deduct_credits_callback_process(deduct_amt):
-            is_developer_bypass = (visitor_ip == "127.0.0.1" or visitor_ip in DEVELOPER_IP_WHITELIST)
-            if db and not is_developer_bypass:
-                if not user_authed:
-                    # 訪客扣點
-                    db.collection("guest_ips").document(visitor_ip).set({
-                        "day_used": guest_used_day + deduct_amt,
-                        "month_used": guest_used_month + deduct_amt,
-                        "last_date": current_date_str,
-                        "last_month": current_month_str
-                    })
-                elif user_uid:
-                    # 會員扣點
-                    member_monthly_free_left = max(0, 18 - user_free_month)
-                    member_daily_free_left = max(0, 6 - user_free_day)
-                    actual_today_free_left = min(member_daily_free_left, member_monthly_free_left)
-                    if deduct_amt <= actual_today_free_left:
-                        new_daily_free_used = user_free_day + deduct_amt
-                        new_monthly_free_used = user_free_month + deduct_amt
-                        new_wallet_total = user_wallet_total
-                    else:
-                        overflow_debt = deduct_amt - actual_today_free_left
-                        new_daily_free_used = user_free_day + actual_today_free_left
-                        new_monthly_free_used = user_free_month + actual_today_free_left
-                        new_wallet_total = max(0, user_wallet_total - overflow_debt)
-                    db.collection("users").document(user_uid).update({
-                        "credits_total": new_wallet_total,
-                        "daily_free_used": new_daily_free_used,
-                        "monthly_free_used": new_monthly_free_used,
-                        "last_date": current_date_str,
-                        "last_month": current_month_str
-                    })
-            # 扣點完畢後，實時清洗記憶體工作台，強迫重置
+        # 👑 【真．現場點算扣點晶片】：在使用者按下下載的同一微秒，大腦直接去數「目前畫面留下了幾排原圖成果」，彻底斬斷 0 點傳參漏洞！
+        def deduct_credits_callback_process():
+            # 現場點算活著的原圖數量
+            deduct_amt = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
+            
+            # 如果真的大於 0，才准放行穿透進資料庫記帳！
+            if deduct_amt > 0:
+                is_developer_bypass = (visitor_ip == "127.0.0.1" or visitor_ip in DEVELOPER_IP_WHITELIST)
+                if db and not is_developer_bypass:
+                    if not user_authed:
+                        # 訪客計費鏈
+                        db.collection("guest_ips").document(visitor_ip).set({
+                            "day_used": guest_used_day + deduct_amt,
+                            "month_used": guest_used_month + deduct_amt,
+                            "last_date": current_date_str,
+                            "last_month": current_month_str
+                        }, merge=True)
+                    elif user_uid:
+                        # 付費會員計費鏈 (精準落實：先扣今日免費，再穿透扣永久錢包)
+                        member_monthly_free_left = max(0, 18 - user_free_month)
+                        member_daily_free_left = max(0, 6 - user_free_day)
+                        actual_today_free_left = min(member_daily_free_left, member_monthly_free_left)
+                        
+                        if deduct_amt <= actual_today_free_left:
+                            new_daily_free_used = user_free_day + deduct_amt
+                            new_monthly_free_used = user_free_month + deduct_amt
+                            new_wallet_total = user_wallet_total
+                        else:
+                            overflow_debt = deduct_amt - actual_today_free_left
+                            new_daily_free_used = user_free_day + actual_today_free_left
+                            new_monthly_free_used = user_free_month + actual_today_free_left
+                            new_wallet_total = max(0, user_wallet_total - overflow_debt)
+                            
+                        db.collection("users").document(user_uid).set({
+                            "credits_total": new_wallet_total,
+                            "daily_free_used": new_daily_free_used,
+                            "monthly_free_used": new_monthly_free_used,
+                            "last_date": current_date_str,
+                            "last_month": current_month_str
+                        }, merge=True)
+            
+            # 扣點完成後，實時融毀工作台暫存，迫使下一輪乾淨清空
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
 
-        # 🚀 注入 on_click 攔截晶片：按下的瞬間直接觸發優先扣點，徹底補死 0 元白嫖 Bug！
+        # 🚀 註冊現場 callback，拿掉 args 傳參，改用現場點名計算法！
         main_col.download_button(
             label=L["dl_btn"],
             data=zip_data,
@@ -441,8 +446,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             mime="application/zip",
             width="stretch",
             key="dl_zip_final_gate",
-            on_click=deduct_credits_callback_process,
-            args=(distinct_source_files_count,)
+            on_click=deduct_credits_callback_process
         )
 
     st.html("""
