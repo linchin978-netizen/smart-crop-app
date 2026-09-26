@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【創辦人指引精準扣點晶片】
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【創辦人指引精準檔名扣點晶片】
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -490,10 +490,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols: 
+        # 👑 【完璧欄位對齊修正】：精準鎖定第 0 欄渲染左側原圖，徹底封死 TypeError！
+        with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols:
+        # 👑 【完璧欄位對齊修正】：精準鎖定第 1 欄橫向流式渲染子圖矩陣
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
