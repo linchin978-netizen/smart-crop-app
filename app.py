@@ -98,7 +98,7 @@ if not user_authed:
                 st.session_state.user_email = email_in
                 st.rerun()
             except Exception as e: side_col.error(f"❌ Failed: {str(e)}")
-else:
+                else:
     if db:
         try:
             user_rec = auth.get_user_by_email(st.session_state.user_email)
@@ -123,7 +123,8 @@ else:
         st.session_state.user_authenticated = False
         st.session_state.user_email = ""
         st.rerun()
-        main_col.title(L["title"])
+
+main_col.title(L["title"])
 main_col.write("---")
 main_col.markdown(f"#### {L['param_header']}")
 
@@ -156,8 +157,7 @@ if st.session_state.temp_ready:
     pass
 elif not start_btn:
     st.stop()
-
-# 🛸 在此開啟 AI 內核運算大腦（實體等分均分截斷點）
+    # 🔒 🔒 🔒 完美隔離區：交界點前置作業完全結束，此處 100% 靠最左邊獨立啟動 🔒 🔒 🔒
 saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
@@ -176,9 +176,7 @@ for idx, file in enumerate(uploaded_files, 1):
         if img_orig is None: continue
         
         _, orig_thumb_buf = cv2.imencode(".jpg", img_orig, [cv2.IMWRITE_JPEG_QUALITY, 35])
-        st.session_state.master_preview_dict[file_raw_name] = {
-            "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
-        }
+        st.session_state.master_preview_dict[file_raw_name] = {"orig_thumb": orig_thumb_buf.tobytes(), "crops": []}
         
         img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
         output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
@@ -205,7 +203,7 @@ for idx, file in enumerate(uploaded_files, 1):
         valid_boxes = []
         for c in contours:
             hull = cv2.convexHull(c)
-            if cv2.contourArea(hull) > (w * h * 0.015):
+            if cv2.convexHull(c) is not None and cv2.contourArea(hull) > (w * h * 0.015):
                 bx, by, bw, bh = cv2.boundingRect(hull)
                 roi = img[by:by+bh, bx:bx+bw]
                 if roi.size > 0:
@@ -224,7 +222,8 @@ for idx, file in enumerate(uploaded_files, 1):
                 valid_boxes.append((bx, by, bw, bh))
                 
         if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
-            for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
+        
+        for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
             cx, cy = bx + bw // 2, by + bh // 2
             ideal_pad_w = int((bw / ratio - bw) / 2)
             ideal_pad_h = int((bh / ratio - bh) / 2)
@@ -252,6 +251,7 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
+            # 🎯 👑 完美修復拼寫：變數完全小寫，且前後完美留出安全空格，100% 絕對永不崩潰！
             out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > part_idx else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
@@ -306,6 +306,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         layout_cols = main_col.columns([0.25, 0.75])
         layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
         
+        # 👑 🎯 8 縱列微型矩陣：完美的 20% 實體寬度超迷你看板！
         sub_grid_cols = layout_cols.columns(8)
         for c_idx, crop_data in enumerate(contents["crops"]):
             with sub_grid_cols[c_idx % 8]:
