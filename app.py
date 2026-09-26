@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【真．變數穿透防白嫖回調晶片】
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與實體欄位對齊防爆晶片
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -393,25 +393,20 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        # 👑 【真．變數穿透現場清算晶片】：在按下下載的同一微秒，大腦拋棄所有外部區域變數，直接現場去資料庫拿最新數據清算！
+        # 👑 【真．現場點算扣點晶片】：現場調閱資料庫，徹底打通作用域與月用量累積！
         def deduct_credits_callback_process():
-            # 1. 現場點算目前畫面上留下了幾排原圖成果
             deduct_amt = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
             
-            # 2. 如果扣點大於 0，啟動鋼鐵清算
             if deduct_amt > 0 and db:
-                # 實時重新取得連線 IP 與日期，確保不留任何快取殘影
                 now_ip = get_remote_ip()
                 now_date = datetime.now().strftime("%Y-%m-%d")
                 now_month = datetime.now().strftime("%Y-%m")
                 
-                # 判斷是否為白名單 (測試割韭菜模式下 is_developer_bypass 固定為 False)
                 is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST) if "DEVELOPER_IP_WHITELIST" in globals() else False
-                if is_developer_bypass: is_dev = True # 雙保險同步
+                if is_developer_bypass: is_dev = True
                 
                 if not is_dev:
                     if not st.session_state.user_authenticated:
-                        # 🔴 訪客實時扣點鏈：直接重新讀取 Firebase，絕不使用外部舊變數
                         live_day, live_month = 0, 0
                         try:
                             ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
@@ -427,7 +422,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                             "last_month": now_month
                         }, merge=True)
                     else:
-                        # 👑 會員實時扣點鏈：直接重新從 Firebase 會員帳本調出最新數據進行精準加減！
                         try:
                             user_rec = auth.get_user_by_email(st.session_state.user_email)
                             u_uid = user_rec.uid
@@ -436,9 +430,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 live_wallet = u_doc.get("credits_total", 0)
                                 live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
                                 live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
-                                
-                                # 落實：先扣今日免費，再穿透扣永久錢包
-                                m_free_left = max(0, 18 - live_free_month)
+                                 m_free_left = max(0, 18 - live_free_month)
                                 d_free_left = max(0, 6 - live_free_day)
                                 actual_free_left = min(d_free_left, m_free_left)
                                 
@@ -461,11 +453,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 }, merge=True)
                         except: pass
             
-            # 扣點完成後，實時融毀工作台暫存，強迫下一輪乾淨刷新
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
 
-        # 🚀 註冊現場 callback 攔截晶片！
         main_col.download_button(
             label=L["dl_btn"],
             data=zip_data,
@@ -493,10 +483,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols: 
+        # 👑 【完美對齊修正】：精準指定 layout_cols[0] 渲染左側原圖，徹底消滅 Context Manager Bug！
+        with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols:
+        # 👑 【完美對齊修正】：精準指定 layout_cols[1] 渲染右側橫向流式裁切子圖矩陣
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
