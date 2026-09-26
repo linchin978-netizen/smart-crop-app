@@ -393,19 +393,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
 
-        # 🚀 100% 純淨的原生一鍵下載按鈕！給歐美賣家最熟悉、最絲滑的電商操作手感！
-        dl_clicked = main_col.download_button(
-            label=L["dl_btn"],
-            data=zip_data,
-            file_name="processed_centered_images.zip",
-            mime="application/zip",
-            width="stretch",
-            key="dl_zip_final_gate_pure_origin_v5"
-        )
-        
-        # 👑 【真．滑鼠點擊攔截防線】：當使用者滑鼠實體點擊下載按鈕的那一毫秒！
-        if dl_clicked:
-            # 🎯 聽話代碼：現場直接點名畫面上「活著的不同原圖名稱數量（Key 數）」，就是本輪要收的點數！
+        # 👑 【真．安全扣點回呼金庫】：利用 Callback 機制，繞過 Streamlit 的 Button 判定 Bug！
+        def execute_deduct_and_cleanup():
+            # 🎯 現場計算本輪收取的點數
             deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
             
             if deduct_amt > 0 and db:
@@ -437,7 +427,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                             "last_month": now_month
                         }, merge=True)
                     else:
-                        # 👑 付費會員點擊：優先穿透寫入會員資料庫帳本 (先扣今日免費，再穿透扣永久錢包)
+                        # 👑 付費會員點擊：優先穿透寫入會員資料庫帳本
                         try:
                             user_rec = auth.get_user_by_email(st.session_state.user_email)
                             u_uid = user_rec.uid
@@ -470,12 +460,22 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 }, merge=True)
                         except: pass
             
-            # 🔒 【清算完才清空】：Firebase 100% 寫入記帳鎖死之後，最後一秒才准執行換鎖清洗大框框與工作台！
-            # ✨ (修正：已成功移入 if dl_clicked 區塊內，保證按完下載才重設工作台)
+            # 🔒 Firebase 寫入記帳鎖死之後，最後一秒清洗工作台！
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
-            st.rerun()
+            # 💡 注意：在 Callback 函數內不需要手動 st.rerun()，Streamlit 執行完會自動重整
+
+        # 🚀 100% 純淨的原生一鍵下載按鈕！透過 on_click 強制綁定上面的金庫函數！
+        main_col.download_button(
+            label=L["dl_btn"],
+            data=zip_data,
+            file_name="processed_centered_images.zip",
+            mime="application/zip",
+            width="stretch",
+            key="dl_zip_final_gate_pure_origin_v5",
+            on_click=execute_deduct_and_cleanup  # ✨ 關鍵修復點
+        )
 
     st.html("""
         <style>
@@ -494,12 +494,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols[0] 渲染左側原圖，徹底消滅 Context Manager Bug！
-        with layout_cols[0]: 
+        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 渲染左側原圖，徹底消滅 Context Manager Bug！
+        with layout_cols: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols[1] 橫向流式渲染子圖矩陣
-        with layout_cols[1]:
+        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 橫向流式渲染子圖矩陣
+        with layout_cols:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
