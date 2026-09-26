@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【真．防白嫖即時算張數回調晶片】
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【真．變數穿透防白嫖回調晶片】
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -393,52 +393,79 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        # 👑 【真．現場點算扣點晶片】：在使用者按下下載的同一微秒，大腦直接去數「目前畫面留下了幾排原圖成果」，彻底斬斷 0 點傳參漏洞！
+        # 👑 【真．變數穿透現場清算晶片】：在按下下載的同一微秒，大腦拋棄所有外部區域變數，直接現場去資料庫拿最新數據清算！
         def deduct_credits_callback_process():
-            # 現場點算活著的原圖數量
+            # 1. 現場點算目前畫面上留下了幾排原圖成果
             deduct_amt = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
             
-            # 如果真的大於 0，才准放行穿透進資料庫記帳！
-            if deduct_amt > 0:
-                is_developer_bypass = (visitor_ip == "127.0.0.1" or visitor_ip in DEVELOPER_IP_WHITELIST)
-                if db and not is_developer_bypass:
-                    if not user_authed:
-                        # 訪客計費鏈
-                        db.collection("guest_ips").document(visitor_ip).set({
-                            "day_used": guest_used_day + deduct_amt,
-                            "month_used": guest_used_month + deduct_amt,
-                            "last_date": current_date_str,
-                            "last_month": current_month_str
-                        }, merge=True)
-                    elif user_uid:
-                        # 付費會員計費鏈 (精準落實：先扣今日免費，再穿透扣永久錢包)
-                        member_monthly_free_left = max(0, 18 - user_free_month)
-                        member_daily_free_left = max(0, 6 - user_free_day)
-                        actual_today_free_left = min(member_daily_free_left, member_monthly_free_left)
+            # 2. 如果扣點大於 0，啟動鋼鐵清算
+            if deduct_amt > 0 and db:
+                # 實時重新取得連線 IP 與日期，確保不留任何快取殘影
+                now_ip = get_remote_ip()
+                now_date = datetime.now().strftime("%Y-%m-%d")
+                now_month = datetime.now().strftime("%Y-%m")
+                
+                # 判斷是否為白名單 (測試割韭菜模式下 is_developer_bypass 固定為 False)
+                is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST) if "DEVELOPER_IP_WHITELIST" in globals() else False
+                if is_developer_bypass: is_dev = True # 雙保險同步
+                
+                if not is_dev:
+                    if not st.session_state.user_authenticated:
+                        # 🔴 訪客實時扣點鏈：直接重新讀取 Firebase，絕不使用外部舊變數
+                        live_day, live_month = 0, 0
+                        try:
+                            ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
+                            if ip_doc:
+                                if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
+                                if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
+                        except: pass
                         
-                        if deduct_amt <= actual_today_free_left:
-                            new_daily_free_used = user_free_day + deduct_amt
-                            new_monthly_free_used = user_free_month + deduct_amt
-                            new_wallet_total = user_wallet_total
-                        else:
-                            overflow_debt = deduct_amt - actual_today_free_left
-                            new_daily_free_used = user_free_day + actual_today_free_left
-                            new_monthly_free_used = user_free_month + actual_today_free_left
-                            new_wallet_total = max(0, user_wallet_total - overflow_debt)
-                            
-                        db.collection("users").document(user_uid).set({
-                            "credits_total": new_wallet_total,
-                            "daily_free_used": new_daily_free_used,
-                            "monthly_free_used": new_monthly_free_used,
-                            "last_date": current_date_str,
-                            "last_month": current_month_str
+                        db.collection("guest_ips").document(now_ip).set({
+                            "day_used": live_day + deduct_amt,
+                            "month_used": live_month + deduct_amt,
+                            "last_date": now_date,
+                            "last_month": now_month
                         }, merge=True)
+                    else:
+                        # 👑 會員實時扣點鏈：直接重新從 Firebase 會員帳本調出最新數據進行精準加減！
+                        try:
+                            user_rec = auth.get_user_by_email(st.session_state.user_email)
+                            u_uid = user_rec.uid
+                            u_doc = db.collection("users").document(u_uid).get().to_dict()
+                            if u_doc:
+                                live_wallet = u_doc.get("credits_total", 0)
+                                live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
+                                live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
+                                
+                                # 落實：先扣今日免費，再穿透扣永久錢包
+                                m_free_left = max(0, 18 - live_free_month)
+                                d_free_left = max(0, 6 - live_free_day)
+                                actual_free_left = min(d_free_left, m_free_left)
+                                
+                                if deduct_amt <= actual_free_left:
+                                    new_d_free = live_free_day + deduct_amt
+                                    new_m_free = live_free_month + deduct_amt
+                                    new_wallet = live_wallet
+                                else:
+                                    overflow = deduct_amt - actual_free_left
+                                    new_d_free = live_free_day + actual_free_left
+                                    new_m_free = live_free_month + actual_free_left
+                                    new_wallet = max(0, live_wallet - overflow)
+                                    
+                                db.collection("users").document(u_uid).set({
+                                    "credits_total": new_wallet,
+                                    "daily_free_used": new_d_free,
+                                    "monthly_free_used": new_m_free,
+                                    "last_date": now_date,
+                                    "last_month": now_month
+                                }, merge=True)
+                        except: pass
             
-            # 扣點完成後，實時融毀工作台暫存，迫使下一輪乾淨清空
+            # 扣點完成後，實時融毀工作台暫存，強迫下一輪乾淨刷新
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
 
-        # 🚀 註冊現場 callback，拿掉 args 傳參，改用現場點名計算法！
+        # 🚀 註冊現場 callback 攔截晶片！
         main_col.download_button(
             label=L["dl_btn"],
             data=zip_data,
@@ -466,10 +493,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols[0]: 
+        with layout_cols: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols[1]:
+        with layout_cols:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
