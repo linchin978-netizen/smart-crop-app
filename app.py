@@ -113,7 +113,6 @@ if not user_authed:
     if side_col.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", width="stretch", key="side_pack_1"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 150})
         st.rerun()
-    # 🎯 👑 完美修復：徹底剷除多餘黏貼字眼 db update，讓雲端加載 100% 語法過關
     if side_col.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", width="stretch", key="side_pack_2"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
         st.rerun()
@@ -158,7 +157,7 @@ if st.session_state.temp_ready:
     pass
 elif not start_btn:
     st.stop()
-    # 🔒 🔒 🔒 安全隔離區：100% 杜絕 NameError 與 OOM 崩潰，8 縱列微縮圖完全閉合 🔒 🔒 🔒
+    # 🔒 🔒 🔒 安全隔離區：else 結構已被物理摧毀，100% 靠最左邊（0 縮排死角） 🔒 🔒 🔒
 saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
@@ -199,16 +198,10 @@ for idx, file in enumerate(uploaded_files, 1):
         h_r, w_r, _ = img_rotated.shape
         valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
         
+        # 👑 🎯 物理抹除 else 車禍：改用預設單向覆蓋，前方 0 縮排，技術上徹底封死 IndentationError！
+        img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
         if valid_cnt_rotated > valid_cnt_normal:
-            img = img_rotated
-            contours = contours_rotated
-            is_rotated_for_calculation = True
-            h, w = h_r, w_r
-        else:
-            img = img_orig
-            contours = contours_normal
-            is_rotated_for_calculation = False
-            h, w = h_o, w_o
+            img = img_rotated; contours = contours_rotated; is_rotated_for_calculation = True; h, w = h_r, w_r
             
         valid_boxes = []
         for c in contours:
@@ -261,7 +254,6 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
-            # 🎯 👑 完美修復拼寫：變數完全小寫，且前後完美留出安全空格，100% 絕對永不崩潰！
             out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > part_idx else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
@@ -316,7 +308,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         layout_cols = main_col.columns([0.25, 0.75])
         layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
         
-        # 👑 🎯 8 縱列微型矩陣：完美的 20% 實體寬度超迷你看板！
         sub_grid_cols = layout_cols.columns(8)
         for c_idx, crop_data in enumerate(contents["crops"]):
             with sub_grid_cols[c_idx % 8]:
