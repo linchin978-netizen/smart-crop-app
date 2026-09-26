@@ -407,12 +407,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         # 建立大表格結構：左側原圖(0.20)，右側成果區(0.80)
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 修正指標：精準指定塞入左側第一欄 [0]
         with layout_cols[0]:
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 修正指標：精準指定塞入右側第二欄 [1]
         with layout_cols[1]:
+            # 🔥 依照分割出來的張數動態宣告等量欄位，強迫橫向並排
             sub_grid_cols = st.columns(num_crops)
             
             for c_idx, crop_data in enumerate(contents["crops"]):
@@ -426,6 +425,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                         st.session_state.master_preview_dict[orig_key]["crops"] = [
                             x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != target_name
                         ]
+                        
+                        # 👑 【逆向雙向扣鎖連動核心】：
+                        # 如果該原圖名下的所有預覽圖都被使用者「全刪光」了
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
+                            # 🎯 物理突破 Streamlit 唯讀機制：強制重置上傳框金鑰，讓上傳框把這張死圖剔除！
+                            st.session_state.uploader_key_token += 1
+                            
                         st.rerun()
