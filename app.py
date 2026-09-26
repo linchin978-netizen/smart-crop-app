@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與點對點精準物理拔除
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式預覽與【真．防白嫖扣點回調晶片】
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -396,33 +396,54 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        dl_clicked = main_col.download_button(label=L["dl_btn"], data=zip_data, file_name="processed_centered_images.zip", mime="application/zip", width="stretch", key="dl_zip_final_gate")
-        
-        if dl_clicked:
-            final_deduct_credits = distinct_source_files_count
+        # 👑 【真．防白嫖異步扣點回調大腦】：利用 callback 機制，在檔案下載的同一微秒，強行攔截、優先扣點！
+        def deduct_credits_callback_process(deduct_amt):
             is_developer_bypass = (visitor_ip == "127.0.0.1" or visitor_ip in DEVELOPER_IP_WHITELIST)
-            
             if db and not is_developer_bypass:
                 if not user_authed:
-                    db.collection("guest_ips").document(visitor_ip).set({"day_used": guest_used_day + final_deduct_credits, "month_used": guest_used_month + final_deduct_credits, "last_date": current_date_str, "last_month": current_month_str})
+                    # 訪客扣點
+                    db.collection("guest_ips").document(visitor_ip).set({
+                        "day_used": guest_used_day + deduct_amt,
+                        "month_used": guest_used_month + deduct_amt,
+                        "last_date": current_date_str,
+                        "last_month": current_month_str
+                    })
                 elif user_uid:
-                    member_monthly_free_left = max(0, 18 - user_free_month) 
-                    member_daily_free_left = max(0, 6 - user_free_day)     
+                    # 會員扣點
+                    member_monthly_free_left = max(0, 18 - user_free_month)
+                    member_daily_free_left = max(0, 6 - user_free_day)
                     actual_today_free_left = min(member_daily_free_left, member_monthly_free_left)
-                    if final_deduct_credits <= actual_today_free_left:
-                        new_daily_free_used = user_free_day + final_deduct_credits
-                        new_monthly_free_used = user_free_month + final_deduct_credits
+                    if deduct_amt <= actual_today_free_left:
+                        new_daily_free_used = user_free_day + deduct_amt
+                        new_monthly_free_used = user_free_month + deduct_amt
                         new_wallet_total = user_wallet_total
                     else:
-                        overflow_debt = final_deduct_credits - actual_today_free_left
+                        overflow_debt = deduct_amt - actual_today_free_left
                         new_daily_free_used = user_free_day + actual_today_free_left
                         new_monthly_free_used = user_free_month + actual_today_free_left
                         new_wallet_total = max(0, user_wallet_total - overflow_debt)
-                    db.collection("users").document(user_uid).update({"credits_total": new_wallet_total, "daily_free_used": new_daily_free_used, "monthly_free_used": new_monthly_free_used, "last_date": current_date_str, "last_month": current_month_str})
-            
+                    db.collection("users").document(user_uid).update({
+                        "credits_total": new_wallet_total,
+                        "daily_free_used": new_daily_free_used,
+                        "monthly_free_used": new_monthly_free_used,
+                        "last_date": current_date_str,
+                        "last_month": current_month_str
+                    })
+            # 扣點完畢後，實時清洗記憶體工作台，強迫重置
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
-            st.rerun()
+
+        # 🚀 注入 on_click 攔截晶片：按下的瞬間直接觸發優先扣點，徹底補死 0 元白嫖 Bug！
+        main_col.download_button(
+            label=L["dl_btn"],
+            data=zip_data,
+            file_name="processed_centered_images.zip",
+            mime="application/zip",
+            width="stretch",
+            key="dl_zip_final_gate",
+            on_click=deduct_credits_callback_process,
+            args=(distinct_source_files_count,)
+        )
 
     st.html("""
         <style>
@@ -441,11 +462,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧修正防線】：精準指定 layout_cols[0] 渲染左側原圖，徹底消滅 Context Manager Bug！
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完璧修正防線】：精準指定 layout_cols[1] 渲染右側橫向流式裁切子圖
         with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
@@ -457,9 +476,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
-                        # 👑 【純淨物理剔除】：下方不管刪一半、全刪光，直接 pop 剔除
-                        #    因為上面大框框在點擊導出的那一秒早就已經被強制自動全清空了，
-                        #    所以使用者如果要反悔，直接再拉一次檔案點導出，100% 原地大復活！
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
                         st.rerun()
