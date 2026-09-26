@@ -417,7 +417,8 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                         if ip_doc:
                             if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
                             if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
-                    except: pass
+                    except:
+                        pass
                     
                     db.collection("guest_ips").document(now_ip).set({
                         "day_used": live_day + deduct_amt,
@@ -452,12 +453,13 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 
                             db.collection("users").document(u_uid).set({
                                 "credits_total": new_wallet,
-                                    "daily_free_used": new_d_free,
-                                    "monthly_free_used": new_m_free,
-                                    "last_date": now_date,
-                                    "last_month": now_month
-                                }, merge=True)
-                        except: pass
+                                "daily_free_used": new_d_free,
+                                "monthly_free_used": new_m_free,
+                                "last_date": now_date,
+                                "last_month": now_month
+                            }, merge=True)
+                    except:
+                        pass
                 # 🔒 鎖定本輪，絕不重複扣點
                 st.session_state[f"debited_{st.session_state.uploader_key_token}"] = True
 
