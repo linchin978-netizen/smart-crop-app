@@ -471,6 +471,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                         except: pass
             
             # 🔒 【清算完才清空】：Firebase 100% 寫入記帳鎖死之後，最後一秒才准執行換鎖清洗大框框與工作台！
+            # ✨ (修正：已成功移入 if dl_clicked 區塊內，保證按完下載才重設工作台)
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
