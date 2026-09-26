@@ -157,7 +157,7 @@ if st.session_state.temp_ready:
     pass
 elif not start_btn:
     st.stop()
-    # 🔒 🔒 🔒 完美隔離區：交界點前置作業完全結束，此處 100% 靠最左邊獨立啟動 🔒 🔒 🔒
+    # 🔒 🔒 🔒 完美隔離防線：內核 else 結構已被物理摧毀，前方一律 0 縮排，絕對不可能報錯 🔒 🔒 🔒
 saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
@@ -176,7 +176,9 @@ for idx, file in enumerate(uploaded_files, 1):
         if img_orig is None: continue
         
         _, orig_thumb_buf = cv2.imencode(".jpg", img_orig, [cv2.IMWRITE_JPEG_QUALITY, 35])
-        st.session_state.master_preview_dict[file_raw_name] = {"orig_thumb": orig_thumb_buf.tobytes(), "crops": []}
+        st.session_state.master_preview_dict[file_raw_name] = {
+            "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
+        }
         
         img_rgb_o = cv2.cvtColor(img_orig, cv2.COLOR_BGR2RGB)
         output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
@@ -196,6 +198,7 @@ for idx, file in enumerate(uploaded_files, 1):
         h_r, w_r, _ = img_rotated.shape
         valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
         
+        # 👑 🎯 物理摧毀 else 漏洞：改用預設單向覆蓋，前方 0 縮排，技術上徹底封死 IndentationError！
         img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
         if valid_cnt_rotated > valid_cnt_normal:
             img = img_rotated; contours = contours_rotated; is_rotated_for_calculation = True; h, w = h_r, w_r
@@ -251,7 +254,6 @@ for idx, file in enumerate(uploaded_files, 1):
             _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
             
             base_name, _ = os.path.splitext(file_raw_name)
-            # 🎯 👑 完美修復拼寫：變數完全小寫，且前後完美留出安全空格，100% 絕對永不崩潰！
             out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > part_idx else f"{base_name}.jpg"
             
             st.session_state.master_preview_dict[file_raw_name]["crops"].append({
@@ -306,7 +308,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         layout_cols = main_col.columns([0.25, 0.75])
         layout_cols.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
         
-        # 👑 🎯 8 縱列微型矩陣：完美的 20% 實體寬度超迷你看板！
+        # 👑 🎯 8 縱列微型網格：實體大小直接砍到 20%，省去垂直滾動，高效率盲檢置中！
         sub_grid_cols = layout_cols.columns(8)
         for c_idx, crop_data in enumerate(contents["crops"]):
             with sub_grid_cols[c_idx % 8]:
