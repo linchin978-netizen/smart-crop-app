@@ -450,10 +450,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols: 
+        # 👑 【完美對齊修正】：精準指定 layout_cols[0] 與 layout_cols[1]，彻底根除 List Context Manager Bug
+        with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols:
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
@@ -464,10 +465,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
-                        # 👑 【真．物理快取刷新晶片】：只要這一排被全點完刪光（或刪一半）
-                        #    後台在物理抹除記憶體的同個毫秒，會「強制遞增 uploader_key_token」！
-                        #    這使得大框框內部的快取在一瞬間被完全「全自動無感清洗、刷成雪白空白狀態」！
-                        #    這下子使用者再拉同張圖進來按導出，大框框就會百分之百視為全新實體檔案，100% 完美原地復活大導出！
+                        # 👑 真．雙向物理快取刷新：全刪光時，順便遞增 token 換鎖清洗大框框
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
                             st.session_state.uploader_key_token += 1
