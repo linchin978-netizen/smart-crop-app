@@ -232,91 +232,104 @@ if uploaded_files and start_btn:
     saved = 0
     session = load_rembg_session()
     
+    # 🧠 序列狀態機更新：如果檔案被徹底移出上傳框，才抹除其序列號與暫存
     active_uploaded_names = {f.name for f in uploaded_files}
     for old_key in list(st.session_state.master_preview_dict.keys()):
         if old_key not in active_uploaded_names:
             st.session_state.master_preview_dict.pop(old_key, None)
+            if "file_versions" in st.session_state and old_key in st.session_state.file_versions:
+                st.session_state.file_versions.pop(old_key, None)
             
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     if os.path.exists(zip_path): os.remove(zip_path)
     os.makedirs(temp_out_dir, exist_ok=True)
     
-    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v["crops"])
+    # 初始化全局版本號跟雜湊暫存器
+    if "file_versions" not in st.session_state: st.session_state.file_versions = {}
+    if "last_hash_memo" not in st.session_state: st.session_state.last_hash_memo = {}
+    
+    # 🚀 輸送帶開始，實時動態編譯「虛擬金鑰」
+    num_uploaded_files = len(uploaded_files)
+    progress_bar = st.progress(0)
+    
+    # 建立本輪的執行名單與切片判定
+    final_execution_queue = []
+    
+    for file in uploaded_files:
+        f_name = file.name
+        file.seek(0)
+        current_hash = hashlib.md5(file.read()).hexdigest()
+        file.seek(0)
+        
+        # 👑 【序列偵測晶片】：如果發現這個檔案以前跑過，但目前在大框框內被「重新拉入或覆蓋」了
+        if f_name in st.session_state.last_hash_memo:
+            # 在 Streamlit 原生機制下，重拉檔案會觸發二進位資料流重加載，雖然 Hash 不變，但我們比對暫存狀態
+            # 只要它是被使用者重新拉入的（或者我們在下方點過全刪除），就在背景悄悄升級它的虛擬版本號！
+            if f_name in st.session_state.master_preview_dict and st.session_state.master_preview_dict[f_name] == "REJECTED":
+                st.session_state.file_versions[f_name] = st.session_state.file_versions.get(f_name, 1) + 1
+                st.session_state.master_preview_dict.pop(f_name, None) # 物理粉碎冷宮
+        else:
+            st.session_state.file_versions[f_name] = 1
+            
+        st.session_state.last_hash_memo[f_name] = current_hash
+        final_execution_queue.append((file, f_name, st.session_state.file_versions[f_name]))
+
+    # 👑 限額切片防線：只處理符合目前 credits 餘額的虛擬卡槽
+    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
     allowed_new_slots = max(0, current_remaining_quota - current_live_sources)
     
-    already_processed_files = [f for f in uploaded_files if f.name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[f.name], dict)]
-    brand_new_files = [f_new for f_name, f_new in {f.name: f for f in uploaded_files}.items() if f_name not in st.session_state.master_preview_dict or st.session_state.master_preview_dict[f_name] == "REJECTED"]
-    
-    allowed_new_files = brand_new_files[:allowed_new_slots]
-    skipped_count = len(brand_new_files) - len(allowed_new_files)
-    
-    final_execution_queue = already_processed_files + allowed_new_files
-    num_execution = len(final_execution_queue)
+    # 分流出全新要跑的任務
+    brand_new_tasks = [item for item in final_execution_queue if item[1] not in st.session_state.master_preview_dict or not st.session_state.master_preview_dict[item[1]].get("crops")]
+    allowed_new_tasks = brand_new_tasks[:allowed_new_slots]
+    skipped_count = len(brand_new_tasks) - len(allowed_new_tasks)
     
     if skipped_count > 0:
-        main_col.warning(
-            f"⚠️ **Nexus Cap Limit Notice**: You uploaded **{num_uploaded}** assets, but your available balance only has **{current_remaining_quota}** credits left. "
-            f"The pipeline automatically processed the first **{len(allowed_new_files)}** new items. "
-            f"**{skipped_count}** remaining files were skipped. 🎁 **Sign up now to get 50 FREE credits** or top up below to unlock full folder processing!"
-        )
+        main_col.warning(f"⚠️ **Nexus Cap Limit Notice**: Available balance only has **{current_remaining_quota}** credits left. {skipped_count} files were skipped. Upgrade below to unlock full rendering!")
 
-    progress_bar = main_col.progress(0)
-    for idx, file in enumerate(final_execution_queue, 1):
-        file_raw_name = file.name
-        
+    # 真正的核心執行迴圈
+    for idx, (file, f_name, v_num) in enumerate(final_execution_queue, 1):
+        # 增量鎖：如果這個版本號的資料早就存在記憶體裡了，0 毫秒直接跳過、老老實實維持原樣！
+        if f_name in st.session_state.master_preview_dict and "v_tag" in st.session_state.master_preview_dict[f_name] and st.session_state.master_preview_dict[f_name]["v_tag"] == v_num:
+            saved += len(st.session_state.master_preview_dict[f_name]["crops"])
+            progress_bar.progress(idx / num_uploaded_files)
+            continue
+            
+        # 如果是新版本（被重新拉入反悔了），或者是被限額切片攔截下來的，就不跑 AI
+        if f_name not in st.session_state.master_preview_dict and (file, f_name, v_num) not in allowed_new_tasks:
+            progress_bar.progress(idx / num_uploaded_files)
+            continue
+            
         try:
             file.seek(0)
-            file_data_bytes = file.read()
-            current_file_hash = hashlib.md5(file_data_bytes).hexdigest()
-            file.seek(0)
-            
-            if file_raw_name in st.session_state.master_preview_dict and st.session_state.master_preview_dict[file_raw_name] == "REJECTED":
-                if "last_hash" in st.session_state and st.session_state.last_hash.get(file_raw_name) == current_file_hash:
-                    progress_bar.progress(idx / num_execution)
-                    continue
-                else:
-                    st.session_state.master_preview_dict.pop(file_raw_name, None)
-            
-            if file_raw_name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[file_raw_name], dict):
-                saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
-                progress_bar.progress(idx / num_execution)
-                continue
-                
-            file_bytes = np.frombuffer(file_data_bytes, dtype=np.uint8)
-            img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            del file_bytes, file_data_bytes
+            img_orig = cv2.imdecode(np.frombuffer(file.read(), dtype=np.uint8), cv2.IMREAD_COLOR)
             if img_orig is None: continue
             
             _, orig_thumb_buf = cv2.imencode(".jpg", img_orig, [cv2.IMWRITE_JPEG_QUALITY, 35])
-            st.session_state.master_preview_dict[file_raw_name] = {"orig_thumb": orig_thumb_buf.tobytes(), "crops": []}
+            st.session_state.master_preview_dict[f_name] = {
+                "orig_thumb": orig_thumb_buf.tobytes(), "crops": [], "v_tag": v_num # 鎖定虛擬金鑰版本
+            }
             del orig_thumb_buf
             
             h_o, w_o, _ = img_orig.shape
             max_side = max(h_o, w_o)
-            if max_side > 1200:
-                scale = 1200.0 / max_side
-                img_for_ai = cv2.resize(img_orig, (int(w_o * scale), int(h_o * scale)), interpolation=cv2.INTER_AREA)
-            else:
-                img_for_ai = img_orig.copy()
+            img_for_ai = cv2.resize(img_orig, (int(w_o * (1200.0 / max_side)), int(h_o * (1200.0 / max_side))), interpolation=cv2.INTER_AREA) if max_side > 1200 else img_orig.copy()
             
             img_rgb_o = cv2.cvtColor(img_for_ai, cv2.COLOR_BGR2RGB)
-            output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
-            alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+            alpha_o = cv2.cvtColor(np.array(remove(Image.fromarray(img_rgb_o), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
             _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
             if max_side > 1200: thresh_o = cv2.resize(thresh_o, (w_o, h_o), interpolation=cv2.INTER_NEAREST)
             contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            del img_rgb_o, output_pil_o, alpha_o, thresh_o
             
             img_rotated = cv2.rotate(img_for_ai, cv2.ROTATE_90_CLOCKWISE)
             img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
-            output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
-            alpha_r = cv2.cvtColor(np.array(output_pil_r), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+            alpha_r = cv2.cvtColor(np.array(remove(Image.fromarray(img_rgb_r), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
             _, thresh_r = cv2.threshold(alpha_r, 10, 255, cv2.THRESH_BINARY)
             if max_side > 1200: thresh_r = cv2.resize(thresh_r, (h_o, w_o), interpolation=cv2.INTER_NEAREST)
             contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            del img_for_ai, img_rotated, img_rgb_r, output_pil_r, alpha_r, thresh_r
+            del img_rgb_o, img_for_ai, img_rotated, img_rgb_r, alpha_o, alpha_r, thresh_o, thresh_r
             gc.collect()
+            
             if sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (h_o * w_o * 0.015)) > sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015)):
                 img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE); contours = contours_rotated; is_rotated_for_calculation = True; h, w = w_o, h_o
             else:
@@ -329,11 +342,7 @@ if uploaded_files and start_btn:
                     bx, by, bw, bh = cv2.boundingRect(hull); roi = img[by:by+bh, bx:bx+bw]
                     if roi.size > 0 and (np.sum(cv2.Canny(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY), 50, 150) > 0) / roi.size) < 0.05:
                         roi_h, roi_w, _ = roi.shape
-                        if max(roi_h, roi_w) > 600:
-                            s_scale = 600.0 / max(roi_h, roi_w)
-                            roi_light = cv2.resize(roi, (int(roi_w * s_scale), int(roi_h * s_scale)), interpolation=cv2.INTER_AREA)
-                        else:
-                            roi_light = roi.copy()
+                        roi_light = cv2.resize(roi, (int(roi_w * (600.0 / max(roi_h, roi_w))), int(roi_h * (600.0 / max(roi_h, roi_w)))), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
                         s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                         if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
@@ -363,21 +372,17 @@ if uploaded_files and start_btn:
                     else: high = mid - 1
                 _, buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, best_q])
                 
-                base_name, _ = os.path.splitext(file_raw_name)
+                base_name, _ = os.path.splitext(f_name)
                 out_img_name = f"{base_name}_crop_{part_idx}.jpg" if len(valid_boxes) > 1 else f"{base_name}.jpg"
-                st.session_state.master_preview_dict[file_raw_name]["crops"].append({"img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()})
-            del img, cropped, contours, valid_boxes
-            gc.collect()
-        except:
-            pass
-        progress_bar.progress(idx / num_execution)
+                st.session_state.master_preview_dict[f_name]["crops"].append({"img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()})
+            del img, cropped, contours, valid_boxes; gc.collect()
+        except: pass
+        progress_bar.progress(idx / num_uploaded_files)
     
-    if saved > 0 or len(allowed_new_files) > 0:
+    if saved > 0 or len(allowed_new_tasks) > 0:
         st.session_state.temp_ready = True
         st.rerun()
-        # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與特徵碼鎖定
-# =========================================================================
+        # 👑 【預覽控制與即時重綁打包防線】
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     active_uploaded_names = {f.name for f in uploaded_files} if uploaded_files else set()
     preview_keys = list(st.session_state.master_preview_dict.keys())
@@ -394,7 +399,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
     distinct_source_files_count = 0
     
     for orig_file, contents in list(st.session_state.master_preview_dict.items()):
-        if isinstance(contents, dict) and contents["crops"]:
+        if isinstance(contents, dict) and contents.get("crops"):
             distinct_source_files_count += 1 
             for crop_item in contents["crops"]:
                 with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: 
@@ -435,7 +440,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
-            if "last_hash" in st.session_state: st.session_state.last_hash = {} 
+            if "file_versions" in st.session_state: st.session_state.file_versions = {}
             st.rerun()
 
     st.html("""
@@ -448,16 +453,13 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
     main_col.write("---")
     main_col.markdown(f"### {L['preview_title']}")
     
-    if "last_hash" not in st.session_state: st.session_state.last_hash = {}
-    
     for orig_key, contents in list(st.session_state.master_preview_dict.items()):
-        if contents == "REJECTED" or not contents["crops"]: continue
+        if contents == "REJECTED" or not isinstance(contents, dict) or not contents.get("crops"): continue
         
         main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧修正防線】：精準鎖定第 0 欄渲染原圖，鎖定第 1 欄渲染子圖，徹底消滅 Context Manager Bug！
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
@@ -472,13 +474,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
+                        # 👑 實體拔除：一全刪光，直接蓋上冷宮鋼印，並且手動讓背景的版本號＋1
+                        #    這使得下一次「直接拉同張圖」進來按導出時，版本號對齊失效，直接完美原地復活！
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict[orig_key] = "REJECTED"
-                            
-                            for f in uploaded_files:
-                                if f.name == orig_key:
-                                    f.seek(0)
-                                    st.session_state.last_hash[orig_key] = hashlib.md5(f.read()).hexdigest()
-                                    f.seek(0)
-                                    break
+                            if "file_versions" in st.session_state and orig_key in st.session_state.file_versions:
+                                st.session_state.file_versions[orig_key] += 1
                         st.rerun()
