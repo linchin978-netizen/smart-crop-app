@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與實體欄位對齊防爆晶片
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【真．鐵壁防漏扣清算晶片】
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -393,10 +393,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        # 👑 【真．現場點算扣點晶片】：現場調閱資料庫，徹底打通作用域與月用量累積！
+        # 👑 【真．鐵壁清算大腦】：現場即時調閱，確保 Firebase 優先記帳扣點完畢，才准清洗記憶體！
         def deduct_credits_callback_process():
+            # 1. 現場精準點算留下來的原圖排數
             deduct_amt = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
             
+            # 2. 只有大於 0 才准開門穿透進去
             if deduct_amt > 0 and db:
                 now_ip = get_remote_ip()
                 now_date = datetime.now().strftime("%Y-%m-%d")
@@ -415,6 +417,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
                         except: pass
                         
+                        # 🔒 優先寫入記帳
                         db.collection("guest_ips").document(now_ip).set({
                             "day_used": live_day + deduct_amt,
                             "month_used": live_month + deduct_amt,
@@ -431,7 +434,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
                                 live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
                                 
-                                # 👑 【縮進對齊校正】：4個空格標準縮進，彻底抹除 IndentationError 死穴！
                                 m_free_left = max(0, 18 - live_free_month)
                                 d_free_left = max(0, 6 - live_free_day)
                                 actual_free_left = min(d_free_left, m_free_left)
@@ -446,6 +448,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                     new_m_free = live_free_month + actual_free_left
                                     new_wallet = max(0, live_wallet - overflow)
                                     
+                                # 🔒 優先寫入會員資料庫帳本
                                 db.collection("users").document(u_uid).set({
                                     "credits_total": new_wallet,
                                     "daily_free_used": new_d_free,
@@ -455,6 +458,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 }, merge=True)
                         except: pass
             
+            # 3. 🔒 順序解鎖：Firebase 100% 寫入成功後，最後一秒才准抹除記憶體、強迫刷新網頁！
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
 
@@ -485,10 +489,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols[0]: 
+        with layout_cols: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols[1]:
+        with layout_cols:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
