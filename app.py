@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【真．字體扶正鐵壁清算晶片】
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與實體欄位對齊防爆晶片
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -393,7 +393,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        # 👑 【真．變數校正現場清算大腦】：現場即時調閱，字符 100% 精準對齊，徹底消滅 NameError 白嫖漏洞！
+        # 👑 【真．鐵壁清算大腦】：現場即時調閱，確保 Firebase 優先記帳扣點完畢，才准清洗記憶體！
         def deduct_credits_callback_process():
             # 1. 現場精準點算留下來的原圖排數
             deduct_amt = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
@@ -404,7 +404,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 now_date = datetime.now().strftime("%Y-%m-%d")
                 now_month = datetime.now().strftime("%Y-%m")
                 
-                # 🛡️ 字符扶正防線：放棄複雜對照，直接讀取全域變數，確保絕對不引爆 NameError
+                # 🛡️ 字符扶正防線：放棄複雜對照，直接讀取全域變變數，確保絕對不引爆 NameError
                 is_dev = False
                 if "is_developer_bypass" in st.session_state:
                     is_dev = st.session_state.is_developer_bypass
@@ -493,12 +493,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完美對齊修正】：精準指定 layout_cols 渲染左側原圖，徹底消滅 Context Manager Bug！
-        with layout_cols: 
+        # 👑 【完美對齊修正】：精準指定 layout_cols[0] 渲染左側原圖，徹底消滅 Context Manager Bug！
+        with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完美對齊修正】：精準指定 layout_cols 渲染右側橫向流式裁切子圖矩陣
-        with layout_cols:
+        # 👑 【完美對齊修正】：精準指定 layout_cols[1] 渲染右側橫向流式裁切子圖矩陣
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
