@@ -71,7 +71,7 @@ user_authed = st.session_state.user_authenticated
 user_uid = ""
 
 # 🛡️ 👑 【開發者實體外網 IP 白名單防線】：已填入您提供的 3 組實體外網 IP！
-DEVELOPER_IP_WHITELIST = ["10.12.1.25", "10.12.123.18", "10.12.133.50"]
+DEVELOPER_IP_WHITELIST = ["10.12.1.26", "10.12.123.19", "10.12.133.50"]
 
 # 判斷當前連線是否為開發者本人（本機 127.0.0.1 或 命中外網白名單）
 is_developer_bypass = (visitor_ip == "127.0.0.1" or visitor_ip in DEVELOPER_IP_WHITELIST)
