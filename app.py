@@ -393,27 +393,19 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
 
-        # 👑 【照妖鏡除錯金庫】：徹底拆除 except pass，強制現形所有錯誤！
-        def execute_deduct_and_cleanup():
-            import time
-            import traceback
-            
-            # 1. 立即鎖定變數快照
-            snapshot_keys = list(st.session_state.master_preview_dict.keys())
-            deduct_amt = len(snapshot_keys)
-            is_authenticated = st.session_state.get("user_authenticated", False)
-            user_email = st.session_state.get("user_email", "")
-            is_dev_bypass = st.session_state.get("is_developer_bypass", False)
-            
-            # 2. 為了防止錯誤吞掉，直接在 Session 中記錄除錯日誌，重整後才能秀在畫面上
-            st.session_state["debug_log"] = {
-                "deduct_amt": deduct_amt,
-                "db_exists": db is not None,
-                "is_authenticated": is_authenticated,
-                "user_email": user_email,
-                "is_dev_bypass": is_dev_bypass,
-                "status": "Started"
-            }
+        import base64
+        # 將 zip 資料轉為 base64 讓前端 JS 可以直接下載
+        b64_zip = base64.b64encode(zip_data).decode()
+
+        # 🚀 這裡改成標準的 st.button，這在 Streamlit 裡面回傳點擊是最穩定的！
+        if main_col.button(
+            label=L["dl_btn"],
+            type="primary",
+            width="stretch",
+            key="dl_zip_standard_secure_gate_v6"
+        ):
+            # 🎯 聽話代碼：現場直接點名計算要收的點數
+            deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
             
             if deduct_amt > 0 and db:
                 now_ip = get_remote_ip()
@@ -421,36 +413,32 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 now_month = datetime.now().strftime("%Y-%m")
                 
                 is_dev = False
-                if is_dev_bypass:
-                    is_dev = True
+                if "is_developer_bypass" in st.session_state:
+                    is_dev = st.session_state.is_developer_bypass
                 elif "DEVELOPER_IP_WHITELIST" in globals():
                     is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
                 
-                st.session_state["debug_log"]["is_dev_final"] = is_dev
-                
                 if not is_dev:
-                    if not is_authenticated:
-                        # 🔴 訪客點擊
+                    if not st.session_state.user_authenticated:
+                        # 🔴 訪客點擊：優先穿透寫入記帳
                         live_day, live_month = 0, 0
                         try:
                             ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
                             if ip_doc:
                                 if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
                                 if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
-                            
-                            db.collection("guest_ips").document(now_ip).set({
-                                "day_used": live_day + deduct_amt,
-                                "month_used": live_month + deduct_amt,
-                                "last_date": now_date,
-                                "last_month": now_month
-                            }, merge=True)
-                            st.session_state["debug_log"]["status"] = "Guest Deduct Success"
-                        except Exception as e:
-                            st.session_state["debug_log"]["error"] = f"Guest Error: {str(e)}\n{traceback.format_exc()}"
+                        except: pass
+                        
+                        db.collection("guest_ips").document(now_ip).set({
+                            "day_used": live_day + deduct_amt,
+                            "month_used": live_month + deduct_amt,
+                            "last_date": now_date,
+                            "last_month": now_month
+                        }, merge=True)
                     else:
-                        # 👑 付費會員點擊
+                        # 👑 付費會員點擊：優先穿透寫入會員資料庫帳本
                         try:
-                            user_rec = auth.get_user_by_email(user_email)
+                            user_rec = auth.get_user_by_email(st.session_state.user_email)
                             u_uid = user_rec.uid
                             u_doc = db.collection("users").document(u_uid).get().to_dict()
                             if u_doc:
@@ -479,39 +467,26 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                     "last_date": now_date,
                                     "last_month": now_month
                                 }, merge=True)
-                                st.session_state["debug_log"]["status"] = "User Deduct Success"
-                            else:
-                                st.session_state["debug_log"]["status"] = "User Document Not Found"
-                        except Exception as e:
-                            st.session_state["debug_log"]["error"] = f"User Error: {str(e)}\n{traceback.format_exc()}"
-                else:
-                    st.session_state["debug_log"]["status"] = "Bypassed because is_dev = True"
-            else:
-                st.session_state["debug_log"]["status"] = f"Skipped: deduct_amt={deduct_amt}, db_exists={db is not None}"
-            
-            # 延遲並清洗
-            time.sleep(0.5)
+                        except: pass
+
+            # 👑 【核心黑科技】：後端 Firebase 點數確認扣完後，在此處向瀏覽器發射 JS 下載指令
+            import streamlit.components.v1 as components
+            components.html(f"""
+                <script>
+                    const link = document.createElement('a');
+                    link.href = 'data:application/zip;base64,{b64_zip}';
+                    link.download = 'processed_centered_images.zip';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                </script>
+            """, height=0)
+
+            # 🔒 清算、下載成功後，清空工作台並立即強制重整
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
-
-        # 🚀 渲染按鈕
-        main_col.download_button(
-            label=L["dl_btn"],
-            data=zip_data,
-            file_name="processed_centered_images.zip",
-            mime="application/zip",
-            width="stretch",
-            key="dl_zip_final_gate_pure_origin_v5",
-            on_click=execute_deduct_and_cleanup
-        )
-
-    # 🔍 【重要：除錯面板監聽器】當點擊完畢重整回來後，如果有抓到錯誤或狀態，立刻強制攤開在最底端！
-    if "debug_log" in st.session_state:
-        st.warning("⚠️ 扣點金庫後台監測面板（請在點擊下載後查看此處內容）：")
-        st.json(st.session_state["debug_log"])
-        if "error" in st.session_state["debug_log"]:
-            st.error(f"🔴 偵測到 Firebase 執行崩潰錯誤：\n{st.session_state['debug_log']['error']}")
+            st.rerun()
 
     st.html("""
         <style>
