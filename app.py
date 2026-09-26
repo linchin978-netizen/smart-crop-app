@@ -98,7 +98,7 @@ if not user_authed:
                 st.session_state.user_email = email_in
                 st.rerun()
             except Exception as e: side_col.error(f"❌ Failed: {str(e)}")
-                else:
+else:
     if db:
         try:
             user_rec = auth.get_user_by_email(st.session_state.user_email)
@@ -123,8 +123,7 @@ if not user_authed:
         st.session_state.user_authenticated = False
         st.session_state.user_email = ""
         st.rerun()
-
-main_col.title(L["title"])
+        main_col.title(L["title"])
 main_col.write("---")
 main_col.markdown(f"#### {L['param_header']}")
 
@@ -157,7 +156,8 @@ if st.session_state.temp_ready:
     pass
 elif not start_btn:
     st.stop()
-    # 🔒 🔒 🔒 安全隔離區：else 結構已被物理摧毀，100% 靠最左邊（0 縮排死角） 🔒 🔒 🔒
+
+# 🛸 在此開啟 AI 內核運算大腦（實體等分均分截斷點）
 saved = 0
 progress_bar = main_col.progress(0)
 session = load_rembg_session()
@@ -198,7 +198,6 @@ for idx, file in enumerate(uploaded_files, 1):
         h_r, w_r, _ = img_rotated.shape
         valid_cnt_rotated = sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (w_r * h_r * 0.015))
         
-        # 👑 🎯 物理抹除 else 車禍：改用預設單向覆蓋，前方 0 縮排，技術上徹底封死 IndentationError！
         img = img_orig; contours = contours_normal; is_rotated_for_calculation = False; h, w = h_o, w_o
         if valid_cnt_rotated > valid_cnt_normal:
             img = img_rotated; contours = contours_rotated; is_rotated_for_calculation = True; h, w = h_r, w_r
@@ -225,8 +224,7 @@ for idx, file in enumerate(uploaded_files, 1):
                 valid_boxes.append((bx, by, bw, bh))
                 
         if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
-        
-        for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
+            for part_idx, (bx, by, bw, bh) in enumerate(valid_boxes, 1):
             cx, cy = bx + bw // 2, by + bh // 2
             ideal_pad_w = int((bw / ratio - bw) / 2)
             ideal_pad_h = int((bh / ratio - bh) / 2)
