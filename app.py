@@ -370,7 +370,88 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【初心一鍵下載精準扣點金庫】
+# 👑 頂層獨立：金庫與清洗守門員（100% 獨立於大條件外，老天爺也關不掉它）
+# =========================================================================
+def execute_deduct_and_cleanup_callback():
+    # 🔒 【安全鎖定：第一時間快照】不管大框框死活，進來第一微秒把點數與信箱抓死
+    snapshot_dict = st.session_state.get("master_preview_dict", {})
+    deduct_amt = len(list(snapshot_dict.keys()))
+    
+    is_authenticated = st.session_state.get("user_authenticated", False)
+    user_email = st.session_state.get("user_email", "")
+    is_dev_bypass = st.session_state.get("is_developer_bypass", False)
+    
+    # 🎯 進入 Firebase 金庫核銷點數
+    if deduct_amt > 0 and 'db' in globals() and db:
+        now_ip = get_remote_ip()
+        now_date = datetime.now().strftime("%Y-%m-%d")
+        now_month = datetime.now().strftime("%Y-%m")
+        
+        is_dev = False
+        if is_dev_bypass:
+            is_dev = True
+        elif "DEVELOPER_IP_WHITELIST" in globals():
+            is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
+        
+        if not is_dev:
+            if not is_authenticated:
+                # 🔴 訪客點擊
+                live_day, live_month = 0, 0
+                try:
+                    ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
+                    if ip_doc:
+                        if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
+                        if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
+                except: pass
+                
+                db.collection("guest_ips").document(now_ip).set({
+                    "day_used": live_day + deduct_amt,
+                    "month_used": live_month + deduct_amt,
+                    "last_date": now_date,
+                    "last_month": now_month
+                }, merge=True)
+            else:
+                # 👑 付費會員點擊
+                try:
+                    user_rec = auth.get_user_by_email(user_email)
+                    u_uid = user_rec.uid
+                    u_doc = db.collection("users").document(u_uid).get().to_dict()
+                    if u_doc:
+                        live_wallet = u_doc.get("credits_total", 0)
+                        live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
+                        live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
+                        
+                        m_free_left = max(0, 18 - live_free_month)
+                        d_free_left = max(0, 6 - live_free_day)
+                        actual_free_left = min(d_free_left, m_free_left)
+                        
+                        if deduct_amt <= actual_free_left:
+                            new_d_free = live_free_day + deduct_amt
+                            new_m_free = live_free_month + deduct_amt
+                            new_wallet = live_wallet
+                        else:
+                            overflow = deduct_amt - actual_free_left
+                            new_d_free = live_free_day + actual_free_left
+                            new_m_free = live_free_month + actual_free_left
+                            new_wallet = max(0, live_wallet - overflow)
+                            
+                        db.collection("users").document(u_uid).set({
+                            "credits_total": new_wallet,
+                            "daily_free_used": new_d_free,
+                            "monthly_free_used": new_m_free,
+                            "last_date": now_date,
+                            "last_month": now_month
+                        }, merge=True)
+                except: pass
+
+    # 🔒 扣點成功，執行物理清洗工作台，下一輪 rerun 網頁將徹底重置
+    st.session_state.uploader_key_token += 1
+    st.session_state.temp_ready = False
+    st.session_state.master_preview_dict = {}
+
+
+# =========================================================================
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -393,100 +474,16 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
 
-        import base64
-        # 將 zip 資料轉為 base64 讓前端 JS 可以直接下載
-        b64_zip = base64.b64encode(zip_data).decode()
-
-        # 🚀 這裡改成標準的 st.button，這在 Streamlit 裡面回傳點擊是最穩定的！
-        if main_col.button(
+        # 🚀 透過獨立 Callback 強制綁定！點擊按鈕時，Streamlit 會「先執行上面獨立的扣點與清空」，隨後發送下載檔案！
+        main_col.download_button(
             label=L["dl_btn"],
-            type="primary",
+            data=zip_data,
+            file_name="processed_centered_images.zip",
+            mime="application/zip",
             width="stretch",
-            key="dl_zip_standard_secure_gate_v6"
-        ):
-            # 🎯 聽話代碼：現場直接點名計算要收的點數
-            deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
-            
-            if deduct_amt > 0 and db:
-                now_ip = get_remote_ip()
-                now_date = datetime.now().strftime("%Y-%m-%d")
-                now_month = datetime.now().strftime("%Y-%m")
-                
-                is_dev = False
-                if "is_developer_bypass" in st.session_state:
-                    is_dev = st.session_state.is_developer_bypass
-                elif "DEVELOPER_IP_WHITELIST" in globals():
-                    is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
-                
-                if not is_dev:
-                    if not st.session_state.user_authenticated:
-                        # 🔴 訪客點擊：優先穿透寫入記帳
-                        live_day, live_month = 0, 0
-                        try:
-                            ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
-                            if ip_doc:
-                                if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
-                                if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
-                        except: pass
-                        
-                        db.collection("guest_ips").document(now_ip).set({
-                            "day_used": live_day + deduct_amt,
-                            "month_used": live_month + deduct_amt,
-                            "last_date": now_date,
-                            "last_month": now_month
-                        }, merge=True)
-                    else:
-                        # 👑 付費會員點擊：優先穿透寫入會員資料庫帳本
-                        try:
-                            user_rec = auth.get_user_by_email(st.session_state.user_email)
-                            u_uid = user_rec.uid
-                            u_doc = db.collection("users").document(u_uid).get().to_dict()
-                            if u_doc:
-                                live_wallet = u_doc.get("credits_total", 0)
-                                live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
-                                live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
-                                
-                                m_free_left = max(0, 18 - live_free_month)
-                                d_free_left = max(0, 6 - live_free_day)
-                                actual_free_left = min(d_free_left, m_free_left)
-                                
-                                if deduct_amt <= actual_free_left:
-                                    new_d_free = live_free_day + deduct_amt
-                                    new_m_free = live_free_month + deduct_amt
-                                    new_wallet = live_wallet
-                                else:
-                                    overflow = deduct_amt - actual_free_left
-                                    new_d_free = live_free_day + actual_free_left
-                                    new_m_free = live_free_month + actual_free_left
-                                    new_wallet = max(0, live_wallet - overflow)
-                                    
-                                db.collection("users").document(u_uid).set({
-                                    "credits_total": new_wallet,
-                                    "daily_free_used": new_d_free,
-                                    "monthly_free_used": new_m_free,
-                                    "last_date": now_date,
-                                    "last_month": now_month
-                                }, merge=True)
-                        except: pass
-
-            # 👑 【核心黑科技】：後端 Firebase 點數確認扣完後，在此處向瀏覽器發射 JS 下載指令
-            import streamlit.components.v1 as components
-            components.html(f"""
-                <script>
-                    const link = document.createElement('a');
-                    link.href = 'data:application/zip;base64,{b64_zip}';
-                    link.download = 'processed_centered_images.zip';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                </script>
-            """, height=0)
-
-            # 🔒 清算、下載成功後，清空工作台並立即強制重整
-            st.session_state.uploader_key_token += 1
-            st.session_state.temp_ready = False
-            st.session_state.master_preview_dict = {}
-            st.rerun()
+            key="dl_zip_final_gate_pure_origin_v7",
+            on_click=execute_deduct_and_cleanup_callback  # ✨ 指向最上方絕對安全的 Callback
+        )
 
     st.html("""
         <style>
@@ -505,9 +502,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
+        # 👑 指定索引 0 渲染左側原圖
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
+        # 👑 指定索引 1 橫向流式渲染子圖矩陣
         with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
