@@ -393,10 +393,18 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
 
-        # 👑 【真．安全扣點回回呼金庫】：利用 Callback 機制，繞過 Streamlit 的 Button 判定 Bug！
+        # 👑 【終極防非同步閃退金庫】：預先快照變數，強制執行連線延遲鎖，徹底解決不扣點 Bug！
         def execute_deduct_and_cleanup():
-            # 🎯 現場計算本輪收取的點數
-            deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
+            import time  # 引入時間庫來對付非同步時間差
+            
+            # 🔒 【核心修正 1：快照鎖定】在函數執行的第一微秒，立刻把點數與使用者狀態鎖死，絕不允許被提早清空！
+            snapshot_keys = list(st.session_state.master_preview_dict.keys())
+            deduct_amt = len(snapshot_keys)
+            
+            # 先確認身分狀態，避免非同步重新渲染時狀態遺失
+            is_authenticated = st.session_state.get("user_authenticated", False)
+            user_email = st.session_state.get("user_email", "")
+            is_dev_bypass = st.session_state.get("is_developer_bypass", False)
             
             if deduct_amt > 0 and db:
                 now_ip = get_remote_ip()
@@ -404,13 +412,13 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 now_month = datetime.now().strftime("%Y-%m")
                 
                 is_dev = False
-                if "is_developer_bypass" in st.session_state:
-                    is_dev = st.session_state.is_developer_bypass
+                if is_dev_bypass:
+                    is_dev = True
                 elif "DEVELOPER_IP_WHITELIST" in globals():
                     is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
                 
                 if not is_dev:
-                    if not st.session_state.user_authenticated:
+                    if not is_authenticated:
                         # 🔴 訪客點擊：優先穿透寫入記帳
                         live_day, live_month = 0, 0
                         try:
@@ -429,7 +437,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     else:
                         # 👑 付費會員點擊：優先穿透寫入會員資料庫帳本
                         try:
-                            user_rec = auth.get_user_by_email(st.session_state.user_email)
+                            user_rec = auth.get_user_by_email(user_email)
                             u_uid = user_rec.uid
                             u_doc = db.collection("users").document(u_uid).get().to_dict()
                             if u_doc:
@@ -460,7 +468,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                                 }, merge=True)
                         except: pass
             
-            # 🔒 Firebase 寫入記帳鎖死之後，最後一秒清洗工作台！
+            # 🔒 【核心修正 2：延遲緩衝阻斷】強制阻斷 0.5 秒，確保 Firebase gRPC 連線寫入完畢後，才執行洗牌！
+            time.sleep(0.5)
+            
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
@@ -493,11 +503,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols[0] 渲染左側原圖
+        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 渲染左側原圖
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols[1] 橫向流式渲染子圖矩陣
+        # 👑 【完璧欄位對齊修正】：精準指定 layout_cols 橫向流式渲染子圖矩陣
         with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
