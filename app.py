@@ -74,7 +74,7 @@ user_uid = ""
 DEVELOPER_IP_WHITELIST = ["10.12.1.25", "10.12.123.18", "10.12.133.50"]
 
 # 判斷當前連線是否為開發者本人（本機 127.0.0.1 或 命中外網白名單）
-is_developer_bypass = (visitor_ip == "127.0.0.1" or visitor_ip in DEVELOPER_IP_WHITELIST)
+is_developer_bypass = False  # 👑 【測試物理斷電鍵】：強制鎖死為 False，徹底封死 127.0.0.1 的特權後門！
 
 if db and not is_developer_bypass:
     if not user_authed:
