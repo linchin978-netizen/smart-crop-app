@@ -187,7 +187,7 @@ else:
         st.session_state.user_email = ""
         st.rerun()
         # =========================================================================
-# 👑 第三部分：主工作台佈局面板
+# 👑 第三部分：主工作台佈局面板 (回歸最純淨的大框框)
 # =========================================================================
 main_col.title(L["title"])
 main_col.write("---")
@@ -202,8 +202,8 @@ size_str = col_p2.text_input(L["size_lbl"], value="2.0", key="file_size_max")
 try: t_mb = max(0.1, float(size_str))
 except: t_mb = 2.0
 
-# 👑 【全局快取刷新防線】：引入動態換鎖 key，只要下方觸發刪除反悔，大框框快取會在一微秒內全自動無感沖刷刷新！
-raw_uploaded_files = main_col.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key=f"uploader_core_{st.session_state.uploader_key_token}")
+# 🚀 【無腦資料夾大框框】：維持一鍵丟整包資料夾的終極賣點！Key 死死鎖定，絕不背景胡亂換鎖砸方塊！
+raw_uploaded_files = main_col.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png", "webp"], accept_multiple_files=True, key="uploader_core_permanent_gate")
 
 # 🚫 檔名自動去重過濾防線
 uploaded_files = []
@@ -219,36 +219,35 @@ num_uploaded = len(uploaded_files) if uploaded_files else 0
 col_btn1, col_btn2 = main_col.columns(2)
 clear_btn_triggered = col_btn1.button(L["clear_btn"], width="stretch", key="clear_all_queue")
 if clear_btn_triggered:
-    st.session_state.uploader_key_token += 1
     st.session_state.temp_ready = False
     st.session_state.master_preview_dict = {}
     st.rerun()
 
+# 導出按鈕全面解放，支援超載點擊
 start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="start_pipeline", disabled=(num_uploaded == 0))
 
 zip_path = "/tmp/processed_centered_images.zip"
+# =========================================================================
+# 👑 第四部分（A）：純淨狀態機與限額切片防線
+# =========================================================================
 if uploaded_files and start_btn:
     saved = 0
     session = load_rembg_session()
     
-    # 🧠 增量防禦：如果圖片已經徹底被移出上傳框，才從記憶體中完全拔除
-    active_uploaded_names = {f.name for f in uploaded_files}
-    for old_key in list(st.session_state.master_preview_dict.keys()):
-        if old_key not in active_uploaded_names:
-            st.session_state.master_preview_dict.pop(old_key, None)
-            
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     if os.path.exists(zip_path): os.remove(zip_path)
     os.makedirs(temp_out_dir, exist_ok=True)
     
-    # 👑 【商用切片晶片】：實時計算本輪可用新圖名額
-    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v["crops"])
+    # 👑 【真．限額切片大腦】：計算目前還剩下多少新名額可以跑 AI
+    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
     allowed_new_slots = max(0, current_remaining_quota - current_live_sources)
     
-    already_processed_files = [f for f in uploaded_files if f.name in st.session_state.master_preview_dict]
+    # 分流任務名單
+    already_processed_files = [f for f in uploaded_files if f.name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[f.name], dict)]
     brand_new_files = [f for f in uploaded_files if f.name not in st.session_state.master_preview_dict]
     
+    # 強制執行鋼鐵切片
     allowed_new_files = brand_new_files[:allowed_new_slots]
     skipped_count = len(brand_new_files) - len(allowed_new_files)
     
@@ -256,19 +255,15 @@ if uploaded_files and start_btn:
     num_execution = len(final_execution_queue)
     
     if skipped_count > 0:
-        main_col.warning(
-            f"⚠️ **Nexus Cap Limit Notice**: Available balance only has **{current_remaining_quota}** credits left. "
-            f"Processed the first **{len(allowed_new_files)}** new items. **{skipped_count}** files were skipped."
-        )
+        main_col.warning(f"⚠️ **Nexus Cap Limit Notice**: Available balance only has **{current_remaining_quota}** credits left. {skipped_count} files were skipped. Recharge below to unlock full folder rendering!")
 
     progress_bar = main_col.progress(0)
-    
     for idx, file in enumerate(final_execution_queue, 1):
         file_raw_name = file.name
         
         try:
-            # 🛡️ 正常在線增量跳過鎖（0 毫秒跳過不重複計算）
-            if file_raw_name in st.session_state.master_preview_dict:
+            # 🛡️ 增量智慧鎖：只要以前跑過且沒被全刪光，0毫秒直接跳過不重複計算
+            if file_raw_name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[file_raw_name], dict):
                 saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
                 progress_bar.progress(idx / num_execution)
                 continue
@@ -312,7 +307,6 @@ if uploaded_files and start_btn:
             contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             del img_for_ai, img_rotated, img_rgb_r, output_pil_r, alpha_r, thresh_r
             gc.collect()
-            
             if sum(1 for c in contours_rotated if cv2.contourArea(cv2.convexHull(c)) > (h_o * w_o * 0.015)) > sum(1 for c in contours_normal if cv2.contourArea(cv2.convexHull(c)) > (w_o * h_o * 0.015)):
                 img = cv2.rotate(img_orig, cv2.ROTATE_90_CLOCKWISE); contours = contours_rotated; is_rotated_for_calculation = True; h, w = w_o, h_o
             else:
@@ -345,7 +339,7 @@ if uploaded_files and start_btn:
                 cx, cy = bx + bw // 2, by + bh // 2
                 ideal_pad_w = int((bw / ratio - bw) / 2); ideal_pad_h = int((bh / ratio - bh) / 2)
                 x1 = cx - bw // 2 - min(cx - bw // 2, ideal_pad_w); x2 = cx + bw // 2 + min((w - cx) - bw // 2, ideal_pad_w)
-                y1 = cy - bh // 2 - min(cy - bh // 2, ideal_pad_h); y2 = cy + bh // 2 + min((h - cy) - bw // 2, ideal_pad_h)
+                y1 = cy - bh // 2 - min(cy - bh // 2, ideal_pad_h); y2 = cy + bh // 2 + min((h - cy) - bh // 2, ideal_pad_h)
                 cropped = img[y1:y2, x1:x2]
                 if cropped.size == 0: continue
                 if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
@@ -375,12 +369,7 @@ if uploaded_files and start_btn:
 # 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與物理級拔除
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
-    active_uploaded_names = {f.name for f in uploaded_files} if uploaded_files else set()
-    preview_keys = list(st.session_state.master_preview_dict.keys())
-    for orig_key in preview_keys:
-        if orig_key not in active_uploaded_names:
-            st.session_state.master_preview_dict.pop(orig_key, None)
-
+    # 🚫 【徹底刪除交集同步毒瘤】：我們不再暴力清除！讓記憶體保持絕對獨立自主！
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     os.makedirs(temp_out_dir, exist_ok=True)
@@ -390,7 +379,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
     distinct_source_files_count = 0
     
     for orig_file, contents in list(st.session_state.master_preview_dict.items()):
-        if isinstance(contents, dict) and contents["crops"]:
+        if isinstance(contents, dict) and contents.get("crops"):
             distinct_source_files_count += 1 
             for crop_item in contents["crops"]:
                 with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: 
@@ -428,7 +417,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                         new_wallet_total = max(0, user_wallet_total - overflow_debt)
                     db.collection("users").document(user_uid).update({"credits_total": new_wallet_total, "daily_free_used": new_daily_free_used, "monthly_free_used": new_monthly_free_used, "last_date": current_date_str, "last_month": current_month_str})
             
-            st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
             st.rerun()
@@ -444,7 +432,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
     main_col.markdown(f"### {L['preview_title']}")
     
     for orig_key, contents in list(st.session_state.master_preview_dict.items()):
-        if not isinstance(contents, dict) or not contents["crops"]: continue
+        if not isinstance(contents, dict) or not contents.get("crops"): continue
         
         main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
         num_crops = len(contents["crops"])
@@ -465,8 +453,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
-                        # 👑 真．雙向物理快取刷新：全刪光時，順便遞增 token 換鎖清洗大框框
+                        # 👑 【真．物理剔除晶片】：不管是刪一半還是全刪完
+                        #    我們直接在背景把這個記憶體節點完完全全抹除（Pop），並原地 st.rerun()！
+                        #    大框框連動換鎖全部拿掉！框框裡的檔案完全留著不碰。
+                        #    這使得使用者可以直接再按一次導出，大腦一掃描發現記憶體裡空空如也，直接 100% 原地重新完整出圖復活！
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
-                            st.session_state.uploader_key_token += 1
                         st.rerun()
