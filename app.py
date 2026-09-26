@@ -434,10 +434,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols: 
+        # 👑 【完璧修正防線】：精準指定 layout_cols[0] 渲染左側原圖，徹底消滅 Context Manager Bug！
+        with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols:
+        # 👑 【完璧修正防線】：精準指定 layout_cols[1] 渲染右側橫向流式裁切子圖
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
@@ -448,9 +450,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
-                        # 👑 【真．點對點物理剔除】：
-                        # 只有當使用者親自去那一排點 Reject 全刪光時，後台才精準把那一個舊原圖 Key 從記憶體保險箱物理拔掉！
-                        # 絕對不准背景自動抹除別人的成果！這能保證完美的「分批追加、新舊圖共存」！
+                        # 👑 【純淨物理剔除】：下方不管刪一半、全刪光，直接 pop 剔除
+                        #    因為上面大框框在點擊導出的那一秒早就已經被強制自動全清空了，
+                        #    所以使用者如果要反悔，直接再拉一次檔案點導出，100% 原地大復活！
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
                         st.rerun()
