@@ -88,14 +88,14 @@ if not user_authed:
     email_in = side_col.text_input("📧 Email", key="auth_email")
     pass_in = side_col.text_input("🔒 Password", type="password", key="auth_pass")
     if auth_mode == "Sign Up (Free 50)":
-        if side_col.button("🚀 Establish Account", use_container_width=True, key="reg_btn"):
+        if side_col.button("🚀 Establish Account", width="stretch", key="reg_btn"):
             try:
                 user = auth.create_user(email=email_in, password=pass_in)
                 if db: db.collection("users").document(user.uid).set({"email": email_in, "credits_total": 50})
                 side_col.success("✅ Account established! Switch to Sign In.")
             except Exception as e: side_col.error(f"❌ Failed: {str(e)}")
     else:
-        if side_col.button("⚡ Access Account", use_container_width=True, key="login_btn"):
+        if side_col.button("⚡ Access Account", width="stretch", key="login_btn"):
             try:
                 user_record = auth.get_user_by_email(email_in)
                 st.session_state.user_authenticated = True
@@ -114,16 +114,16 @@ else:
     side_col.success(L["welcome"].format(st.session_state.user_email, credits_total))
     side_col.markdown("---")
     side_col.markdown("#### 🪙 Top Up Cloud Unified Wallet")
-    if side_col.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", use_container_width=True, key="side_pack_1"):
+    if side_col.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", width="stretch", key="side_pack_1"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 150})
         st.rerun()
-    if side_col.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", use_container_width=True, key="side_pack_2"):
+    if side_col.button(r"🇺🇸 Power Seller ($19.99) ── +700 Credits", width="stretch", key="side_pack_2"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 700})
         st.rerun()
-    if side_col.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", use_container_width=True, type="primary", key="side_pack_3"):
+    if side_col.button(r"🇺🇸 Mega Vault ($49.99) ── +2000 Credits", width="stretch", type="primary", key="side_pack_3"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 2000})
         st.rerun()
-    if side_col.button("🚪 Sign Out Workspace", use_container_width=True, key="logout_btn"):
+    if side_col.button("🚪 Sign Out Workspace", width="stretch", key="logout_btn"):
         st.session_state.user_authenticated = False
         st.session_state.user_email = ""
         st.rerun()
@@ -144,7 +144,7 @@ uploaded_files = main_col.file_uploader(L["drag_lbl"], type=["jpg", "jpeg", "png
 num_uploaded = len(uploaded_files) if uploaded_files else 0
 
 col_btn1, col_btn2 = main_col.columns(2)
-clear_btn_triggered = col_btn1.button(L["clear_btn"], use_container_width=True, key="clear_all_queue")
+clear_btn_triggered = col_btn1.button(L["clear_btn"], width="stretch", key="clear_all_queue")
 if clear_btn_triggered:
     st.session_state.uploader_key_token += 1
     st.session_state.temp_ready = False
@@ -152,22 +152,35 @@ if clear_btn_triggered:
     st.rerun()
 
 any_violation = (num_uploaded == 0 or num_uploaded > current_remaining_quota)
-start_btn = col_btn2.button(L["btn_lbl"], type="primary", use_container_width=True, key="start_pipeline", disabled=any_violation)
+start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="start_pipeline", disabled=any_violation)
 
 zip_path = "/tmp/processed_centered_images.zip"
 if uploaded_files and start_btn:
     saved = 0
     progress_bar = main_col.progress(0)
     session = load_rembg_session()
-    st.session_state.master_preview_dict = {}
+    
+    # 🧠 【增量防禦】：不一刀切清空，只把「被使用者移除了的圖」從記憶體拔掉
+    active_uploaded_names = {f.name for f in uploaded_files}
+    for old_key in list(st.session_state.master_preview_dict.keys()):
+        if old_key not in active_uploaded_names:
+            st.session_state.master_preview_dict.pop(old_key, None)
+            
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     if os.path.exists(zip_path): os.remove(zip_path)
     os.makedirs(temp_out_dir, exist_ok=True)
     
     for idx, file in enumerate(uploaded_files, 1):
+        file_raw_name = file.name
+        
+        # 🛡️ 【精準防重複安全鎖】：如果圖之前跑過了，直接跳過不進 AI！
+        if file_raw_name in st.session_state.master_preview_dict:
+            saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
+            progress_bar.progress(idx / num_uploaded)
+            continue
+            
         try:
-            file_raw_name = file.name
             file.seek(0)
             file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
             img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -264,6 +277,12 @@ if uploaded_files and start_btn:
                     "img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()
                 })
                 saved += 1
+            
+            # 🛡️ 釋放當前跑完的新圖暫存
+            del img_orig, img_rgb_o, output_pil_o, alpha_o, thresh_o, contours_normal
+            del img_rotated, img_rgb_r, output_pil_r, alpha_r, thresh_r, contours_rotated
+            gc.collect()
+            
         except: pass
         progress_bar.progress(idx / num_uploaded)
     
@@ -307,7 +326,7 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             data=zip_data, 
             file_name="processed_centered_images.zip", 
             mime="application/zip", 
-            use_container_width=True, 
+            width="stretch", 
             key="dl_zip_final_gate"
         )
         
@@ -355,11 +374,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
         
         num_crops = len(contents["crops"])
-        # 建立大表格結構：左側原圖(0.20)，右側成果區(0.80)
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
         with layout_cols[0]:
-            st.image(contents["orig_thumb"], caption=L["orig_lbl"], use_container_width=True)
+            st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
         with layout_cols[1]:
             # 🔥 依照分割出來的張數動態宣告等量欄位，強迫橫向並排
@@ -367,12 +385,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
-                    st.image(crop_data["thumb_bytes"], use_container_width=True)
+                    st.image(crop_data["thumb_bytes"], width="stretch")
                     st.caption(f"🎯 {crop_data['img_name']}")
                     
                     btn_id = f"del_{orig_key}_{crop_data['img_name']}_{c_idx}"
-                    # 🚀 安全防護剔除：局部過濾並 rerun 刷新
-                    if st.button(L["del_btn"], key=btn_id, type="secondary", use_container_width=True):
+                    if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         target_name = crop_data['img_name']
                         st.session_state.master_preview_dict[orig_key]["crops"] = [
                             x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != target_name
