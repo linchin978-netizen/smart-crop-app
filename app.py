@@ -231,11 +231,8 @@ if uploaded_files and start_btn:
     saved = 0
     session = load_rembg_session()
     
-    # 🧠 增量防禦：如果圖片已經徹底被移出上傳框，才從記憶體中完全拔除
-    active_uploaded_names = {f.name for f in uploaded_files}
-    for old_key in list(st.session_state.master_preview_dict.keys()):
-        if old_key not in active_uploaded_names:
-            st.session_state.master_preview_dict.pop(old_key, None)
+    # 🚫 【徹底拆除交集彈出毒瘤】：我們不再因為大框框清空而暴力抹除記憶體！
+    #     這能讓上一次處理好的舊預覽圖穩穩在線留在畫面上，解鎖流暢的分批加圖功能！
             
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
@@ -243,7 +240,7 @@ if uploaded_files and start_btn:
     os.makedirs(temp_out_dir, exist_ok=True)
     
     # 👑 【商用切片大腦】：計算目前新名額
-    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v["crops"])
+    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
     allowed_new_slots = max(0, current_remaining_quota - current_live_sources)
     
     already_processed_files = [f for f in uploaded_files if f.name in st.session_state.master_preview_dict]
@@ -264,7 +261,7 @@ if uploaded_files and start_btn:
         file_raw_name = file.name
         
         try:
-            # 🛡️ 智慧增量鎖：只要以前跑過且資料存在，直接跳過不重複計算
+            # 🛡 *智慧增量鎖*：只要這張原圖以前跑過且資料存在，直接 0 毫秒跳過不重複計算（原地大復活反悔機制會自動在下方 pop 掉觸發這段）
             if file_raw_name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[file_raw_name], dict):
                 saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
                 progress_bar.progress(idx / num_execution)
@@ -361,13 +358,12 @@ if uploaded_files and start_btn:
             pass
         progress_bar.progress(idx / num_execution)
     
-    # 👑 【真．一鍵導出自動全清空黑科技】：跑完 AI、建立完預覽字典的這一毫秒，強制換金鑰！
-    #    這會逼唯讀大框框整台在背景直接物理砸碎、100% 洗成最乾淨、沒有任何殘留標籤的雪白空機！
+    # 👑 按導出秒清空黑科技：
     st.session_state.uploader_key_token += 1
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與物理級拔除
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與點對點精準物理拔除
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -438,10 +434,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols[0]: 
+        with layout_cols: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols[1]:
+        with layout_cols:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
@@ -452,9 +448,9 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
-                        # 👑 【純淨物理剔除】：下方不管刪一半、全刪光，直接 pop 剔除
-                        #    因為上面大框框在點擊導出的那一秒早就已經被強制自動全清空了，
-                        #    所以使用者如果要反悔，直接再拉一次檔案點導出，100% 原地大復活！
+                        # 👑 【真．點對點物理剔除】：
+                        # 只有當使用者親自去那一排點 Reject 全刪光時，後台才精準把那一個舊原圖 Key 從記憶體保險箱物理拔掉！
+                        # 絕對不准背景自動抹除別人的成果！這能保證完美的「分批追加、新舊圖共存」！
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
                         st.rerun()
