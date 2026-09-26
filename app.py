@@ -227,23 +227,20 @@ if clear_btn_triggered:
 start_btn = col_btn2.button(L["btn_lbl"], type="primary", width="stretch", key="start_pipeline", disabled=(num_uploaded == 0))
 
 zip_path = "/tmp/processed_centered_images.zip"
+# =========================================================================
+# 👑 第四部分：100% 初心回歸 ── 鐵壁不當機去背核心 (保證每張通通都能導出)
+# =========================================================================
 if uploaded_files and start_btn:
     saved = 0
     session = load_rembg_session()
     
-    # 🧠 增量防禦：如果圖片已經徹底被移出上傳框，才從記憶體中完全拔除
-    active_uploaded_names = {f.name for f in uploaded_files}
-    for old_key in list(st.session_state.master_preview_dict.keys()):
-        if old_key not in active_uploaded_names:
-            st.session_state.master_preview_dict.pop(old_key, None)
-            
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
     if os.path.exists(zip_path): os.remove(zip_path)
     os.makedirs(temp_out_dir, exist_ok=True)
     
     # 👑 【商用切片大腦】：計算目前新名額
-    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v["crops"])
+    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
     allowed_new_slots = max(0, current_remaining_quota - current_live_sources)
     
     already_processed_files = [f for f in uploaded_files if f.name in st.session_state.master_preview_dict]
@@ -329,7 +326,6 @@ if uploaded_files and start_btn:
                             roi_h, roi_w, _ = roi.shape
                             roi_light = cv2.resize(roi, (int(roi_w * (600.0 / max(roi_h, roi_w))), int(roi_h * (600.0 / max(roi_h, roi_w)))), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
                             s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-                            # 👑 【完璧去毒修正】：使用正確的標準二值化語法，徹底斬草除根 stroke 錯誤參數！
                             _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                             if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
                             s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -347,7 +343,9 @@ if uploaded_files and start_btn:
                 y1 = cy - bh // 2 - min(cy - bh // 2, ideal_pad_h); y2 = cy + bh // 2 + min((h - cy) - bh // 2, ideal_pad_h)
                 cropped = img[y1:y2, x1:x2]
                 if cropped.size == 0: continue
-                if is_rotated_for_counter: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                
+                # 👑 【核心變數扶正】：100% 精準對齊 is_rotated_for_calculation，徹底消滅 NameError！
+                if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 
                 _, cropped_thumb_buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, 35])
                 t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
@@ -367,7 +365,7 @@ if uploaded_files and start_btn:
             pass
         progress_bar.progress(idx / num_execution)
     
-    # 👑 一鍵導出秒清空黑科技
+    # 👑 按導出秒清空黑科技
     st.session_state.uploader_key_token += 1
     st.session_state.temp_ready = True
     st.rerun()
