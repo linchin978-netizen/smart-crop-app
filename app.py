@@ -457,8 +457,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols: st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
-        with layout_cols:
+        # 👑 【完璧修正防線】：精準鎖定第 0 欄渲染原圖，鎖定第 1 欄渲染子圖，徹底消滅 Context Manager Bug！
+        with layout_cols[0]: 
+            st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
+            
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
                 with sub_grid_cols[c_idx]:
