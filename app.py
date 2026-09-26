@@ -256,7 +256,7 @@ if uploaded_files and start_btn:
     num_execution = len(final_execution_queue)
     
     if skipped_count > 0:
-        main_col.warning(f"⚠️ **Nexus Cap Limit Notice**: Balance only has **{current_remaining_quota}** credits left. {skipped_count} files skipped.")
+        main_col.warning(f"⚠️ **Nexus Cap Limit Notice**: Available balance only has **{current_remaining_quota}** credits left. {skipped_count} files were skipped. Recharge below to unlock full folder rendering!")
 
     progress_bar = main_col.progress(0)
     
@@ -264,7 +264,7 @@ if uploaded_files and start_btn:
         file_raw_name = file.name
         
         try:
-            # 🛡️ 增量智慧鎖：只要以前跑過且沒被全刪光，0毫秒直接跳過
+            # 🛡️ 智慧增量鎖：只要以前跑過且資料存在，直接跳過不重複計算
             if file_raw_name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[file_raw_name], dict):
                 saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
                 progress_bar.progress(idx / num_execution)
@@ -284,7 +284,11 @@ if uploaded_files and start_btn:
             
             h_o, w_o, _ = img_orig.shape
             max_side = max(h_o, w_o)
-            img_for_ai = cv2.resize(img_orig, (int(w_o * (1200.0 / max_side)), int(h_o * (1200.0 / max_side))), interpolation=cv2.INTER_AREA) if max_side > 1200 else img_orig.copy()
+            if max_side > 1200:
+                scale = 1200.0 / max_side
+                img_for_ai = cv2.resize(img_orig, (int(w_o * scale), int(h_o * scale)), interpolation=cv2.INTER_AREA)
+            else:
+                img_for_ai = img_orig.copy()
             
             # 正向盲測
             img_rgb_o = cv2.cvtColor(img_for_ai, cv2.COLOR_BGR2RGB)
@@ -318,7 +322,7 @@ if uploaded_files and start_btn:
                     bx, by, bw, bh = cv2.boundingRect(hull); roi = img[by:by+bh, bx:bx+bw]
                     if roi.size > 0 and (np.sum(cv2.Canny(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY), 50, 150) > 0) / roi.size) < 0.05:
                         roi_h, roi_w, _ = roi.shape
-                        roi_light = cv2.resize(roi, (int(roi_w * (600.0 / max(roi_h, roi_w))), int(roi_h * (600.0 / max(roi_h, roi_w)))), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
+                        roi_light = cv2.resize(roi, (int(roi_w * s_scale), int(roi_h * s_scale)), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
                         s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                         if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
@@ -357,11 +361,13 @@ if uploaded_files and start_btn:
             pass
         progress_bar.progress(idx / num_execution)
     
-    if saved > 0 or len(allowed_new_files) > 0:
-        st.session_state.temp_ready = True
-        st.rerun()
-        # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與實體快取清洗
+    # 👑 【真．一鍵導出自動全清空黑科技】：跑完 AI、建立完預覽字典的這一毫秒，強制換金鑰！
+    #    這會逼唯讀大框框整台在背景直接物理砸碎、100% 洗成最乾淨、沒有任何殘留標籤的雪白空機！
+    st.session_state.uploader_key_token += 1
+    st.session_state.temp_ready = True
+    st.rerun()
+    # =========================================================================
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與物理級拔除
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -411,7 +417,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                         new_wallet_total = max(0, user_wallet_total - overflow_debt)
                     db.collection("users").document(user_uid).update({"credits_total": new_wallet_total, "daily_free_used": new_daily_free_used, "monthly_free_used": new_monthly_free_used, "last_date": current_date_str, "last_month": current_month_str})
             
-            st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
             st.rerun()
@@ -445,16 +450,11 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                     btn_id = f"del_{orig_key}_{crop_data['img_name']}_{c_idx}"
                     
                     if st.button(L["del_btn"], key=btn_id, type="secondary", width="stretch"):
-                        # 👑 【究極刪一半、全刪光物理連坐晶片】：
-                        # 狀況 A：如果只是刪除其中幾張小圖（刪一半）
                         st.session_state.master_preview_dict[orig_key]["crops"] = [x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != crop_data['img_name']]
                         
-                        # 狀況 B：如果他把這一排通通點完刪光了！
+                        # 👑 【純淨物理剔除】：下方不管刪一半、全刪光，直接 pop 剔除
+                        #    因為上面大框框在點擊導出的那一秒早就已經被強制自動全清空了，
+                        #    所以使用者如果要反悔，直接再拉一次檔案點導出，100% 原地大復活！
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
-                            # 1. 後台實體抹除節點
                             st.session_state.master_preview_dict.pop(orig_key, None)
-                            # 2. 🛡️ 換鎖炸裂：在全刪光的同個毫秒，強制遞增 token 換鎖清洗大框框！
-                            #    這會逼唯讀大框框整台砸碎換新機，快取徹底洗白。
-                            #    這下子使用者不需要手刪上面，直接再拉同張圖進框點導出，100% 原地大復活！
-                            st.session_state.uploader_key_token += 1
                         st.rerun()
