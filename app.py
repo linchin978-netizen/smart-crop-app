@@ -304,7 +304,11 @@ if uploaded_files and start_btn:
             
             h_o, w_o, _ = img_orig.shape
             max_side = max(h_o, w_o)
-            img_for_ai = cv2.resize(img_orig, (int(w_o * (1200.0 / max_side)), int(h_o * (1200.0 / max_side))), interpolation=cv2.INTER_AREA) if max_side > 1200 else img_orig.copy()
+            if max_side > 1200:
+                scale = 1200.0 / max_side
+                img_for_ai = cv2.resize(img_orig, (int(w_o * scale), int(h_o * scale)), interpolation=cv2.INTER_AREA)
+            else:
+                img_for_ai = img_orig.copy()
             
             # 正向盲測
             img_rgb_o = cv2.cvtColor(img_for_ai, cv2.COLOR_BGR2RGB)
@@ -338,7 +342,11 @@ if uploaded_files and start_btn:
                     bx, by, bw, bh = cv2.boundingRect(hull); roi = img[by:by+bh, bx:bx+bw]
                     if roi.size > 0 and (np.sum(cv2.Canny(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY), 50, 150) > 0) / roi.size) < 0.05:
                         roi_h, roi_w, _ = roi.shape
-                        roi_light = cv2.resize(roi, (int(roi_w * (600.0 / max(roi_h, roi_w))), int(roi_h * (600.0 / max(roi_h, roi_w)))), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
+                        if max(roi_h, roi_w) > 600:
+                            s_scale = 600.0 / max(roi_h, roi_w)
+                            roi_light = cv2.resize(roi, (int(roi_w * s_scale), int(roi_h * s_scale)), interpolation=cv2.INTER_AREA)
+                        else:
+                            roi_light = roi.copy()
                         s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                         if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
