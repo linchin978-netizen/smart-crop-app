@@ -370,7 +370,7 @@ if uploaded_files and start_btn:
     st.session_state.temp_ready = True
     st.rerun()
     # =========================================================================
-# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【創辦人指引精準檔名扣點晶片】
+# 👑 第五部分：即時打包 ＋ 180px橫向等高流式矩陣與【初心回歸狀態記帳保險箱】
 # =========================================================================
 if st.session_state.temp_ready and st.session_state.master_preview_dict:
     temp_out_dir = "/tmp/processed_centered_images"
@@ -393,85 +393,90 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                 
         with open(zip_path, "rb") as f_zip: zip_data = f_zip.read()
         
-        # 👑 【真．創辦人指引現場清算晶片】：直接計算目前畫面上「活著的不同原圖名稱數量」，徹底粉碎任何死鎖白嫖漏洞！
-        def deduct_credits_callback_process():
-            # 🎯 聽話代碼：直接數目前字典裡有幾個 Key (原圖檔名)，就是幾點！極致純淨、絕對不出錯！
-            deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
+        # 🎯 聽話代碼：直接計算目前畫面上「活著的不同原圖名稱數量」
+        deduct_amt = len(list(st.session_state.master_preview_dict.keys()))
+
+        # 👑 【真．初心回歸狀態記帳保險箱】：放棄所有 on_click！在按鈕渲染出來的同個微秒，直接強制清算 Firebase！
+        if deduct_amt > 0 and db:
+            now_ip = get_remote_ip()
+            now_date = datetime.now().strftime("%Y-%m-%d")
+            now_month = datetime.now().strftime("%Y-%m")
             
-            if deduct_amt > 0 and db:
-                now_ip = get_remote_ip()
-                now_date = datetime.now().strftime("%Y-%m-%d")
-                now_month = datetime.now().strftime("%Y-%m")
-                
-                is_dev = False
-                if "is_developer_bypass" in st.session_state:
-                    is_dev = st.session_state.is_developer_bypass
-                elif "DEVELOPER_IP_WHITELIST" in globals():
-                    is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
-                
-                if not is_dev:
-                    if not st.session_state.user_authenticated:
-                        live_day, live_month = 0, 0
-                        try:
-                            ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
-                            if ip_doc:
-                                if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
-                                if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
-                        except: pass
-                        
-                        db.collection("guest_ips").document(now_ip).set({
-                            "day_used": live_day + deduct_amt,
-                            "month_used": live_month + deduct_amt,
-                            "last_date": now_date,
-                            "last_month": now_month
-                        }, merge=True)
-                    else:
-                        try:
-                            user_rec = auth.get_user_by_email(st.session_state.user_email)
-                            u_uid = user_rec.uid
-                            u_doc = db.collection("users").document(u_uid).get().to_dict()
-                            if u_doc:
-                                live_wallet = u_doc.get("credits_total", 0)
-                                live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
-                                live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
+            is_dev = False
+            if "is_developer_bypass" in st.session_state:
+                is_dev = st.session_state.is_developer_bypass
+            elif "DEVELOPER_IP_WHITELIST" in globals():
+                is_dev = (now_ip == "127.0.0.1" or now_ip in DEVELOPER_IP_WHITELIST)
+            
+            # 🛡️ 確保一輪只扣一次，利用特殊 flag 鎖定
+            if not is_dev and not st.session_state.get(f"debited_{st.session_state.uploader_key_token}", False):
+                if not st.session_state.user_authenticated:
+                    live_day, live_month = 0, 0
+                    try:
+                        ip_doc = db.collection("guest_ips").document(now_ip).get().to_dict()
+                        if ip_doc:
+                            if ip_doc.get("last_month") == now_month: live_month = ip_doc.get("month_used", 0)
+                            if ip_doc.get("last_date") == now_date: live_day = ip_doc.get("day_used", 0)
+                    except: pass
+                    
+                    db.collection("guest_ips").document(now_ip).set({
+                        "day_used": live_day + deduct_amt,
+                        "month_used": live_month + deduct_amt,
+                        "last_date": now_date,
+                        "last_month": now_month
+                    }, merge=True)
+                else:
+                    try:
+                        user_rec = auth.get_user_by_email(st.session_state.user_email)
+                        u_uid = user_rec.uid
+                        u_doc = db.collection("users").document(u_uid).get().to_dict()
+                        if u_doc:
+                            live_wallet = u_doc.get("credits_total", 0)
+                            live_free_day = u_doc.get("daily_free_used", 0) if u_doc.get("last_date") == now_date else 0
+                            live_free_month = u_doc.get("monthly_free_used", 0) if u_doc.get("last_month") == now_month else 0
+                            
+                            m_free_left = max(0, 18 - live_free_month)
+                            d_free_left = max(0, 6 - live_free_day)
+                            actual_free_left = min(d_free_left, m_free_left)
+                            
+                            if deduct_amt <= actual_free_left:
+                                new_d_free = live_free_day + deduct_amt
+                                new_m_free = live_free_month + deduct_amt
+                                new_wallet = live_wallet
+                            else:
+                                overflow = deduct_amt - actual_free_left
+                                image_debt = overflow
+                                new_d_free = live_free_day + actual_free_left
+                                new_m_free = live_free_month + actual_free_left
+                                new_wallet = max(0, live_wallet - image_debt)
                                 
-                                m_free_left = max(0, 18 - live_free_month)
-                                d_free_left = max(0, 6 - live_free_day)
-                                actual_free_left = min(d_free_left, m_free_left)
-                                
-                                if deduct_amt <= actual_free_left:
-                                    new_d_free = live_free_day + deduct_amt
-                                    new_m_free = live_free_month + deduct_amt
-                                    new_wallet = live_wallet
-                                else:
-                                    overflow = deduct_amt - actual_free_left
-                                    new_d_free = live_free_day + actual_free_left
-                                    new_m_free = live_free_month + actual_free_left
-                                    new_wallet = max(0, live_wallet - overflow)
-                                    
-                                db.collection("users").document(u_uid).set({
-                                    "credits_total": new_wallet,
+                            db.collection("users").document(u_uid).set({
+                                "credits_total": new_wallet,
                                     "daily_free_used": new_d_free,
                                     "monthly_free_used": new_m_free,
                                     "last_date": now_date,
                                     "last_month": now_month
                                 }, merge=True)
                         except: pass
-            
-            # 👑 交易成功才洗機換鎖
-            st.session_state.uploader_key_token += 1
-            st.session_state.temp_ready = False
-            st.session_state.master_preview_dict = {}
+                # 🔒 鎖定本輪，絕不重複扣點
+                st.session_state[f"debited_{st.session_state.uploader_key_token}"] = True
 
-        main_col.download_button(
+        # 🚀 100% 純淨無回調下載按鈕，給歐美賣家最熟悉的極致絲滑體感！
+        dl_clicked = main_col.download_button(
             label=L["dl_btn"],
             data=zip_data,
             file_name="processed_centered_images.zip",
             mime="application/zip",
             width="stretch",
-            key="dl_zip_final_gate",
-            on_click=deduct_credits_callback_process
+            key="dl_zip_final_gate_pure"
         )
+        
+        # 當使用者拿到檔案、網頁因 download_button 自動重啟時，我們順理成章清空工作台，大圓滿完工！
+        if dl_clicked:
+            st.session_state.temp_ready = False
+            st.session_state.master_preview_dict = {}
+            st.session_state.uploader_key_token += 1
+            st.rerun()
 
     st.html("""
         <style>
@@ -490,11 +495,10 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         num_crops = len(contents["crops"])
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        # 👑 【完璧欄位對齊修正】：精準鎖定第 0 欄渲染左側原圖，徹底封死 TypeError！
+        # 👑 【完美欄位對齊修正】：精準指定 layout_cols 0 和 1，徹底消滅 TypeError！
         with layout_cols[0]: 
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        # 👑 【完璧欄位對齊修正】：精準鎖定第 1 欄橫向流式渲染子圖矩陣
         with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             for c_idx, crop_data in enumerate(contents["crops"]):
