@@ -33,12 +33,12 @@ def get_remote_ip():
         ctx = st.context if hasattr(st, "context") else None
         if ctx and hasattr(ctx, "headers"):
             headers = ctx.headers
-            if "X-Forwarded-For" in headers: return headers["X-Forwarded-For"].split(",").strip()
+            if "X-Forwarded-For" in headers: return headers["X-Forwarded-For"].split(",")[0].strip()
             elif "X-Real-IP" in headers: return headers["X-Real-IP"].strip()
     except: pass
     return "127.0.0.1"
 
-# 🌍 核心功能純英文大字典 (SaaS 旗艦規格)
+# 🌍 核心功能純英文大字典 (歐美 SaaS 旗艦規格)
 L = {
     "title": "🌐 Smart Subject Recognition & Auto-Center Crop",
     "param_header": "⚙️ Layout Ratio & Capacity Parameters (Customizable Values)",
@@ -67,27 +67,54 @@ user_authed = st.session_state.user_authenticated
 credits_total = 0
 user_uid = ""
 
+# 🌍 讀取雲端訪客 IP 保險箱
 if db and not user_authed and visitor_ip != "127.0.0.1":
     try:
         ip_data = db.collection("guest_ips").document(visitor_ip).get().to_dict()
         if ip_data:
-            if ip_data.get("last_date") == current_date_str: guest_used_day = ip_data.get("day_used", 0)
-            if ip_data.get("last_month") == current_month_str: guest_used_month = ip_data.get("month_used", 0)
+            # 🕒 【30天月度總防線】：如果是同一個月，讀取月消耗點數；跨月則自動歸零
+            if ip_data.get("last_month") == current_month_str: 
+                guest_used_month = ip_data.get("month_used", 0)
+            else:
+                guest_used_month = 0
+                
+            # 🌙 【午夜 12:00 自動歸零防線】：如果今天的日期不等於上一次下載日期
+            #     今天已使用的額度在記憶體中立刻「原地歸零」，讓他又能重新拿到 10 點！
+            if ip_data.get("last_date") == current_date_str:
+                guest_used_day = ip_data.get("day_used", 0)
+            else:
+                guest_used_day = 0
     except: pass
 
-current_remaining_quota = min(10 - guest_used_day, 30 - guest_used_month) if not user_authed else credits_total
+# 📊 雙軌制錢包精準清算演算法
+if not user_authed:
+    # 👑 訪客雙重防線：一個月總上限 30 點。每天午夜過後恢復 10 點額度。
+    monthly_allowance_left = max(0, 30 - guest_used_month) # 當月還剩多少免費額度
+    daily_allowance_left = max(0, 10 - guest_used_day)    # 今天還剩多少免費額度
+    
+    # 本次最高給「今天剩的」，但如果「這個月剩的」快不夠了，則以這個月剩的為主
+    current_remaining_quota = min(daily_allowance_left, monthly_allowance_left)
+else:
+    current_remaining_quota = credits_total
 
 # 高級電商雙欄布局
 main_col, side_col = st.columns([0.72, 0.28], gap="large")
 
 side_col.markdown(f"### {L['usage_title']}")
 if not user_authed:
-    side_col.info(L["guest_info"].format(guest_used_day, max(0, current_remaining_quota)))
+    # 🎨 介面資訊一目了然：讓歐美訪客清楚看懂「今日剩餘」與「本月累積」
+    side_col.info(
+        f"🕒 **Anonymous IP Wallet**:\n"
+        f"* Available Today: **{current_remaining_quota} / 10** Credits\n"
+        f"* Monthly Accumulated: **{guest_used_month} / 30** Used\n\n"
+        f"💡 *Note: Daily quota resets back to 10 automatically at midnight (12:00 AM) until monthly cap is reached.*"
+    )
     side_col.markdown("---")
-    auth_mode = side_col.radio("Portal Access", ("Sign In", "Sign Up (Free 50)"), horizontal=True, key="auth_mode_gate")
+    auth_mode = side_col.radio("Portal Access", ("Sign In", "Sign Up (Free 50 Credits)"), horizontal=True, key="auth_mode_gate")
     email_in = side_col.text_input("📧 Email", key="auth_email")
     pass_in = side_col.text_input("🔒 Password", type="password", key="auth_pass")
-    if auth_mode == "Sign Up (Free 50)":
+    
+    if auth_mode == "Sign Up (Free 50 Credits)":
         if side_col.button("🚀 Establish Account", width="stretch", key="reg_btn"):
             try:
                 user = auth.create_user(email=email_in, password=pass_in)
@@ -113,7 +140,7 @@ else:
     current_remaining_quota = credits_total
     side_col.success(L["welcome"].format(st.session_state.user_email, credits_total))
     side_col.markdown("---")
-    side_col.markdown("#### 🪙 Top Up Cloud Unified Wallet")
+    side_col.markdown("#### 🪙 Top Up Credits Wallet (Lifetime Access)")
     if side_col.button(r"🇺🇸 Starter Pack ($4.99) ── +150 Credits", width="stretch", key="side_pack_1"):
         if db and user_uid: db.collection("users").document(user_uid).update({"credits_total": credits_total + 150})
         st.rerun()
@@ -160,7 +187,7 @@ if uploaded_files and start_btn:
     progress_bar = main_col.progress(0)
     session = load_rembg_session()
     
-    # 🧠 增量防禦：不一刀切清空，只把「被使用者移除了的圖」拔掉
+    # 🧠 增量防禦安全鎖：只留目前還在上傳框框裡的舊圖，其餘拔掉
     active_uploaded_names = {f.name for f in uploaded_files}
     for old_key in list(st.session_state.master_preview_dict.keys()):
         if old_key not in active_uploaded_names:
@@ -171,27 +198,34 @@ if uploaded_files and start_btn:
     if os.path.exists(zip_path): os.remove(zip_path)
     os.makedirs(temp_out_dir, exist_ok=True)
     
+    # 🚀 啟動單執行緒串流輸送帶，一張一張從暫存撈出，極致節能
     for idx, file in enumerate(uploaded_files, 1):
         file_raw_name = file.name
         
-        # 🛡️ 精準防重複安全鎖
+        # 🛡️ 增量跳過鎖：如果這張圖之前跑過了，直接 0 毫秒跳過
         if file_raw_name in st.session_state.master_preview_dict:
             saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
             progress_bar.progress(idx / num_uploaded)
             continue
             
         try:
+            # 💾 硬碟分流快取技術：指標歸零，直接以二進位流從硬碟讀取，不留大變數在實體記憶體
             file.seek(0)
             file_bytes = np.frombuffer(file.read(), dtype=np.uint8)
             img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+            
+            # 檔案讀取完畢後，手動強制釋放這筆 Byte 陣列，把實體記憶體立刻還給系統
+            del file_bytes
             if img_orig is None: continue
             
+            # 生成低位元組的預覽縮圖
             _, orig_thumb_buf = cv2.imencode(".jpg", img_orig, [cv2.IMWRITE_JPEG_QUALITY, 35])
             st.session_state.master_preview_dict[file_raw_name] = {
                 "orig_thumb": orig_thumb_buf.tobytes(), "crops": []
             }
+            del orig_thumb_buf
             
-            # 🛡️ 【AI 節能盾】：若圖片太大，等比例縮小進去背模型，防止 1GB 記憶體超載被伺服器殺死
+            # 🛡️ AI 節能分辨率防線
             h_o, w_o, _ = img_orig.shape
             max_side = max(h_o, w_o)
             if max_side > 1200:
@@ -200,21 +234,21 @@ if uploaded_files and start_btn:
             else:
                 img_for_ai = img_orig.copy()
             
+            # 正向盲測
             img_rgb_o = cv2.cvtColor(img_for_ai, cv2.COLOR_BGR2RGB)
             output_pil_o = remove(Image.fromarray(img_rgb_o), session=session)
             alpha_o = cv2.cvtColor(np.array(output_pil_o), cv2.COLOR_RGBA2BGRA)[:, :, 3]
             _, thresh_o = cv2.threshold(alpha_o, 10, 255, cv2.THRESH_BINARY)
             
-            # 將去背結果等比例拉回原圖尺寸計算輪廓
             if max_side > 1200:
                 thresh_o = cv2.resize(thresh_o, (w_o, h_o), interpolation=cv2.INTER_NEAREST)
             contours_normal, _ = cv2.findContours(thresh_o, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-            # 釋放正向去背記憶體
+            # 徹底蒸發正向 AI 快取，絕不累積到下一張圖
             del img_rgb_o, output_pil_o, alpha_o, thresh_o
             gc.collect()
             
-            # 旋轉盲測節能處理
+            # 旋轉盲測
             img_rotated = cv2.rotate(img_for_ai, cv2.ROTATE_90_CLOCKWISE)
             img_rgb_r = cv2.cvtColor(img_rotated, cv2.COLOR_BGR2RGB)
             output_pil_r = remove(Image.fromarray(img_rgb_r), session=session)
@@ -225,7 +259,7 @@ if uploaded_files and start_btn:
                 thresh_r = cv2.resize(thresh_r, (h_o, w_o), interpolation=cv2.INTER_NEAREST)
             contours_rotated, _ = cv2.findContours(thresh_r, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-            # 釋放旋轉去背記憶體
+            # 徹底蒸發旋轉 AI 快取
             del img_for_ai, img_rotated, img_rgb_r, output_pil_r, alpha_r, thresh_r
             gc.collect()
             
@@ -253,7 +287,6 @@ if uploaded_files and start_btn:
                         g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
                         e_roi = cv2.Canny(g_roi, 50, 150)
                         if (np.sum(e_roi > 0) / e_roi.size) < 0.05:
-                            # 針對大邊邊緣進行輕量化分析
                             roi_h, roi_w, _ = roi.shape
                             if max(roi_h, roi_w) > 600:
                                 s_scale = 600.0 / max(roi_h, roi_w)
@@ -310,8 +343,8 @@ if uploaded_files and start_btn:
                 })
                 saved += 1
             
-            # 清理本輪實體大圖快取
-            del img, cropped
+            # 🛑 核心抹除：本輪裁切完成，物理清空這張大圖的一切殘留，徹底歸零記憶體
+            del img, cropped, contours, valid_boxes
             gc.collect()
             
         except: pass
@@ -337,11 +370,15 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
     if os.path.exists(zip_path): os.remove(zip_path)
     
     total_live_count = 0
+    distinct_source_files_count = 0
+    
     for orig_file, contents in list(st.session_state.master_preview_dict.items()):
-        for crop_item in contents["crops"]:
-            with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: 
-                f_out.write(crop_item["full_bytes"])
-            total_live_count += 1
+        if contents["crops"]:
+            distinct_source_files_count += 1 # 👑 複數出圖只計1次扣點
+            for crop_item in contents["crops"]:
+                with open(os.path.join(temp_out_dir, crop_item["img_name"]), "wb") as f_out: 
+                    f_out.write(crop_item["full_bytes"])
+                total_live_count += 1
             
     if total_live_count > 0:
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -361,16 +398,23 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
             key="dl_zip_final_gate"
         )
         
+        # 🪙 【雙軌制午夜重置清算晶片】
         if dl_clicked:
+            final_deduct_credits = distinct_source_files_count
+            
             if db and visitor_ip != "127.0.0.1" and not user_authed:
+                # 👑 訪客模式：精準清算，將本次扣點同時寫入「當日」與「當月」累積計數，並蓋上日期戳印
                 db.collection("guest_ips").document(visitor_ip).set({
-                    "day_used": guest_used_day + num_uploaded, 
-                    "month_used": guest_used_month + num_uploaded, 
-                    "last_date": current_date_str, 
+                    "day_used": guest_used_day + final_deduct_credits,
+                    "month_used": guest_used_month + final_deduct_credits, 
+                    "last_date": current_date_str,
                     "last_month": current_month_str
                 })
             elif db and user_uid and user_authed:
-                db.collection("users").document(user_uid).update({"credits_total": max(0, credits_total - num_uploaded)})
+                # 會員模式：扣除個人錢包總量（註冊送的50點與充值點數完美通算）
+                db.collection("users").document(user_uid).update({
+                    "credits_total": max(0, credits_total - final_deduct_credits)
+                })
             st.session_state.uploader_key_token += 1
             st.session_state.temp_ready = False
             st.session_state.master_preview_dict = {}
@@ -404,14 +448,12 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
         
         num_crops = len(contents["crops"])
-        # 建立大表格結構：左側原圖(0.20)，右側成果區(0.80)
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
         with layout_cols[0]:
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
         with layout_cols[1]:
-            # 🔥 依照分割出來的張數動態宣告等量欄位，強迫橫向並排
             sub_grid_cols = st.columns(num_crops)
             
             for c_idx, crop_data in enumerate(contents["crops"]):
@@ -425,12 +467,6 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
                         st.session_state.master_preview_dict[orig_key]["crops"] = [
                             x for x in st.session_state.master_preview_dict[orig_key]["crops"] if x['img_name'] != target_name
                         ]
-                        
-                        # 👑 【逆向雙向扣鎖連動核心】：
-                        # 如果該原圖名下的所有預覽圖都被使用者「全刪光」了
                         if not st.session_state.master_preview_dict[orig_key]["crops"]:
                             st.session_state.master_preview_dict.pop(orig_key, None)
-                            # 🎯 物理突破 Streamlit 唯讀機制：強制重置上傳框金鑰，讓上傳框把這張死圖剔除！
-                            st.session_state.uploader_key_token += 1
-                            
                         st.rerun()
