@@ -340,7 +340,6 @@ if uploaded_files and start_btn:
                         roi_h, roi_w, _ = roi.shape
                         roi_light = cv2.resize(roi, (int(roi_w * (600.0 / max(roi_h, roi_w))), int(roi_h * (600.0 / max(roi_h, roi_w)))), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
                         s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-                        # 👑 Correct binary threshold parameters
                         _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
                         if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
                         s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -374,7 +373,8 @@ if uploaded_files and start_btn:
                 st.session_state.master_preview_dict[file_raw_name]["crops"].append({"img_name": out_img_name, "thumb_bytes": cropped_thumb_buf.tobytes(), "full_bytes": buf.tobytes()})
             del img, cropped, contours, valid_boxes
             gc.collect()
-        except: pass
+        except:
+            pass
         progress_bar.progress(idx / num_execution)
     
     if saved > 0 or len(allowed_new_files) > 0:
