@@ -404,12 +404,15 @@ if st.session_state.temp_ready and st.session_state.master_preview_dict:
         main_col.markdown(f"#### 📁 Asset Source Name: `{orig_key}`")
         
         num_crops = len(contents["crops"])
+        # 建立大表格結構：左側原圖(0.20)，右側成果區(0.80)
         layout_cols = main_col.columns([0.20, 0.80], gap="medium")
         
-        with layout_cols:
+        # 👑 修正指標：精準指定塞入左側第一欄 [0]
+        with layout_cols[0]:
             st.image(contents["orig_thumb"], caption=L["orig_lbl"], width="stretch")
             
-        with layout_cols:
+        # 👑 修正指標：精準指定塞入右側第二欄 [1]
+        with layout_cols[1]:
             sub_grid_cols = st.columns(num_crops)
             
             for c_idx, crop_data in enumerate(contents["crops"]):
