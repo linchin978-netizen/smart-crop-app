@@ -231,8 +231,11 @@ if uploaded_files and start_btn:
     saved = 0
     session = load_rembg_session()
     
-    # 🚫 【徹底拆除交集彈出毒瘤】：我們不再因為大框框清空而暴力抹除記憶體！
-    #     這能讓上一次處理好的舊預覽圖穩穩在線留在畫面上，解鎖流暢的分批加圖功能！
+    # 🧠 增量防禦：如果圖片已經徹底被移出上傳框，才從記憶體中完全拔除
+    active_uploaded_names = {f.name for f in uploaded_files}
+    for old_key in list(st.session_state.master_preview_dict.keys()):
+        if old_key not in active_uploaded_names:
+            st.session_state.master_preview_dict.pop(old_key, None)
             
     temp_out_dir = "/tmp/processed_centered_images"
     if os.path.exists(temp_out_dir): shutil.rmtree(temp_out_dir)
@@ -240,7 +243,7 @@ if uploaded_files and start_btn:
     os.makedirs(temp_out_dir, exist_ok=True)
     
     # 👑 【商用切片大腦】：計算目前新名額
-    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v.get("crops"))
+    current_live_sources = sum(1 for k, v in st.session_state.master_preview_dict.items() if isinstance(v, dict) and v["crops"])
     allowed_new_slots = max(0, current_remaining_quota - current_live_sources)
     
     already_processed_files = [f for f in uploaded_files if f.name in st.session_state.master_preview_dict]
@@ -261,15 +264,17 @@ if uploaded_files and start_btn:
         file_raw_name = file.name
         
         try:
-            # 🛡 *智慧增量鎖*：只要這張原圖以前跑過且資料存在，直接 0 毫秒跳過不重複計算（原地大復活反悔機制會自動在下方 pop 掉觸發這段）
+            # 🛡️ 智慧增量鎖：只要以前跑過且資料存在，直接 0 毫秒跳過不重複計算
             if file_raw_name in st.session_state.master_preview_dict and isinstance(st.session_state.master_preview_dict[file_raw_name], dict):
                 saved += len(st.session_state.master_preview_dict[file_raw_name]["crops"])
                 progress_bar.progress(idx / num_execution)
                 continue
                 
-            # 💾 硬碟分流快取
+            # 💾 強制歸零指標
             file.seek(0)
             file_data_bytes = file.read()
+            file.seek(0)
+            
             file_bytes = np.frombuffer(file_data_bytes, dtype=np.uint8)
             img_orig = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
             del file_bytes, file_data_bytes
@@ -317,16 +322,20 @@ if uploaded_files and start_btn:
                 hull = cv2.convexHull(c)
                 if cv2.contourArea(hull) > (w * h * 0.015):
                     bx, by, bw, bh = cv2.boundingRect(hull); roi = img[by:by+bh, bx:bx+bw]
-                    if roi.size > 0 and (np.sum(cv2.Canny(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY), 50, 150) > 0) / roi.size) < 0.05:
-                        roi_h, roi_w, _ = roi.shape
-                        roi_light = cv2.resize(roi, (int(roi_w * s_scale), int(roi_h * s_scale)), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
-                        s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
-                        _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
-                        if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
-                        s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                        if s_cnt:
-                            sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
-                            if sbw * sbh < (bw * bh * 0.92): valid_boxes.append((bx + sbx, by + sby, sbw, sbh)); continue
+                    if roi.size > 0:
+                        g_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                        e_roi = cv2.Canny(g_roi, 50, 150)
+                        if e_roi.size > 0 and (np.sum(e_roi > 0) / e_roi.size) < 0.05:
+                            roi_h, roi_w, _ = roi.shape
+                            roi_light = cv2.resize(roi, (int(roi_w * (600.0 / max(roi_h, roi_w))), int(roi_h * (600.0 / max(roi_h, roi_w)))), interpolation=cv2.INTER_AREA) if max(roi_h, roi_w) > 600 else roi.copy()
+                            s_alpha = cv2.cvtColor(np.array(remove(Image.fromarray(cv2.cvtColor(roi_light, cv2.COLOR_BGR2RGB)), session=session)), cv2.COLOR_RGBA2BGRA)[:, :, 3]
+                            # 👑 【完璧去毒修正】：使用正確的標準二值化語法，徹底斬草除根 stroke 錯誤參數！
+                            _, s_thresh = cv2.threshold(s_alpha, 10, 255, cv2.THRESH_BINARY)
+                            if max(roi_h, roi_w) > 600: s_thresh = cv2.resize(s_thresh, (roi_w, roi_h), interpolation=cv2.INTER_NEAREST)
+                            s_cnt, _ = cv2.findContours(s_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                            if s_cnt:
+                                sbx, sby, sbw, sbh = cv2.boundingRect(max(s_cnt, key=cv2.contourArea))
+                                if sbw * sbh < (bw * bh * 0.92): valid_boxes.append((bx + sbx, by + sby, sbw, sbh)); continue
                     valid_boxes.append((bx, by, bw, bh))
             
             if not valid_boxes: valid_boxes.append((int(w*0.25), int(h*0.25), int(w*0.5), int(w*0.5)))
@@ -338,7 +347,7 @@ if uploaded_files and start_btn:
                 y1 = cy - bh // 2 - min(cy - bh // 2, ideal_pad_h); y2 = cy + bh // 2 + min((h - cy) - bh // 2, ideal_pad_h)
                 cropped = img[y1:y2, x1:x2]
                 if cropped.size == 0: continue
-                if is_rotated_for_calculation: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                if is_rotated_for_counter: cropped = cv2.rotate(cropped, cv2.ROTATE_90_COUNTERCLOCKWISE)
                 
                 _, cropped_thumb_buf = cv2.imencode(".jpg", cropped, [cv2.IMWRITE_JPEG_QUALITY, 35])
                 t_bytes = t_mb * 1024 * 1024; low, high, best_q = 1, 100, 85
@@ -358,7 +367,7 @@ if uploaded_files and start_btn:
             pass
         progress_bar.progress(idx / num_execution)
     
-    # 👑 按導出秒清空黑科技：
+    # 👑 一鍵導出秒清空黑科技
     st.session_state.uploader_key_token += 1
     st.session_state.temp_ready = True
     st.rerun()
